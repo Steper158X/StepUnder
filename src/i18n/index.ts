@@ -1,0 +1,449 @@
+import { createSignal } from "solid-js";
+import { readSetting, writeSetting } from "~/lib/storage";
+
+export type Locale = "th" | "en";
+
+const en = {
+  "app.name": "StepUnder",
+  "app.tagline": "Your music, your server",
+
+  "nav.home": "Home",
+  "nav.albums": "Albums",
+  "nav.artists": "Artists",
+  "nav.playlists": "Playlists",
+  "nav.search": "Search",
+  "nav.settings": "Settings",
+  "nav.library": "Library",
+  "nav.browse": "Browse",
+
+  "action.save": "Save",
+  "action.saving": "Saving…",
+  "action.cancel": "Cancel",
+  "action.edit": "Edit",
+  "action.delete": "Delete",
+  "action.close": "Close",
+  "action.back": "Back",
+  "action.retry": "Retry",
+  "action.connect": "Connect",
+  "action.connecting": "Connecting…",
+  "action.switch": "Switch",
+  "action.add": "Add",
+  "action.remove": "Remove",
+  "action.play": "Play",
+  "action.pause": "Pause",
+  "action.next": "Next",
+  "action.previous": "Previous",
+  "action.shuffle": "Shuffle",
+  "action.repeat": "Repeat",
+  "action.queue": "Queue",
+  "action.clear": "Clear",
+  "action.loadMore": "Load more",
+  "action.testConnection": "Test connection",
+  "action.addToQueue": "Add to queue",
+  "action.playNext": "Play next",
+  "action.goToAlbum": "Go to album",
+  "action.more": "More options",
+  "action.mute": "Mute",
+  "action.unmute": "Unmute",
+  "action.volume": "Volume",
+  "action.like": "Add to favorites",
+  "action.unlike": "Remove from favorites",
+  "action.openMenu": "Open menu",
+
+  "common.loading": "Loading…",
+  "common.error": "Something went wrong",
+  "common.empty": "Nothing here yet",
+  "common.unknownArtist": "Unknown artist",
+  "common.unknownAlbum": "Unknown album",
+  "common.you": "You",
+
+  "units.songs": "songs",
+  "units.albums": "albums",
+  "units.tracks": "tracks",
+
+  "setup.title": "Connect your music server",
+  "setup.subtitle":
+    "StepUnder plays your Navidrome (or any Subsonic compatible) library.",
+  "setup.firstRunHint": "Add your first server to start listening.",
+  "setup.savedServers": "Saved servers",
+  "setup.addServer": "Add server",
+  "setup.editServer": "Edit server",
+
+  "field.serverName": "Server name",
+  "field.serverNamePlaceholder": "Home server",
+  "field.serverNameHint": "A label so you can tell your servers apart.",
+  "field.url": "Server URL",
+  "field.urlPlaceholder": "https://music.example.com",
+  "field.urlHint": "The base URL of your Navidrome instance.",
+  "field.username": "Username",
+  "field.usernamePlaceholder": "your-username",
+  "field.password": "Password",
+  "field.passwordPlaceholder": "••••••••",
+  "field.savePassword": "Save password",
+  "field.savePasswordHint":
+    "Stores the password in your operating system's credential vault.",
+
+  "error.generic": "Something went wrong. Please try again.",
+  "error.authFailed": "Wrong username or password.",
+  "error.notAuthorized": "This account is not allowed to use the API.",
+  "error.notFound": "The requested item was not found.",
+  "error.unreachable":
+    "Could not reach the server. Check the URL and your connection.",
+  "error.invalidRequest": "The server rejected the request.",
+  "error.invalidUrl": "Please enter a valid http(s) URL.",
+  "error.emptyUrl": "Please enter a server URL.",
+  "error.required": "This field is required.",
+  "error.noPassword": "Enter the password to connect to this server.",
+  "error.keychain": "Could not access the system keychain.",
+  "error.http": "The server returned an error ({code}).",
+
+  "servers.title": "Servers",
+  "servers.subtitle": "Manage the Navidrome servers StepUnder can use.",
+  "servers.empty": "No servers yet",
+  "servers.emptyHint": "Add a Navidrome server to start listening.",
+  "servers.add": "Add server",
+  "servers.active": "Active",
+  "servers.notActive": "Saved",
+  "servers.needPassword": "Password required",
+  "servers.deleteTitle": "Delete server?",
+  "servers.deleteDesc":
+    "This removes “{name}” and its saved password from this device. Your music library is not touched.",
+  "servers.passwordTitle": "Password for {name}",
+  "servers.passwordDesc": "Enter the password for “{username}”.",
+  "servers.remember": "Remember this password",
+  "servers.lastUsed": "Last used",
+  "servers.activeServer": "Active server",
+  "servers.switchServer": "Switch server",
+  "servers.manage": "Manage servers",
+
+  "home.recentlyAdded": "Recently added",
+  "home.recentlyPlayed": "Recently played",
+  "home.random": "Random picks",
+  "home.starred": "Starred albums",
+  "home.more": "See all",
+
+  "albums.title": "Albums",
+  "albums.sort": "Sort by",
+  "albums.sort.newest": "Newest",
+  "albums.sort.recent": "Recently played",
+  "albums.sort.alphabeticalByName": "Name (A–Z)",
+  "albums.sort.alphabeticalByArtist": "Artist (A–Z)",
+  "albums.sort.random": "Random",
+  "albums.sort.starred": "Starred",
+  "albums.sort.frequent": "Most played",
+  "albums.empty": "No albums found",
+
+  "artists.title": "Artists",
+  "artists.empty": "No artists found",
+  "artists.albums": "Albums",
+  "artists.topSongs": "Top songs",
+
+  "album.playAll": "Play all",
+  "album.shufflePlay": "Shuffle",
+  "album.songCount": "{count} songs",
+  "album.notFound": "Album not found",
+
+  "playlists.title": "Playlists",
+  "playlists.empty": "No playlists on this server",
+  "playlists.owner": "by {owner}",
+  "playlists.songCount": "{count} songs",
+
+  "playlist.playAll": "Play all",
+  "playlist.songCount": "{count} songs",
+
+  "search.title": "Search",
+  "search.placeholder": "Songs, albums, artists…",
+  "search.hint": "Search your library on this server.",
+  "search.empty": "Type something to search",
+  "search.noResults": "No results for “{query}”",
+  "search.songs": "Songs",
+  "search.albums": "Albums",
+  "search.artists": "Artists",
+  "search.all": "All",
+
+  "player.nowPlaying": "Now playing",
+  "player.nothingPlaying": "Nothing playing",
+  "player.queue": "Queue",
+  "player.queueEmpty": "Your queue is empty",
+  "player.queueEmptyHint": "Play an album or add songs from anywhere.",
+  "player.upNext": "Up next",
+  "player.clearQueue": "Clear queue",
+  "player.remove": "Remove from queue",
+  "player.playingFrom": "Playing from {name}",
+  "player.streamError": "Playback failed. Check your server connection.",
+  "player.noServer": "Connect to a server to play music.",
+
+  "settings.title": "Settings",
+  "settings.appearance": "Appearance",
+  "settings.theme": "Theme",
+  "settings.theme.dark": "Dark",
+  "settings.theme.light": "Light",
+  "settings.theme.system": "System",
+  "settings.language": "Language",
+  "settings.playback": "Playback",
+  "settings.scrobble": "Scrobble plays",
+  "settings.scrobbleHint":
+    "Report listens back to Navidrome so your play counts stay in sync.",
+  "settings.bitrate": "Maximum bitrate",
+  "settings.bitrateOriginal": "Original quality",
+  "settings.bitrateHint": "Ask the server to transcode above this limit.",
+  "settings.format": "Stream format",
+  "settings.formatRaw": "Original file",
+  "settings.formatHint": "Transcoding may help on slow connections.",
+  "settings.servers": "Servers",
+  "settings.about": "About",
+  "settings.version": "Version",
+  "settings.aboutHint":
+    "StepUnder is a lightweight desktop client for Navidrome and other Subsonic compatible servers.",
+  "settings.keychainHint":
+    "Saved passwords live in the system credential vault, never in this app's files.",
+
+  "toast.connected": "Connected to {name}",
+  "toast.saved": "Saved",
+  "toast.deleted": "Deleted",
+  "toast.testSuccess": "Connection works",
+  "toast.starred": "Added to favorites",
+  "toast.unstarred": "Removed from favorites",
+  "toast.queueCleared": "Queue cleared",
+
+  "empty.noServer": "Connect a server first",
+} as const;
+
+export type MessageKey = keyof typeof en;
+
+const th: Record<MessageKey, string> = {
+  "app.name": "StepUnder",
+  "app.tagline": "เพลงของคุณ เซิร์ฟเวอร์ของคุณ",
+
+  "nav.home": "หน้าแรก",
+  "nav.albums": "อัลบั้ม",
+  "nav.artists": "ศิลปิน",
+  "nav.playlists": "เพลย์ลิสต์",
+  "nav.search": "ค้นหา",
+  "nav.settings": "ตั้งค่า",
+  "nav.library": "คลังเพลง",
+  "nav.browse": "เรียกดู",
+
+  "action.save": "บันทึก",
+  "action.saving": "กำลังบันทึก…",
+  "action.cancel": "ยกเลิก",
+  "action.edit": "แก้ไข",
+  "action.delete": "ลบ",
+  "action.close": "ปิด",
+  "action.back": "ย้อนกลับ",
+  "action.retry": "ลองใหม่",
+  "action.connect": "เชื่อมต่อ",
+  "action.connecting": "กำลังเชื่อมต่อ…",
+  "action.switch": "สลับ",
+  "action.add": "เพิ่ม",
+  "action.remove": "นำออก",
+  "action.play": "เล่น",
+  "action.pause": "หยุดชั่วคราว",
+  "action.next": "ถัดไป",
+  "action.previous": "ก่อนหน้า",
+  "action.shuffle": "สุ่มเพลง",
+  "action.repeat": "เล่นซ้ำ",
+  "action.queue": "คิวเพลง",
+  "action.clear": "ล้าง",
+  "action.loadMore": "โหลดเพิ่ม",
+  "action.testConnection": "ทดสอบการเชื่อมต่อ",
+  "action.addToQueue": "เพิ่มเข้าคิว",
+  "action.playNext": "เล่นถัดไป",
+  "action.goToAlbum": "ไปที่อัลบั้ม",
+  "action.more": "ตัวเลือกเพิ่มเติม",
+  "action.mute": "ปิดเสียง",
+  "action.unmute": "เปิดเสียง",
+  "action.volume": "ระดับเสียง",
+  "action.like": "เพิ่มในรายการชื่นชอบ",
+  "action.unlike": "นำออกจากรายการชื่นชอบ",
+  "action.openMenu": "เปิดเมนู",
+
+  "common.loading": "กำลังโหลด…",
+  "common.error": "เกิดข้อผิดพลาด",
+  "common.empty": "ยังไม่มีรายการ",
+  "common.unknownArtist": "ศิลปินไม่ทราบชื่อ",
+  "common.unknownAlbum": "อัลบั้มไม่ทราบชื่อ",
+  "common.you": "คุณ",
+
+  "units.songs": "เพลง",
+  "units.albums": "อัลบั้ม",
+  "units.tracks": "แทร็ก",
+
+  "setup.title": "เชื่อมต่อเซิร์ฟเวอร์เพลงของคุณ",
+  "setup.subtitle":
+    "StepUnder เล่นเพลงจาก Navidrome หรือเซิร์ฟเวอร์ที่รองรับ Subsonic ของคุณ",
+  "setup.firstRunHint": "เพิ่มเซิร์ฟเวอร์แรกเพื่อเริ่มฟังเพลง",
+  "setup.savedServers": "เซิร์ฟเวอร์ที่บันทึกไว้",
+  "setup.addServer": "เพิ่มเซิร์ฟเวอร์",
+  "setup.editServer": "แก้ไขเซิร์ฟเวอร์",
+
+  "field.serverName": "ชื่อเซิร์ฟเวอร์",
+  "field.serverNamePlaceholder": "เซิร์ฟเวอร์ที่บ้าน",
+  "field.serverNameHint": "ตั้งชื่อเพื่อแยกเซิร์ฟเวอร์หลายตัวออกจากกัน",
+  "field.url": "URL ของเซิร์ฟเวอร์",
+  "field.urlPlaceholder": "https://music.example.com",
+  "field.urlHint": "ที่อยู่หลักของ Navidrome ของคุณ",
+  "field.username": "ชื่อผู้ใช้",
+  "field.usernamePlaceholder": "ชื่อผู้ใช้ของคุณ",
+  "field.password": "รหัสผ่าน",
+  "field.passwordPlaceholder": "••••••••",
+  "field.savePassword": "จำรหัสผ่าน",
+  "field.savePasswordHint":
+    "เก็บรหัสผ่านไว้ในระบบจัดเก็บข้อมูลลับของระบบปฏิบัติการ",
+
+  "error.generic": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+  "error.authFailed": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+  "error.notAuthorized": "บัญชีนี้ไม่ได้รับอนุญาตให้ใช้ API",
+  "error.notFound": "ไม่พบรายการที่ร้องขอ",
+  "error.unreachable": "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบ URL และการเชื่อมต่อ",
+  "error.invalidRequest": "เซิร์ฟเวอร์ปฏิเสธคำขอ",
+  "error.invalidUrl": "กรุณากรอก URL ที่ขึ้นต้นด้วย http หรือ https",
+  "error.emptyUrl": "กรุณากรอก URL ของเซิร์ฟเวอร์",
+  "error.required": "จำเป็นต้องกรอกช่องนี้",
+  "error.noPassword": "กรอกรหัสผ่านเพื่อเชื่อมต่อเซิร์ฟเวอร์นี้",
+  "error.keychain": "เข้าถึงระบบจัดเก็บรหัสผ่านของเครื่องไม่ได้",
+  "error.http": "เซิร์ฟเวอร์ตอบกลับข้อผิดพลาด ({code})",
+
+  "servers.title": "เซิร์ฟเวอร์",
+  "servers.subtitle": "จัดการเซิร์ฟเวอร์ Navidrome ที่ StepUnder ใช้งานได้",
+  "servers.empty": "ยังไม่มีเซิร์ฟเวอร์",
+  "servers.emptyHint": "เพิ่มเซิร์ฟเวอร์ Navidrome เพื่อเริ่มฟังเพลง",
+  "servers.add": "เพิ่มเซิร์ฟเวอร์",
+  "servers.active": "ใช้งานอยู่",
+  "servers.notActive": "บันทึกไว้",
+  "servers.needPassword": "ต้องใส่รหัสผ่าน",
+  "servers.deleteTitle": "ลบเซิร์ฟเวอร์?",
+  "servers.deleteDesc":
+    "ระบบจะลบ “{name}” และรหัสผ่านที่บันทึกไว้ในเครื่องนี้ออก โดยไม่กระทบคลังเพลงของคุณ",
+  "servers.passwordTitle": "รหัสผ่านของ {name}",
+  "servers.passwordDesc": "กรอกรหัสผ่านของ “{username}”",
+  "servers.remember": "จำรหัสผ่านนี้",
+  "servers.lastUsed": "ใช้ล่าสุด",
+  "servers.activeServer": "เซิร์ฟเวอร์ที่ใช้งาน",
+  "servers.switchServer": "สลับเซิร์ฟเวอร์",
+  "servers.manage": "จัดการเซิร์ฟเวอร์",
+
+  "home.recentlyAdded": "เพิ่มใหม่ล่าสุด",
+  "home.recentlyPlayed": "เล่นล่าสุด",
+  "home.random": "สุ่มมาให้",
+  "home.starred": "อัลบั้มที่ชื่นชอบ",
+  "home.more": "ดูทั้งหมด",
+
+  "albums.title": "อัลบั้ม",
+  "albums.sort": "เรียงตาม",
+  "albums.sort.newest": "ใหม่ล่าสุด",
+  "albums.sort.recent": "เล่นล่าสุด",
+  "albums.sort.alphabeticalByName": "ชื่อ (ก–ฮ)",
+  "albums.sort.alphabeticalByArtist": "ศิลปิน (ก–ฮ)",
+  "albums.sort.random": "สุ่ม",
+  "albums.sort.starred": "ชื่นชอบ",
+  "albums.sort.frequent": "เล่นบ่อยที่สุด",
+  "albums.empty": "ไม่พบอัลบั้ม",
+
+  "artists.title": "ศิลปิน",
+  "artists.empty": "ไม่พบศิลปิน",
+  "artists.albums": "อัลบั้ม",
+  "artists.topSongs": "เพลงยอดนิยม",
+
+  "album.playAll": "เล่นทั้งหมด",
+  "album.shufflePlay": "สุ่มเล่น",
+  "album.songCount": "{count} เพลง",
+  "album.notFound": "ไม่พบอัลบั้ม",
+
+  "playlists.title": "เพลย์ลิสต์",
+  "playlists.empty": "เซิร์ฟเวอร์นี้ยังไม่มีเพลย์ลิสต์",
+  "playlists.owner": "โดย {owner}",
+  "playlists.songCount": "{count} เพลง",
+
+  "playlist.playAll": "เล่นทั้งหมด",
+  "playlist.songCount": "{count} เพลง",
+
+  "search.title": "ค้นหา",
+  "search.placeholder": "เพลง อัลบั้ม ศิลปิน…",
+  "search.hint": "ค้นหาเพลงในคลังของเซิร์ฟเวอร์นี้",
+  "search.empty": "พิมพ์คำค้นเพื่อเริ่มค้นหา",
+  "search.noResults": "ไม่พบผลลัพธ์สำหรับ “{query}”",
+  "search.songs": "เพลง",
+  "search.albums": "อัลบั้ม",
+  "search.artists": "ศิลปิน",
+  "search.all": "ทั้งหมด",
+
+  "player.nowPlaying": "กำลังเล่น",
+  "player.nothingPlaying": "ยังไม่มีเพลงที่เล่น",
+  "player.queue": "คิวเพลง",
+  "player.queueEmpty": "คิวเพลงว่างอยู่",
+  "player.queueEmptyHint": "เล่นอัลบั้มหรือเพิ่มเพลงจากที่ไหนก็ได้",
+  "player.upNext": "เล่นถัดไป",
+  "player.clearQueue": "ล้างคิว",
+  "player.remove": "นำออกจากคิว",
+  "player.playingFrom": "เล่นจาก {name}",
+  "player.streamError": "เล่นเพลงไม่สำเร็จ ตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์",
+  "player.noServer": "เชื่อมต่อเซิร์ฟเวอร์ก่อนเพื่อเล่นเพลง",
+
+  "settings.title": "ตั้งค่า",
+  "settings.appearance": "รูปลักษณ์",
+  "settings.theme": "ธีม",
+  "settings.theme.dark": "มืด",
+  "settings.theme.light": "สว่าง",
+  "settings.theme.system": "ตามระบบ",
+  "settings.language": "ภาษา",
+  "settings.playback": "การเล่น",
+  "settings.scrobble": "บันทึกประวัติการฟัง",
+  "settings.scrobbleHint":
+    "ส่งข้อมูลการเล่นกลับไปยัง Navidrome เพื่อให้ยอดเล่นซิงก์กัน",
+  "settings.bitrate": "บิตเรตสูงสุด",
+  "settings.bitrateOriginal": "คุณภาพต้นฉบับ",
+  "settings.bitrateHint": "ขอให้เซิร์ฟเวอร์แปลงคุณภาพหากเกินค่านี้",
+  "settings.format": "รูปแบบสตรีม",
+  "settings.formatRaw": "ไฟล์ต้นฉบับ",
+  "settings.formatHint": "การแปลงคุณภาพช่วยได้เมื่อเน็ตช้า",
+  "settings.servers": "เซิร์ฟเวอร์",
+  "settings.about": "เกี่ยวกับ",
+  "settings.version": "เวอร์ชัน",
+  "settings.aboutHint":
+    "StepUnder เป็นไคลเอนต์เดสก์ท็อปขนาดเล็กสำหรับ Navidrome และเซิร์ฟเวอร์ที่รองรับ Subsonic",
+  "settings.keychainHint":
+    "รหัสผ่านที่บันทึกไว้จะอยู่ในระบบจัดเก็บข้อมูลลับของเครื่อง ไม่ได้อยู่ในไฟล์ของแอป",
+
+  "toast.connected": "เชื่อมต่อกับ {name} แล้ว",
+  "toast.saved": "บันทึกแล้ว",
+  "toast.deleted": "ลบแล้ว",
+  "toast.testSuccess": "เชื่อมต่อได้สำเร็จ",
+  "toast.starred": "เพิ่มในรายการชื่นชอบแล้ว",
+  "toast.unstarred": "นำออกจากรายการชื่นชอบแล้ว",
+  "toast.queueCleared": "ล้างคิวเพลงแล้ว",
+
+  "empty.noServer": "เชื่อมต่อเซิร์ฟเวอร์ก่อน",
+};
+
+const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, th };
+
+const [locale, setLocaleSignal] = createSignal<Locale>("th");
+
+export { locale };
+
+export function t(
+  key: MessageKey,
+  params?: Record<string, string | number>,
+): string {
+  let text: string = dictionaries[locale()][key] ?? en[key] ?? key;
+  if (params) {
+    for (const [name, value] of Object.entries(params)) {
+      text = text.split(`{${name}}`).join(String(value));
+    }
+  }
+  return text;
+}
+
+export async function initI18n(): Promise<void> {
+  const saved = await readSetting<Locale>("locale", "th");
+  const next: Locale = saved === "en" ? "en" : "th";
+  setLocaleSignal(next);
+  document.documentElement.lang = next;
+}
+
+export function setLocale(next: Locale): void {
+  setLocaleSignal(next);
+  document.documentElement.lang = next;
+  void writeSetting("locale", next);
+}

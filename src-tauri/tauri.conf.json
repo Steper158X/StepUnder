@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "stepunder",
+  "productName": "StepUnder",
   "version": "0.1.0",
   "identifier": "com.stepz.stepunder",
   "build": {
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "stepunder",
-        "width": 800,
-        "height": 600
+        "title": "StepUnder",
+        "width": 1200,
+        "height": 780,
+        "minWidth": 900,
+        "minHeight": 600,
+        "center": true
       }
     ],
     "security": {

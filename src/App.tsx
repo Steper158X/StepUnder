@@ -1,51 +1,59 @@
-import { createSignal } from "solid-js";
-import logo from "./assets/logo.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { Router, Route, type RouteSectionProps } from "@solidjs/router";
+import { onMount } from "solid-js";
+import { ServersProvider } from "~/state/servers";
+import { PlayerProvider } from "~/player/store";
+import { initI18n } from "~/i18n";
+import { initSettings } from "~/state/settings";
+import { Toaster } from "~/components/toaster";
+import { AppLayout } from "~/components/app-layout";
+import SetupPage from "~/routes/setup";
+import ServersPage from "~/routes/servers";
+import HomePage from "~/routes/home";
+import AlbumsPage from "~/routes/albums";
+import AlbumPage from "~/routes/album";
+import ArtistsPage from "~/routes/artists";
+import ArtistPage from "~/routes/artist";
+import PlaylistsPage from "~/routes/playlists";
+import PlaylistPage from "~/routes/playlist";
+import SearchPage from "~/routes/search";
+import SettingsPage from "~/routes/settings";
+import NotFoundPage from "~/routes/not-found";
 
-function App() {
-  const [greetMsg, setGreetMsg] = createSignal("");
-  const [name, setName] = createSignal("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name: name() }));
-  }
+function Root(props: RouteSectionProps) {
+  onMount(() => {
+    void initI18n();
+    void initSettings();
+  });
 
   return (
-    <main class="container">
-      <h1>Welcome to Tauri + Solid</h1>
-
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://solidjs.com" target="_blank">
-          <img src={logo} class="logo solid" alt="Solid logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and Solid logos to learn more.</p>
-
-      <form
-        class="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg()}</p>
-    </main>
+    <>
+      {props.children}
+      <Toaster />
+    </>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ServersProvider>
+      <PlayerProvider>
+        <Router root={Root}>
+          <Route path="/setup" component={SetupPage} />
+          <Route path="/servers" component={ServersPage} />
+          <Route path="/" component={AppLayout}>
+            <Route path="/" component={HomePage} />
+            <Route path="/albums" component={AlbumsPage} />
+            <Route path="/album/:id" component={AlbumPage} />
+            <Route path="/artists" component={ArtistsPage} />
+            <Route path="/artist/:id" component={ArtistPage} />
+            <Route path="/playlists" component={PlaylistsPage} />
+            <Route path="/playlist/:id" component={PlaylistPage} />
+            <Route path="/search" component={SearchPage} />
+            <Route path="/settings" component={SettingsPage} />
+          </Route>
+          <Route path="*" component={NotFoundPage} />
+        </Router>
+      </PlayerProvider>
+    </ServersProvider>
+  );
+}
