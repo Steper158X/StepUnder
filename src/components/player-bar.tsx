@@ -96,12 +96,29 @@ export function PlayerBar() {
     <div class="shrink-0 border-t border-border/60 bg-card/50 backdrop-blur">
       <div class="grid h-[92px] grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] items-center gap-4 px-4 md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)]">
         <div class="flex min-w-0 items-center gap-3">
-          <Cover
-            coverArtId={track()?.coverArt}
-            size={96}
-            alt={track()?.album ?? track()?.title ?? ""}
-            class="size-12 rounded-md shadow-sm"
-          />
+          <button
+            type="button"
+            onClick={() => player.setNowPlayingOpen(!player.nowPlayingOpen())}
+            disabled={!track()}
+            title={t(
+              player.nowPlayingOpen()
+                ? "action.close"
+                : "player.openFullscreen",
+            )}
+            aria-label={t(
+              player.nowPlayingOpen()
+                ? "action.close"
+                : "player.openFullscreen",
+            )}
+            class="group shrink-0 cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+          >
+            <Cover
+              coverArtId={track()?.coverArt}
+              size={96}
+              alt={track()?.album ?? track()?.title ?? ""}
+              class="size-12 rounded-md shadow-sm transition-transform duration-200 group-enabled:group-hover:scale-105"
+            />
+          </button>
           <div class="min-w-0">
             <p class="truncate text-sm font-medium">
               {track()?.title ?? t("player.nothingPlaying")}

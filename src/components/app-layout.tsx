@@ -5,6 +5,7 @@ import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
 import { Sidebar } from "~/components/sidebar";
 import { PlayerBar } from "~/components/player-bar";
+import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
 import { Spinner } from "~/components/common";
 
@@ -34,10 +35,11 @@ export function AppLayout(props: RouteSectionProps) {
         }
       >
         <div class="flex h-full flex-col overflow-hidden">
-          <div class="flex min-h-0 flex-1">
+          <div class="relative flex min-h-0 flex-1">
             <Sidebar />
             <main class="min-w-0 flex-1 overflow-y-auto">{props.children}</main>
             <QueuePanel />
+            <NowPlaying />
           </div>
           <PlayerBar />
         </div>

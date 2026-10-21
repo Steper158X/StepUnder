@@ -50,6 +50,8 @@ export interface PlayerContextValue {
   current: Accessor<Song | null>;
   queueOpen: Accessor<boolean>;
   setQueueOpen: (open: boolean) => void;
+  nowPlayingOpen: Accessor<boolean>;
+  setNowPlayingOpen: (open: boolean) => void;
   playNow: (songs: Song[], index?: number, sourceName?: string) => void;
   playSong: (song: Song, context?: Song[], sourceName?: string) => void;
   addToQueue: (songs: Song[]) => void;
@@ -101,6 +103,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const servers = useServers();
   const [state, setState] = createStore<PlayerState>({ ...INITIAL_STATE });
   const [queueOpen, setQueueOpen] = createSignal(false);
+  const [nowPlayingOpen, setNowPlayingOpen] = createSignal(false);
   const [persisted, setPersisted] = createSignal<PersistedPlayer | null>(null);
 
   const audio = new Audio();
@@ -115,6 +118,11 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const current = createMemo<Song | null>(
     () => state.queue[state.index] ?? null,
   );
+
+  // Hide the full screen player again when the queue is cleared.
+  createEffect(() => {
+    if (!current()) setNowPlayingOpen(false);
+  });
 
   function updateMediaSession(track: Song) {
     if (!("mediaSession" in navigator)) return;
@@ -598,6 +606,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     current,
     queueOpen,
     setQueueOpen,
+    nowPlayingOpen,
+    setNowPlayingOpen,
     playNow,
     playSong,
     addToQueue,

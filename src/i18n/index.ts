@@ -165,6 +165,7 @@ const en = {
   "search.all": "All",
 
   "player.nowPlaying": "Now playing",
+  "player.openFullscreen": "Open full screen player",
   "player.nothingPlaying": "Nothing playing",
   "player.queue": "Queue",
   "player.queueEmpty": "Your queue is empty",
@@ -402,6 +403,7 @@ const th: Record<MessageKey, string> = {
   "search.all": "ทั้งหมด",
 
   "player.nowPlaying": "กำลังเล่น",
+  "player.openFullscreen": "เปิดเครื่องเล่นเต็มหน้าจอ",
   "player.nothingPlaying": "ยังไม่มีเพลงที่เล่น",
   "player.queue": "คิวเพลง",
   "player.queueEmpty": "คิวเพลงว่างอยู่",
