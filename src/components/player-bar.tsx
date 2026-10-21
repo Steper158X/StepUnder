@@ -207,24 +207,25 @@ export function PlayerBar() {
         </div>
 
         <div class="flex items-center justify-end gap-1.5">
-          <ControlButton
-            label={t(player.state.muted ? "action.unmute" : "action.mute")}
-            onClick={player.toggleMute}
-            class="hidden md:flex"
-          >
-            {(() => {
-              const Icon = volumeIcon();
-              return <Icon class="size-4" />;
-            })()}
-          </ControlButton>
-          <Slider
-            value={player.state.muted ? 0 : player.state.volume * 100}
-            max={100}
-            step={1}
-            class="hidden w-24 md:block"
-            ariaLabel={t("action.volume")}
-            onValueChange={(value) => player.setVolume(value / 100)}
-          />
+          <div class="hidden items-center gap-1.5 md:flex">
+            <ControlButton
+              label={t(player.state.muted ? "action.unmute" : "action.mute")}
+              onClick={player.toggleMute}
+            >
+              {(() => {
+                const Icon = volumeIcon();
+                return <Icon class="size-4" />;
+              })()}
+            </ControlButton>
+            <Slider
+              value={player.state.muted ? 0 : player.state.volume * 100}
+              max={100}
+              step={1}
+              class="w-24"
+              ariaLabel={t("action.volume")}
+              onValueChange={(value) => player.setVolume(value / 100)}
+            />
+          </div>
           <ControlButton
             label={t("player.queue")}
             onClick={() => player.setQueueOpen(true)}

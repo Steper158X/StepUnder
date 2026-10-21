@@ -1,5 +1,16 @@
 import type { JSX } from "solid-js";
-import { Content as SelectContent, Icon as SelectIcon, Item as SelectItem, ItemIndicator as SelectItemIndicator, ItemLabel as SelectItemLabel, Listbox as SelectListbox, Portal as SelectPortal, Root as SelectRoot, Trigger as SelectTrigger, Value as SelectValue } from "@kobalte/core/select";
+import {
+  Content as SelectContent,
+  Icon as SelectIcon,
+  Item as SelectItem,
+  ItemIndicator as SelectItemIndicator,
+  ItemLabel as SelectItemLabel,
+  Listbox as SelectListbox,
+  Portal as SelectPortal,
+  Root as SelectRoot,
+  Trigger as SelectTrigger,
+  Value as SelectValue,
+} from "@kobalte/core/select";
 import { Check, ChevronDown } from "lucide-solid";
 import { cn } from "~/lib/utils";
 
@@ -27,10 +38,14 @@ export function Select(props: {
   const labelOf = (value: string | undefined) =>
     props.options.find((option) => option.value === value)?.label;
 
+  const optionDisabled = (value: string) =>
+    Boolean(props.options.find((option) => option.value === value)?.disabled);
+
   return (
     <div class={cn("w-full", props.class)}>
       <SelectRoot<string>
         options={props.options.map((option) => option.value)}
+        optionDisabled={optionDisabled}
         value={props.value}
         defaultValue={props.defaultValue}
         onChange={(value) => {
