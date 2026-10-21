@@ -148,21 +148,32 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
             <div class="h-1/2" />
             <div class="flex flex-col gap-4">
               <For each={data().lines}>
-                {(line, index) => (
-                  <p
-                    data-line={index()}
-                    class={cn(
-                      "border-l-2 pl-4 text-2xl leading-relaxed transition-colors md:text-3xl",
-                      !data().synced
-                        ? "border-transparent text-foreground"
-                        : index() === activeIndex()
-                          ? "border-primary font-semibold text-foreground"
-                          : "border-transparent text-muted-foreground",
-                    )}
-                  >
-                    {line.value}
-                  </p>
-                )}
+                {(line, index) => {
+                  const clickable = () =>
+                    data().synced && line.start !== undefined;
+                  return (
+                    <button
+                      type="button"
+                      data-line={index()}
+                      disabled={!clickable()}
+                      onClick={() => {
+                        if (line.start !== undefined) player.seek(line.start);
+                      }}
+                      class={cn(
+                        "block w-full border-l-2 pl-4 text-left text-2xl leading-relaxed transition-[color,border-color,opacity,background-color] duration-300 md:text-3xl",
+                        !data().synced
+                          ? "border-transparent text-foreground"
+                          : index() === activeIndex()
+                            ? "lyric-line-active border-primary font-semibold text-foreground"
+                            : "border-transparent text-muted-foreground",
+                        clickable() &&
+                          "cursor-pointer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      )}
+                    >
+                      {line.value}
+                    </button>
+                  );
+                }}
               </For>
             </div>
             <div class="h-1/2" />
