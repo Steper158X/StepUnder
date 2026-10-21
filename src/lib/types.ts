@@ -90,6 +90,17 @@ export interface StarredResult {
   songs: Song[];
 }
 
+export interface LyricLine {
+  /** Start time in seconds (only present for synced lyrics). */
+  start?: number;
+  value: string;
+}
+
+export interface Lyrics {
+  synced: boolean;
+  lines: LyricLine[];
+}
+
 export interface ServerInfo {
   version?: string;
   type?: string;

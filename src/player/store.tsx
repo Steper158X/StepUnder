@@ -52,6 +52,8 @@ export interface PlayerContextValue {
   setQueueOpen: (open: boolean) => void;
   nowPlayingOpen: Accessor<boolean>;
   setNowPlayingOpen: (open: boolean) => void;
+  lyricsOpen: Accessor<boolean>;
+  toggleLyrics: () => void;
   playNow: (songs: Song[], index?: number, sourceName?: string) => void;
   playSong: (song: Song, context?: Song[], sourceName?: string) => void;
   addToQueue: (songs: Song[]) => void;
@@ -103,8 +105,23 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const servers = useServers();
   const [state, setState] = createStore<PlayerState>({ ...INITIAL_STATE });
   const [queueOpen, setQueueOpen] = createSignal(false);
-  const [nowPlayingOpen, setNowPlayingOpen] = createSignal(false);
+  const [nowPlayingOpen, setNowPlayingOpenSignal] = createSignal(false);
+  const [lyricsOpen, setLyricsOpen] = createSignal(false);
   const [persisted, setPersisted] = createSignal<PersistedPlayer | null>(null);
+
+  function setNowPlayingOpen(open: boolean) {
+    setNowPlayingOpenSignal(open);
+    if (!open) setLyricsOpen(false);
+  }
+
+  function toggleLyrics() {
+    if (lyricsOpen()) {
+      setLyricsOpen(false);
+      return;
+    }
+    setLyricsOpen(true);
+    setNowPlayingOpenSignal(true);
+  }
 
   const audio = new Audio();
   audio.preload = "metadata";
@@ -608,6 +625,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     setQueueOpen,
     nowPlayingOpen,
     setNowPlayingOpen,
+    lyricsOpen,
+    toggleLyrics,
     playNow,
     playSong,
     addToQueue,

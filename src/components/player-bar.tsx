@@ -2,6 +2,7 @@ import { Show, createEffect, createSignal, on } from "solid-js";
 import {
   Heart,
   ListMusic,
+  MicVocal,
   Pause,
   Play,
   Repeat,
@@ -243,6 +244,14 @@ export function PlayerBar() {
               onValueChange={(value) => player.setVolume(value / 100)}
             />
           </div>
+          <ControlButton
+            label={t("player.lyrics")}
+            active={player.lyricsOpen()}
+            disabled={!track()}
+            onClick={player.toggleLyrics}
+          >
+            <MicVocal class="size-4" />
+          </ControlButton>
           <ControlButton
             label={t("player.queue")}
             active={player.queueOpen()}

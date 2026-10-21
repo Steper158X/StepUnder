@@ -5,6 +5,7 @@ import type {
   Album,
   AlbumListType,
   Artist,
+  Lyrics,
   Playlist,
   SearchResult,
   ServerInfo,
@@ -70,6 +71,30 @@ function randomSalt(length = 8) {
 function clean(value: ParamValue): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   return String(value);
+}
+
+function toArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value === undefined || value === null) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+/** Normalizes OpenSubsonic `structuredLyrics` into plain/synced lines. */
+function parseStructuredLyrics(raw: any): Lyrics | null {
+  const entries = toArray<any>(raw?.structuredLyrics);
+  for (const entry of entries) {
+    if (!entry) continue;
+    const lines = toArray<any>(entry.line)
+      .map((line) => ({
+        start:
+          typeof line?.start === "number" ? line.start / 1000 : undefined,
+        value: String(line?.value ?? "").trim(),
+      }))
+      .filter((line) => line.value.length > 0);
+    if (lines.length) {
+      return { synced: Boolean(entry.synced), lines };
+    }
+  }
+  return null;
 }
 
 export interface StreamOptions {
@@ -277,6 +302,43 @@ export class SubsonicClient {
 
   async scrobble(id: string, submission = true): Promise<void> {
     await this.request("scrobble", { id, submission });
+  }
+
+  // ---------------------------------------------------------------- lyrics
+  async getLyricsBySongId(songId: string): Promise<Lyrics | null> {
+    try {
+      const body = await this.request("getLyricsBySongId", { id: songId });
+      return parseStructuredLyrics(body.lyricsList);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Legacy Subsonic fallback: lyrics are matched by artist and title. */
+  async getLyrics(artistName: string, title: string): Promise<Lyrics | null> {
+    try {
+      const body = await this.request("getLyrics", {
+        artist: artistName,
+        title,
+      });
+      const structured = parseStructuredLyrics(
+        body.lyricsList ?? body.lyrics,
+      );
+      if (structured) return structured;
+
+      const value: string =
+        typeof body.lyrics?.value === "string"
+          ? String(body.lyrics.value)
+          : "";
+      const lines = value.split(/\r?\n/).map((line) => line.trim());
+      while (lines.length && !lines[0]) lines.shift();
+      while (lines.length && !lines[lines.length - 1]) lines.pop();
+      return lines.length
+        ? { synced: false, lines: lines.map((line) => ({ value: line })) }
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   // ------------------------------------------------------------------ media

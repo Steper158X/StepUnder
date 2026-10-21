@@ -176,6 +176,9 @@ const en = {
   "player.playingFrom": "Playing from {name}",
   "player.streamError": "Playback failed. Check your server connection.",
   "player.noServer": "Connect to a server to play music.",
+  "player.lyrics": "Lyrics",
+  "player.lyricsLoading": "Loading lyrics…",
+  "player.lyricsEmpty": "No lyrics for this song",
 
   "settings.title": "Settings",
   "settings.appearance": "Appearance",
@@ -414,6 +417,9 @@ const th: Record<MessageKey, string> = {
   "player.playingFrom": "เล่นจาก {name}",
   "player.streamError": "เล่นเพลงไม่สำเร็จ ตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์",
   "player.noServer": "เชื่อมต่อเซิร์ฟเวอร์ก่อนเพื่อเล่นเพลง",
+  "player.lyrics": "เนื้อเพลง",
+  "player.lyricsLoading": "กำลังโหลดเนื้อเพลง…",
+  "player.lyricsEmpty": "เพลงนี้ยังไม่มีเนื้อเพลง",
 
   "settings.title": "ตั้งค่า",
   "settings.appearance": "รูปลักษณ์",
