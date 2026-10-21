@@ -11,12 +11,17 @@ export function QueuePanel() {
   const player = usePlayer();
 
   return (
-    <Show when={player.queueOpen()}>
-      <div
-        class="fixed inset-0 z-40 animate-fade-in bg-black/50"
-        onClick={() => player.setQueueOpen(false)}
-      />
-      <aside class="fixed right-0 top-0 z-50 flex h-full w-[22rem] max-w-[92vw] animate-slide-in-right flex-col border-l border-border/70 bg-card shadow-2xl">
+    <aside
+      class={cn(
+        "flex shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-out",
+        player.queueOpen()
+          ? "w-[22rem] border-l border-border/60 bg-card/25 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-40 max-md:max-w-[92vw] max-md:bg-card max-md:shadow-2xl"
+          : "w-0 border-l-0",
+      )}
+      inert={player.queueOpen() ? undefined : true}
+      aria-label={t("player.queue")}
+    >
+      <div class="flex h-full w-[22rem] max-w-[92vw] flex-col">
         <div class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 px-4">
           <div class="flex items-center gap-2">
             <ListMusic class="size-4 text-muted-foreground" />
@@ -134,7 +139,7 @@ export function QueuePanel() {
             {t("action.play")}
           </Button>
         </div>
-      </aside>
-    </Show>
+      </div>
+    </aside>
   );
 }

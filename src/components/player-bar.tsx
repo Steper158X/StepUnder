@@ -228,7 +228,8 @@ export function PlayerBar() {
           </div>
           <ControlButton
             label={t("player.queue")}
-            onClick={() => player.setQueueOpen(true)}
+            active={player.queueOpen()}
+            onClick={() => player.setQueueOpen(!player.queueOpen())}
             class="relative"
           >
             <ListMusic class="size-4" />
