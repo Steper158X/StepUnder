@@ -125,7 +125,7 @@ export default function AlbumPage() {
                 </p>
               }
             >
-              <TrackList songs={songs()} sourceName={album()!.name} />
+              <TrackList songs={songs()} sourceName={album()!.name} showCover />
             </Show>
           </div>
 

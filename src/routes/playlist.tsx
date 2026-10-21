@@ -114,6 +114,7 @@ export default function PlaylistPage() {
                 songs={songs()}
                 sourceName={playlist()!.name}
                 showAlbum
+                showCover
               />
             </Show>
           </div>

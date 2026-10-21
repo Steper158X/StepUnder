@@ -130,6 +130,7 @@ export default function SearchPage() {
                       songs={results()!.songs}
                       sourceName={t("search.songs")}
                       showAlbum
+                      showCover
                     />
                   </section>
                 </Show>

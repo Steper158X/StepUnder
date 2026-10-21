@@ -9,6 +9,7 @@ import { AppLayout } from "~/components/app-layout";
 import SetupPage from "~/routes/setup";
 import ServersPage from "~/routes/servers";
 import HomePage from "~/routes/home";
+import FavoritesPage from "~/routes/favorites";
 import AlbumsPage from "~/routes/albums";
 import AlbumPage from "~/routes/album";
 import ArtistsPage from "~/routes/artists";
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/servers" component={ServersPage} />
           <Route path="/" component={AppLayout}>
             <Route path="/" component={HomePage} />
+            <Route path="/favorites" component={FavoritesPage} />
             <Route path="/albums" component={AlbumsPage} />
             <Route path="/album/:id" component={AlbumPage} />
             <Route path="/artists" component={ArtistsPage} />

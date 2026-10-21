@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { Show, createEffect, createSignal, on, type JSX } from "solid-js";
-import { Ellipsis, Heart, ListEnd, ListPlus, Play, Plus } from "lucide-solid";
+import { Heart, ListEnd, ListPlus, Play, Plus } from "lucide-solid";
 import type { Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
@@ -12,12 +12,12 @@ import { toast } from "~/components/toaster";
 import { Cover, PlayingBars } from "~/components/common";
 import { Button } from "~/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "~/components/ui/context-menu";
 
 function TrackLikeButton(props: { song: Song; class?: string }) {
   const servers = useServers();
@@ -129,124 +129,121 @@ export function TrackRow(props: {
   };
 
   return (
-    <div
-      class={cn(
-        "group grid items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60",
-        props.showCover
-          ? "grid-cols-[2rem_minmax(0,1fr)_auto]"
-          : "grid-cols-[1.75rem_minmax(0,1fr)_auto]",
-        isCurrent() && "bg-accent/40",
-      )}
-      onDblClick={play}
-    >
-      <div class="flex items-center justify-center">
-        <Show
-          when={props.showCover && props.song.coverArt}
-          fallback={
-            <Show
-              when={isCurrent()}
-              fallback={
-                <>
-                  <span class="text-xs tabular-nums text-muted-foreground group-hover:hidden">
-                    {props.index + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={play}
-                    class="hidden text-foreground group-hover:block"
-                    aria-label={t("action.play")}
-                  >
-                    <Play class="size-3.5 fill-current" />
-                  </button>
-                </>
-              }
-            >
-              <button
-                type="button"
-                onClick={() => player.toggle()}
-                aria-label={t(isPlaying() ? "action.pause" : "action.play")}
+    <ContextMenu>
+      <ContextMenuTrigger
+        data-allow-context-menu
+        class={cn(
+          "group grid items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60",
+          props.showCover
+            ? "grid-cols-[2rem_minmax(0,1fr)_auto]"
+            : "grid-cols-[1.75rem_minmax(0,1fr)_auto]",
+          isCurrent() && "bg-accent/40",
+        )}
+        onDblClick={play}
+      >
+        <div class="flex items-center justify-center">
+          <Show
+            when={props.showCover && props.song.coverArt}
+            fallback={
+              <Show
+                when={isCurrent()}
+                fallback={
+                  <>
+                    <span class="text-xs tabular-nums text-muted-foreground group-hover:hidden">
+                      {props.index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={play}
+                      class="hidden text-foreground group-hover:block"
+                      aria-label={t("action.play")}
+                    >
+                      <Play class="size-3.5 fill-current" />
+                    </button>
+                  </>
+                }
               >
-                <PlayingBars paused={!isPlaying()} />
-              </button>
-            </Show>
-          }
-        >
-          <button
-            type="button"
-            onClick={() => player.toggle()}
-            class="relative size-8 overflow-hidden rounded"
-            aria-label={t("action.play")}
+                <button
+                  type="button"
+                  onClick={() => player.toggle()}
+                  aria-label={t(isPlaying() ? "action.pause" : "action.play")}
+                >
+                  <PlayingBars paused={!isPlaying()} />
+                </button>
+              </Show>
+            }
           >
-            <Cover
-              coverArtId={props.song.coverArt}
-              size={64}
-              alt={props.song.album ?? props.song.title}
-              class="size-8 rounded"
-            />
-            <Show when={isCurrent()}>
-              <span class="absolute inset-0 flex items-center justify-center bg-black/50">
-                <PlayingBars paused={!isPlaying()} />
-              </span>
-            </Show>
-          </button>
+            <button
+              type="button"
+              onClick={() => player.toggle()}
+              class="relative size-8 overflow-hidden rounded"
+              aria-label={t("action.play")}
+            >
+              <Cover
+                coverArtId={props.song.coverArt}
+                size={64}
+                alt={props.song.album ?? props.song.title}
+                class="size-8 rounded"
+              />
+              <Show when={isCurrent()}>
+                <span class="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <PlayingBars paused={!isPlaying()} />
+                </span>
+              </Show>
+            </button>
+          </Show>
+        </div>
+
+        <div class="min-w-0">
+          <p
+            class={cn(
+              "truncate text-sm font-medium",
+              isCurrent() && "text-primary",
+            )}
+            title={props.song.title}
+          >
+            {props.song.title}
+          </p>
+          <p class="flex min-w-0 items-center truncate text-xs text-muted-foreground">
+            {subtitle()}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <TrackLikeButton
+            song={props.song}
+            class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          />
+          <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
+            {formatTime(props.song.duration)}
+          </span>
+        </div>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent>
+        <ContextMenuItem onSelect={play}>
+          <Play class="size-4" />
+          {t("action.play")}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => player.playNext([props.song])}>
+          <ListEnd class="size-4" />
+          {t("action.playNext")}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => player.addToQueue([props.song])}>
+          <ListPlus class="size-4" />
+          {t("action.addToQueue")}
+        </ContextMenuItem>
+        <Show when={props.song.albumId}>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onSelect={() => navigate(`/album/${props.song.albumId}`)}
+          >
+            <Plus class="size-4" />
+            {t("action.goToAlbum")}
+          </ContextMenuItem>
         </Show>
-      </div>
-
-      <div class="min-w-0">
-        <p
-          class={cn(
-            "truncate text-sm font-medium",
-            isCurrent() && "text-primary",
-          )}
-          title={props.song.title}
-        >
-          {props.song.title}
-        </p>
-        <p class="flex min-w-0 items-center truncate text-xs text-muted-foreground">
-          {subtitle()}
-        </p>
-      </div>
-
-      <div class="flex items-center gap-1">
-        <TrackLikeButton song={props.song} class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100" />
-        <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
-          {formatTime(props.song.duration)}
-        </span>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            class="rounded-md p-1.5 text-muted-foreground opacity-0 transition-colors hover:bg-accent hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
-            aria-label={t("action.more")}
-          >
-            <Ellipsis class="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onSelect={play}>
-              <Play class="size-4" />
-              {t("action.play")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => player.playNext([props.song])}
-            >
-              <ListEnd class="size-4" />
-              {t("action.playNext")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => player.addToQueue([props.song])}>
-              <ListPlus class="size-4" />
-              {t("action.addToQueue")}
-            </DropdownMenuItem>
-            <Show when={props.song.albumId}>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={() => navigate(`/album/${props.song.albumId}`)}
-              >
-                <Plus class="size-4" />
-                {t("action.goToAlbum")}
-              </DropdownMenuItem>
-            </Show>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

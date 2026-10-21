@@ -75,6 +75,7 @@ export default function ArtistPage() {
                 songs={topSongs()!}
                 sourceName={data()!.artist.name}
                 showAlbum
+                showCover
               />
             </Section>
           </Show>

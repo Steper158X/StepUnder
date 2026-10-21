@@ -553,7 +553,7 @@ export default function ProfilePage() {
                 />
               }
             >
-              <TrackList songs={favoriteSongs()} showAlbum />
+              <TrackList songs={favoriteSongs()} showAlbum showCover />
             </Show>
           </section>
         </Show>

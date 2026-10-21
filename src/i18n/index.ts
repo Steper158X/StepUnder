@@ -8,6 +8,7 @@ const en = {
   "app.tagline": "Your music, your server",
 
   "nav.home": "Home",
+  "nav.favorites": "Favorites",
   "nav.albums": "Albums",
   "nav.artists": "Artists",
   "nav.playlists": "Playlists",
@@ -154,6 +155,15 @@ const en = {
   "playlist.playAll": "Play all",
   "playlist.songCount": "{count} songs",
 
+  "favorites.title": "Favorites",
+  "favorites.subtitle": "Songs, albums and artists you starred on this server.",
+  "favorites.songs": "Songs",
+  "favorites.albums": "Albums",
+  "favorites.artists": "Artists",
+  "favorites.empty": "Nothing starred yet",
+  "favorites.emptyHint":
+    "Tap the heart on a song or star an album and it will show up here.",
+
   "search.title": "Search",
   "search.placeholder": "Songs, albums, artists…",
   "search.hint": "Search your library on this server.",
@@ -250,6 +260,7 @@ const th: Record<MessageKey, string> = {
   "app.tagline": "เพลงของคุณ เซิร์ฟเวอร์ของคุณ",
 
   "nav.home": "หน้าแรก",
+  "nav.favorites": "รายการโปรด",
   "nav.albums": "อัลบั้ม",
   "nav.artists": "ศิลปิน",
   "nav.playlists": "เพลย์ลิสต์",
@@ -394,6 +405,15 @@ const th: Record<MessageKey, string> = {
 
   "playlist.playAll": "เล่นทั้งหมด",
   "playlist.songCount": "{count} เพลง",
+
+  "favorites.title": "รายการโปรด",
+  "favorites.subtitle": "เพลง อัลบั้ม และศิลปินที่คุณกดชื่นชอบไว้บนเซิร์ฟเวอร์นี้",
+  "favorites.songs": "เพลง",
+  "favorites.albums": "อัลบั้ม",
+  "favorites.artists": "ศิลปิน",
+  "favorites.empty": "ยังไม่มีรายการโปรด",
+  "favorites.emptyHint":
+    "กดหัวใจที่เพลง หรือกดชื่นชอบอัลบั้ม แล้วรายการจะแสดงที่นี่",
 
   "search.title": "ค้นหา",
   "search.placeholder": "เพลง อัลบั้ม ศิลปิน…",

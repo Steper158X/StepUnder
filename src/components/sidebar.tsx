@@ -2,6 +2,7 @@ import { A } from "@solidjs/router";
 import { For, onMount, onCleanup } from "solid-js";
 import {
   Disc3,
+  Heart,
   House,
   Languages,
   ListMusic,
@@ -16,6 +17,11 @@ import { locale, setLocale } from "~/i18n";
 
 const navItems = [
   { href: "/", labelKey: "nav.home" as MessageKey, icon: House, end: true },
+  {
+    href: "/favorites",
+    labelKey: "nav.favorites" as MessageKey,
+    icon: Heart,
+  },
   { href: "/albums", labelKey: "nav.albums" as MessageKey, icon: Disc3 },
   { href: "/artists", labelKey: "nav.artists" as MessageKey, icon: Users },
   {

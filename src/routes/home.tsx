@@ -171,7 +171,7 @@ export default function HomePage() {
               </Show>
 
               <Show when={data()!.starred.length}>
-                <Section title={t("home.starred")} href="/albums">
+                <Section title={t("home.starred")} href="/favorites">
                   <AlbumRow albums={data()!.starred} />
                 </Section>
               </Show>
