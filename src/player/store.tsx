@@ -110,8 +110,9 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const [persisted, setPersisted] = createSignal<PersistedPlayer | null>(null);
 
   function setNowPlayingOpen(open: boolean) {
+    // Keep the lyrics state: closing and re-opening the full screen player
+    // returns to whichever view the user was last looking at.
     setNowPlayingOpenSignal(open);
-    if (!open) setLyricsOpen(false);
   }
 
   function toggleLyrics() {
