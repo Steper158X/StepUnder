@@ -7,6 +7,7 @@ import type {
   Artist,
   Playlist,
   SearchResult,
+  ServerInfo,
   Song,
   StarredResult,
 } from "./types";
@@ -169,6 +170,18 @@ export class SubsonicClient {
   async ping(): Promise<boolean> {
     await this.request("ping", {}, 12000);
     return true;
+  }
+
+  async getServerInfo(): Promise<ServerInfo> {
+    const body = await this.request("ping", {}, 12000);
+    return {
+      version: typeof body.version === "string" ? body.version : undefined,
+      type: typeof body.type === "string" ? body.type : undefined,
+      serverVersion:
+        typeof body.serverVersion === "string" ? body.serverVersion : undefined,
+      openSubsonic:
+        typeof body.openSubsonic === "boolean" ? body.openSubsonic : undefined,
+    };
   }
 
   // ---------------------------------------------------------------- browse

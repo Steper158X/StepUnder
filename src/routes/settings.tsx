@@ -1,6 +1,6 @@
 import { useNavigate } from "@solidjs/router";
-import { For, Show } from "solid-js";
-import { Pencil, Server } from "lucide-solid";
+import { For, Show, createSignal } from "solid-js";
+import { LoaderCircle, LogIn, Pencil, Server } from "lucide-solid";
 import {
   locale,
   setLocale,
@@ -9,18 +9,23 @@ import {
   type Locale,
 } from "~/i18n";
 import {
+  font,
   maxBitRate,
   scrobble,
+  setFont,
   setMaxBitRate,
   setScrobble,
   setStreamFormat,
   setTheme,
   streamFormat,
   theme,
+  type Font,
   type StreamFormat,
   type Theme,
 } from "~/state/settings";
 import { useServers } from "~/state/servers";
+import { subsonicErrorKey } from "~/lib/subsonic";
+import { toast } from "~/components/toaster";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -42,6 +47,11 @@ const localeOptions: Array<{ value: Locale; label: string }> = [
 const bitrateOptions = [0, 320, 256, 192, 128];
 
 const formatOptions: StreamFormat[] = ["raw", "mp3", "aac", "opus", "flac"];
+
+const fontOptions: Array<{ value: Font; key: MessageKey }> = [
+  { value: "system", key: "settings.font.system" },
+  { value: "sarabun", key: "settings.font.sarabun" },
+];
 
 function Row(props: {
   label: string;
@@ -72,6 +82,24 @@ function Row(props: {
 export default function SettingsPage() {
   const servers = useServers();
   const navigate = useNavigate();
+  const [switchingId, setSwitchingId] = createSignal<string | null>(null);
+
+  async function switchServer(id: string, name: string) {
+    if (switchingId()) return;
+    setSwitchingId(id);
+    try {
+      const result = await servers.connect(id);
+      if (result === "need-password") {
+        navigate("/servers");
+      } else {
+        toast(t("toast.connected", { name }), undefined, "success");
+      }
+    } catch (error) {
+      toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
+    } finally {
+      setSwitchingId(null);
+    }
+  }
 
   return (
     <Page class="max-w-3xl">
@@ -101,6 +129,23 @@ export default function SettingsPage() {
                     </button>
                   )}
                 </For>
+              </div>
+            </Row>
+
+            <Row
+              label={t("settings.font")}
+              description={t("settings.fontHint")}
+            >
+              <div class="w-44">
+                <Select
+                  aria-label={t("settings.font")}
+                  value={font()}
+                  options={fontOptions.map((option) => ({
+                    value: option.value,
+                    label: t(option.key),
+                  }))}
+                  onChange={(value) => setFont(value as Font)}
+                />
               </div>
             </Row>
 
@@ -223,7 +268,29 @@ export default function SettingsPage() {
                           {server.url}
                         </p>
                       </div>
-                      <Show when={server.id === servers.activeId()}>
+                      <Show
+                        when={
+                          server.id === servers.activeId() && servers.client()
+                        }
+                        fallback={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={switchingId() !== null}
+                            onClick={() =>
+                              void switchServer(server.id, server.name)
+                            }
+                          >
+                            <Show
+                              when={switchingId() === server.id}
+                              fallback={<LogIn class="size-3.5" />}
+                            >
+                              <LoaderCircle class="size-3.5 animate-spin" />
+                            </Show>
+                            {t("servers.switch")}
+                          </Button>
+                        }
+                      >
                         <Badge>{t("servers.active")}</Badge>
                       </Show>
                     </div>

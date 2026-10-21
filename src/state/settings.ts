@@ -3,13 +3,40 @@ import { readSetting, writeSetting } from "~/lib/storage";
 
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
+export type Font = "system" | "sarabun";
 
 const [theme, setThemeSignal] = createSignal<Theme>("dark");
 const [scrobble, setScrobbleSignal] = createSignal(true);
 const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
 const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
+const [font, setFontSignal] = createSignal<Font>("system");
 
-export { theme, scrobble, maxBitRate, streamFormat };
+export { theme, scrobble, maxBitRate, streamFormat, font };
+
+const FONT_STACKS: Record<Font, string> = {
+  system: `"Segoe UI", "Leelawadee UI", "Noto Sans Thai", ui-sans-serif, system-ui, -apple-system, sans-serif`,
+  sarabun: `"Sarabun", "Noto Sans Thai", "Segoe UI", ui-sans-serif, system-ui, sans-serif`,
+};
+
+const SARABUN_STYLESHEET =
+  "https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap";
+
+/** Load the Google-hosted face only when it is actually selected. */
+function ensureFontLoaded(value: Font): void {
+  if (value !== "sarabun") return;
+  if (document.querySelector('link[data-font="sarabun"]')) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = SARABUN_STYLESHEET;
+  link.dataset.font = "sarabun";
+  document.head.appendChild(link);
+}
+
+function applyFont(value: Font) {
+  ensureFontLoaded(value);
+  document.documentElement.style.setProperty("--font-app", FONT_STACKS[value]);
+  document.documentElement.dataset.font = value;
+}
 
 const darkQuery =
   typeof window !== "undefined"
@@ -29,21 +56,25 @@ function apply(value: Theme) {
 }
 
 export async function initSettings(): Promise<void> {
-  const [savedTheme, savedScrobble, savedBitRate, savedFormat] =
+  const [savedTheme, savedScrobble, savedBitRate, savedFormat, savedFont] =
     await Promise.all([
       readSetting<Theme>("theme", "dark"),
       readSetting<boolean>("scrobble", true),
       readSetting<number>("maxBitRate", 0),
       readSetting<StreamFormat>("streamFormat", "raw"),
+      readSetting<Font>("font", "system"),
     ]);
 
   const nextTheme: Theme =
     savedTheme === "light" || savedTheme === "system" ? savedTheme : "dark";
+  const nextFont: Font = savedFont === "sarabun" ? "sarabun" : "system";
   setThemeSignal(nextTheme);
   setScrobbleSignal(savedScrobble !== false);
   setMaxBitRateSignal(typeof savedBitRate === "number" ? savedBitRate : 0);
   setStreamFormatSignal(savedFormat ?? "raw");
+  setFontSignal(nextFont);
   apply(nextTheme);
+  applyFont(nextFont);
 
   darkQuery?.addEventListener("change", () => {
     if (theme() === "system") apply("system");
@@ -69,4 +100,10 @@ export function setMaxBitRate(value: number): void {
 export function setStreamFormat(value: StreamFormat): void {
   setStreamFormatSignal(value);
   void writeSetting("streamFormat", value);
+}
+
+export function setFont(value: Font): void {
+  setFontSignal(value);
+  applyFont(value);
+  void writeSetting("font", value);
 }

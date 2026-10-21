@@ -35,6 +35,8 @@ export interface Song {
   suffix?: string;
   bitRate?: number;
   contentType?: string;
+  playCount?: number;
+  played?: string;
 }
 
 export interface Album {
@@ -50,6 +52,7 @@ export interface Album {
   starred?: string;
   created?: string;
   playCount?: number;
+  played?: string;
   song?: Song[];
 }
 
@@ -85,6 +88,13 @@ export interface StarredResult {
   artists: Artist[];
   albums: Album[];
   songs: Song[];
+}
+
+export interface ServerInfo {
+  version?: string;
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
 }
 
 export type AlbumListType =
