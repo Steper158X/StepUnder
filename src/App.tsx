@@ -5,6 +5,7 @@ import { PlayerProvider } from "~/player/store";
 import { initI18n } from "~/i18n";
 import { initSettings } from "~/state/settings";
 import { Toaster } from "~/components/toaster";
+import { TitleBar } from "~/components/title-bar";
 import { AppLayout } from "~/components/app-layout";
 import SetupPage from "~/routes/setup";
 import ServersPage from "~/routes/servers";
@@ -37,27 +38,32 @@ function Root(props: RouteSectionProps) {
 
 export default function App() {
   return (
-    <ServersProvider>
-      <PlayerProvider>
-        <Router root={Root}>
-          <Route path="/setup" component={SetupPage} />
-          <Route path="/servers" component={ServersPage} />
-          <Route path="/" component={AppLayout}>
-            <Route path="/" component={HomePage} />
-            <Route path="/favorites" component={FavoritesPage} />
-            <Route path="/albums" component={AlbumsPage} />
-            <Route path="/album/:id" component={AlbumPage} />
-            <Route path="/artists" component={ArtistsPage} />
-            <Route path="/artist/:id" component={ArtistPage} />
-            <Route path="/playlists" component={PlaylistsPage} />
-            <Route path="/playlist/:id" component={PlaylistPage} />
-            <Route path="/search" component={SearchPage} />
-            <Route path="/profile" component={ProfilePage} />
-            <Route path="/settings" component={SettingsPage} />
-          </Route>
-          <Route path="*" component={NotFoundPage} />
-        </Router>
-      </PlayerProvider>
-    </ServersProvider>
+    <div class="flex h-full flex-col overflow-hidden">
+      <TitleBar />
+      <div class="min-h-0 flex-1 overflow-y-auto">
+        <ServersProvider>
+          <PlayerProvider>
+            <Router root={Root}>
+              <Route path="/setup" component={SetupPage} />
+              <Route path="/servers" component={ServersPage} />
+              <Route path="/" component={AppLayout}>
+                <Route path="/" component={HomePage} />
+                <Route path="/favorites" component={FavoritesPage} />
+                <Route path="/albums" component={AlbumsPage} />
+                <Route path="/album/:id" component={AlbumPage} />
+                <Route path="/artists" component={ArtistsPage} />
+                <Route path="/artist/:id" component={ArtistPage} />
+                <Route path="/playlists" component={PlaylistsPage} />
+                <Route path="/playlist/:id" component={PlaylistPage} />
+                <Route path="/search" component={SearchPage} />
+                <Route path="/profile" component={ProfilePage} />
+                <Route path="/settings" component={SettingsPage} />
+              </Route>
+              <Route path="*" component={NotFoundPage} />
+            </Router>
+          </PlayerProvider>
+        </ServersProvider>
+      </div>
+    </div>
   );
 }

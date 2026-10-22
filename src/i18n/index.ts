@@ -53,6 +53,9 @@ const en = {
   "action.unlike": "Remove from favorites",
   "action.openMenu": "Open menu",
   "action.viewCover": "View cover",
+  "action.minimize": "Minimize",
+  "action.maximize": "Maximize",
+  "action.restore": "Restore",
 
   "common.loading": "Loading…",
   "common.error": "Something went wrong",
@@ -331,6 +334,9 @@ const th: Record<MessageKey, string> = {
   "action.unlike": "นำออกจากรายการชื่นชอบ",
   "action.openMenu": "เปิดเมนู",
   "action.viewCover": "ดูภาพปก",
+  "action.minimize": "ย่อหน้าต่าง",
+  "action.maximize": "ขยายหน้าต่าง",
+  "action.restore": "คืนขนาดหน้าต่าง",
 
   "common.loading": "กำลังโหลด…",
   "common.error": "เกิดข้อผิดพลาด",
