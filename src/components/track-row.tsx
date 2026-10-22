@@ -1,5 +1,5 @@
 import { A, useNavigate } from "@solidjs/router";
-import { Show, createEffect, createSignal, on, type JSX } from "solid-js";
+import { Show, createSignal, type JSX } from "solid-js";
 import { Heart, ListEnd, ListPlus, Play, Plus } from "lucide-solid";
 import type { Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
@@ -19,19 +19,17 @@ import {
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
 
-function TrackLikeButton(props: { song: Song; class?: string }) {
+function TrackLikeButton(props: {
+  song: Song;
+  class?: string;
+  /** Show the heart permanently when the song is a favorite, otherwise only on row hover. */
+  revealOnHover?: boolean;
+}) {
   const servers = useServers();
   const player = usePlayer();
-  const [starred, setStarred] = createSignal(Boolean(props.song.starred));
   const [busy, setBusy] = createSignal(false);
 
-  createEffect(
-    on(
-      () => props.song.starred,
-      (value) => setStarred(Boolean(value)),
-      { defer: true },
-    ),
-  );
+  const starred = () => player.isStarred(props.song);
 
   async function toggleStar() {
     const client = servers.client();
@@ -41,7 +39,6 @@ function TrackLikeButton(props: { song: Song; class?: string }) {
     try {
       if (next) await client.star(props.song.id);
       else await client.unstar(props.song.id);
-      setStarred(next);
       player.patchSongStar(props.song.id, next);
       toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
     } catch (error) {
@@ -61,6 +58,9 @@ function TrackLikeButton(props: { song: Song; class?: string }) {
       class={cn(
         "rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
         starred() && "text-primary",
+        props.revealOnHover &&
+          !starred() &&
+          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
         props.class,
       )}
       title={t(starred() ? "action.unlike" : "action.like")}
@@ -210,10 +210,7 @@ export function TrackRow(props: {
         </div>
 
         <div class="flex items-center gap-1">
-          <TrackLikeButton
-            song={props.song}
-            class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-          />
+          <TrackLikeButton song={props.song} revealOnHover />
           <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
             {formatTime(props.song.duration)}
           </span>

@@ -72,6 +72,7 @@ export interface PlayerContextValue {
   jumpTo: (index: number) => void;
   clearQueue: () => void;
   isCurrent: (songId: string) => boolean;
+  isStarred: (song: Song) => boolean;
   patchSongStar: (songId: string, starred: boolean) => void;
 }
 
@@ -108,6 +109,11 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const [nowPlayingOpen, setNowPlayingOpenSignal] = createSignal(false);
   const [lyricsOpen, setLyricsOpen] = createSignal(false);
   const [persisted, setPersisted] = createSignal<PersistedPlayer | null>(null);
+  // Star state shared by the player bar and every track list, so toggling a
+  // favorite anywhere updates all of them.
+  const [starOverrides, setStarOverrides] = createSignal<Record<string, boolean>>(
+    {},
+  );
 
   function setNowPlayingOpen(open: boolean) {
     // Keep the lyrics state: closing and re-opening the full screen player
@@ -417,7 +423,12 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     return current()?.id === songId;
   }
 
+  function isStarred(song: Song) {
+    return starOverrides()[song.id] ?? Boolean(song.starred);
+  }
+
   function patchSongStar(songId: string, starred: boolean) {
+    setStarOverrides((overrides) => ({ ...overrides, [songId]: starred }));
     setState("queue", (queue) =>
       queue.map((song) =>
         song.id === songId
@@ -646,6 +657,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     jumpTo,
     clearQueue,
     isCurrent,
+    isStarred,
     patchSongStar,
   };
 

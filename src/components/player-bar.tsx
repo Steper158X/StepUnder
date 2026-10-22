@@ -1,4 +1,4 @@
-import { Show, createEffect, createSignal, on } from "solid-js";
+import { Show, createSignal } from "solid-js";
 import {
   Heart,
   ListMusic,
@@ -54,19 +54,15 @@ export function PlayerBar() {
   const player = usePlayer();
   const servers = useServers();
   const [drag, setDrag] = createSignal<number | null>(null);
-  const [starred, setStarred] = createSignal(false);
   const [starBusy, setStarBusy] = createSignal(false);
 
   const track = () => player.current();
   const duration = () => player.state.duration || track()?.duration || 0;
   const position = () => drag() ?? player.state.position;
-
-  createEffect(
-    on(
-      () => track()?.id,
-      () => setStarred(Boolean(track()?.starred)),
-    ),
-  );
+  const starred = () => {
+    const current = track();
+    return current ? player.isStarred(current) : false;
+  };
 
   async function toggleStar() {
     const current = track();
@@ -77,7 +73,6 @@ export function PlayerBar() {
     try {
       if (next) await client.star(current.id);
       else await client.unstar(current.id);
-      setStarred(next);
       player.patchSongStar(current.id, next);
       toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
     } catch (error) {
