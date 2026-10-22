@@ -71,6 +71,7 @@ export default function AlbumPage() {
               alt={album()!.name}
               class="size-44 shrink-0 rounded-xl shadow-lg"
               iconClass="size-10"
+              zoomable
             />
             <div class="flex min-w-0 flex-1 flex-col justify-end gap-3">
               <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -125,7 +126,7 @@ export default function AlbumPage() {
                 </p>
               }
             >
-              <TrackList songs={songs()} sourceName={album()!.name} showCover />
+              <TrackList songs={songs()} sourceName={album()!.name} />
             </Show>
           </div>
 

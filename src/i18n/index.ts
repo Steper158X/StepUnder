@@ -52,6 +52,7 @@ const en = {
   "action.like": "Add to favorites",
   "action.unlike": "Remove from favorites",
   "action.openMenu": "Open menu",
+  "action.viewCover": "View cover",
 
   "common.loading": "Loading…",
   "common.error": "Something went wrong",
@@ -304,6 +305,7 @@ const th: Record<MessageKey, string> = {
   "action.like": "เพิ่มในรายการชื่นชอบ",
   "action.unlike": "นำออกจากรายการชื่นชอบ",
   "action.openMenu": "เปิดเมนู",
+  "action.viewCover": "ดูภาพปก",
 
   "common.loading": "กำลังโหลด…",
   "common.error": "เกิดข้อผิดพลาด",
