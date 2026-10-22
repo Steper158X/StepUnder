@@ -26,6 +26,7 @@ export function Slider(props: SliderProps) {
       onChangeEnd={(values) => props.onValueCommit?.(values[0])}
       class={cn(
         "relative flex w-full touch-none select-none items-center",
+        props.disabled ? "cursor-default" : "cursor-pointer",
         props.class,
       )}
     >

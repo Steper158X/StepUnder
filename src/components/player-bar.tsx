@@ -1,4 +1,5 @@
 import { Show, createSignal } from "solid-js";
+import { A } from "@solidjs/router";
 import {
   Heart,
   ListMusic,
@@ -40,7 +41,7 @@ function ControlButton(props: {
       title={props.label}
       aria-label={props.label}
       class={cn(
-        "flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40 max-md:p-2",
+        "flex cursor-pointer items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-40 max-md:p-2",
         props.active && "text-primary hover:text-primary",
         props.class,
       )}
@@ -117,7 +118,20 @@ export function PlayerBar() {
           </button>
           <div class="min-w-0">
             <p class="truncate text-sm font-medium">
-              {track()?.title ?? t("player.nothingPlaying")}
+              <Show
+                when={track()?.albumId}
+                fallback={track()?.title ?? t("player.nothingPlaying")}
+              >
+                {(albumId) => (
+                  <A
+                    href={`/album/${albumId()}`}
+                    title={track()?.album ?? track()?.title}
+                    class="cursor-pointer rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {track()?.title}
+                  </A>
+                )}
+              </Show>
             </p>
             <p
               class={cn(
@@ -125,9 +139,29 @@ export function PlayerBar() {
                 player.state.error && "text-destructive",
               )}
             >
-              {player.state.error ??
-                track()?.artist ??
-                t("player.queueEmptyHint")}
+              <Show
+                when={player.state.error}
+                fallback={
+                  <Show
+                    when={track()?.artistId}
+                    fallback={
+                      track()?.artist ?? t("player.queueEmptyHint")
+                    }
+                  >
+                    {(artistId) => (
+                      <A
+                        href={`/artist/${artistId()}`}
+                        title={track()?.artist}
+                        class="cursor-pointer rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {track()?.artist}
+                      </A>
+                    )}
+                  </Show>
+                }
+              >
+                {player.state.error}
+              </Show>
             </p>
           </div>
           <Show when={track()}>
@@ -135,7 +169,7 @@ export function PlayerBar() {
               type="button"
               onClick={() => void toggleStar()}
               class={cn(
-                "ml-1 hidden rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground sm:block",
+                "ml-1 hidden cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default sm:block",
                 starred() && "text-primary hover:text-primary",
               )}
               aria-label={t(starred() ? "action.unlike" : "action.like")}
@@ -165,7 +199,7 @@ export function PlayerBar() {
               type="button"
               onClick={player.toggle}
               disabled={!track()}
-              class="mx-1 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform hover:scale-105 disabled:opacity-40 md:size-9"
+              class="mx-1 flex size-10 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform hover:scale-105 disabled:cursor-default disabled:opacity-40 md:size-9"
               aria-label={t(player.state.playing ? "action.pause" : "action.play")}
             >
               <Show

@@ -12,7 +12,6 @@ import {
 } from "lucide-solid";
 import type {
   Album,
-  Artist,
   Playlist,
   ServerInfo,
   Song,
@@ -35,7 +34,6 @@ interface ProfileData {
   recent: Album[];
   starred: StarredResult;
   playlists: Playlist[];
-  artists: Artist[];
   info: ServerInfo;
   topSongs: Song[];
 }
@@ -106,15 +104,13 @@ export default function ProfilePage() {
   const [data, { refetch }] = createResource(
     () => servers.client(),
     async (client): Promise<ProfileData> => {
-      const [frequent, recent, starred, playlists, artists, info] =
-        await Promise.all([
-          safe(client.getAlbumList2("frequent", 500), []),
-          safe(client.getAlbumList2("recent", 24), []),
-          safe(client.getStarred2(), EMPTY_STARRED),
-          safe(client.getPlaylists(), []),
-          safe(client.getArtists(), []),
-          safe(client.getServerInfo(), {}),
-        ]);
+      const [frequent, recent, starred, playlists, info] = await Promise.all([
+        safe(client.getAlbumList2("frequent", 500), []),
+        safe(client.getAlbumList2("recent", 24), []),
+        safe(client.getStarred2(), EMPTY_STARRED),
+        safe(client.getPlaylists(), []),
+        safe(client.getServerInfo(), {}),
+      ]);
 
       // Navidrome exposes per-artist top songs, so merge the leaders from the
       // most played artists into one song chart.
@@ -146,7 +142,6 @@ export default function ProfilePage() {
         recent,
         starred,
         playlists,
-        artists,
         info,
         topSongs,
       };
@@ -166,14 +161,51 @@ export default function ProfilePage() {
     ),
   );
 
-  const albumCount = createMemo(() => {
+  /**
+   * Only albums the user actually listened to. Navidrome's "frequent" list is
+   * already play-count ordered, "recent" adds the latest plays; dedupe by id so
+   * an album that appears in both lists is counted once.
+   */
+  const playedAlbums = createMemo(() => {
     const value = data();
-    if (!value) return 0;
-    const counted = value.artists.reduce(
-      (total, artist) => total + (artist.albumCount ?? 0),
-      0,
-    );
-    return counted || value.frequent.length;
+    if (!value) return [] as Album[];
+    // Servers without play counts still return their most-played albums from
+    // "frequent", so there is nothing to filter in that case.
+    const requirePlay = hasPlayCounts();
+    const merged = new Map<string, Album>();
+    for (const album of [...value.frequent, ...value.recent]) {
+      if (!album?.id) continue;
+      if (
+        requirePlay &&
+        !((album.playCount ?? 0) > 0) &&
+        !album.played
+      ) {
+        continue;
+      }
+      merged.set(album.id, album);
+    }
+    return [...merged.values()];
+  });
+
+  const albumCount = createMemo(() => playedAlbums().length);
+
+  const artistCount = createMemo(() => {
+    const keys = new Set<string>();
+    for (const album of playedAlbums()) {
+      keys.add(album.artistId ?? album.artist ?? album.id);
+    }
+    return keys.size;
+  });
+
+  const playlistCount = createMemo(() => {
+    const list = data()?.playlists ?? [];
+    const username = servers.activeServer()?.username?.trim().toLowerCase();
+    if (!username) return list.length;
+    return list.filter(
+      (playlist) =>
+        !playlist.owner ||
+        playlist.owner.trim().toLowerCase() === username,
+    ).length;
   });
 
   const favoriteCount = createMemo(() => {
@@ -318,7 +350,7 @@ export default function ProfilePage() {
               <Stat
                 icon={<Users class="size-4" />}
                 label={t("profile.artists")}
-                value={String(data()?.artists.length ?? 0)}
+                value={String(artistCount())}
               />
               <Stat
                 icon={<Disc3 class="size-4" />}
@@ -328,7 +360,7 @@ export default function ProfilePage() {
               <Stat
                 icon={<ListMusic class="size-4" />}
                 label={t("profile.playlists")}
-                value={String(data()?.playlists.length ?? 0)}
+                value={String(playlistCount())}
               />
             </div>
           </Card>
