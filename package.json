@@ -7,8 +7,10 @@
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
+    "build:desktop": "node scripts/check-libmpv.mjs && vite build",
     "serve": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "mpv:fetch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-libmpv.ps1 -Destination src-tauri/resources"
   },
   "license": "MIT",
   "dependencies": {

@@ -2,8 +2,9 @@
 //!
 //! libmpv is loaded at runtime instead of being linked at build time, so the
 //! app still compiles and runs on machines that do not have it installed.
-//! Place `libmpv-2.dll` next to the executable (or point `STEPUNDER_LIBMPV`
-//! at it) and the "MPV" audio player option becomes usable.
+//! The installer bundles `libmpv-2.dll` as a Tauri resource, which ends up
+//! next to the executable (Windows) or in the app's resource directory
+//! (macOS/Linux). `STEPUNDER_LIBMPV` can point at another copy.
 //!
 //! All playback happens on a single dedicated thread: libmpv allows commands
 //! from any thread, but `mpv_wait_event` must only be called from one, so the
@@ -124,9 +125,9 @@ struct Api {
 unsafe impl Send for Api {}
 
 impl Api {
-    fn load() -> Result<Self, String> {
+    fn load(app: &AppHandle) -> Result<Self, String> {
         let mut failures = Vec::new();
-        for path in library_candidates() {
+        for path in library_candidates(app) {
             match unsafe { Library::new(&path) } {
                 Ok(library) => match unsafe { Self::from_library(library, &path) } {
                     Ok(api) => return Ok(api),
@@ -136,7 +137,7 @@ impl Api {
             }
         }
         Err(format!(
-            "libmpv was not found. Place libmpv-2.dll next to the app or set STEPUNDER_LIBMPV. Tried: {}",
+            "libmpv was not found. Reinstall the app (it should bundle libmpv-2.dll), place the DLL next to the app, or set STEPUNDER_LIBMPV. Tried: {}",
             failures.join("; ")
         ))
     }
@@ -192,7 +193,7 @@ impl Api {
     }
 }
 
-fn library_candidates() -> Vec<PathBuf> {
+fn library_candidates(app: &AppHandle) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     if let Ok(value) = std::env::var("STEPUNDER_LIBMPV") {
@@ -215,6 +216,16 @@ fn library_candidates() -> Vec<PathBuf> {
     {
         for name in names {
             paths.push(dir.join(name));
+        }
+    }
+
+    // The installer drops bundled resources here. On Windows that is the
+    // executable's directory, on macOS/Linux it is the app's resource folder.
+    if let Ok(dir) = app.path().resource_dir() {
+        for sub in [dir.clone(), dir.join("resources")] {
+            for name in names {
+                paths.push(sub.join(name));
+            }
         }
     }
 
@@ -259,6 +270,10 @@ fn library_candidates() -> Vec<PathBuf> {
     for name in names {
         paths.push(PathBuf::from(name));
     }
+
+    // Keep the error message short and the probing order stable.
+    let mut seen = std::collections::HashSet::new();
+    paths.retain(|path| seen.insert(path.clone()));
 
     paths
 }
@@ -363,7 +378,7 @@ impl MpvManager {
         if let Some(engine) = guard.as_ref() {
             return Ok((engine.path.clone(), engine.version.clone()));
         }
-        let api = Api::load()?;
+        let api = Api::load(app)?;
         let path = api.path.clone();
         let version = api.version.clone();
         let engine = spawn_engine(api, app.clone())?;
@@ -790,8 +805,8 @@ unsafe fn error_text(api: &Api, code: c_int) -> String {
 // ----------------------------------------------------------------- commands
 
 #[tauri::command]
-pub fn mpv_status() -> MpvStatus {
-    match Api::load() {
+pub fn mpv_status(app: AppHandle) -> MpvStatus {
+    match Api::load(&app) {
         Ok(api) => MpvStatus::ready(&api),
         Err(error) => MpvStatus::missing(error),
     }

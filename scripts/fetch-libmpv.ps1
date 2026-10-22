@@ -1,14 +1,17 @@
-# Downloads the latest shinchiro libmpv build and copies libmpv-2.dll next to
-# the StepUnder executable, where the MPV audio player looks for it.
+# Downloads the latest shinchiro libmpv build and copies libmpv-2.dll into
+# src-tauri\resources, where Tauri picks it up for both dev runs and installers.
 #
 # Usage:
-#   pwsh scripts/fetch-libmpv.ps1                       # debug build
-#   pwsh scripts/fetch-libmpv.ps1 -Destination src-tauri\target\release
+#   pwsh scripts/fetch-libmpv.ps1
+#   bun run mpv:fetch                                     # same as above
 #
-# The DLL is only needed when you pick "MPV (libmpv)" in Settings.
+# The DLL goes to `src-tauri\resources`, which Tauri copies into the build
+# output and into installers (next to StepUnder.exe on Windows), so both
+# `tauri dev` and a release build use it. It is only needed when you pick
+# "MPV (libmpv)" in Settings.
 
 param(
-    [string]$Destination = "src-tauri\target\debug",
+    [string]$Destination = "src-tauri\resources",
     [ValidateSet("x86_64", "aarch64")][string]$Arch = "x86_64"
 )
 
@@ -53,7 +56,7 @@ $target = Join-Path $Destination "libmpv-2.dll"
 try {
     Copy-Item $dll $target -Force
 } catch {
-    throw "Could not replace $target — close StepUnder and run the script again. ($($_.Exception.Message))"
+    throw "Could not replace $target - close StepUnder and run the script again. ($($_.Exception.Message))"
 }
 Remove-Item $archive -Force
 
