@@ -44,6 +44,8 @@ import {
 } from "~/lib/audio-output";
 import { useServers } from "~/state/servers";
 import { subsonicErrorKey } from "~/lib/subsonic";
+import { mpvEnsure, mpvStatus, type MpvStatus } from "~/lib/mpv";
+import { isTauri } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -70,10 +72,6 @@ const formatOptions: StreamFormat[] = ["raw", "mp3", "aac", "opus", "flac"];
 const fontOptions: Array<{ value: Font; key: MessageKey }> = [
   { value: "system", key: "settings.font.system" },
   { value: "sarabun", key: "settings.font.sarabun" },
-];
-
-const playerOptions: Array<{ value: AudioPlayer; key: MessageKey }> = [
-  { value: "web", key: "settings.audioPlayerWeb" },
 ];
 
 function Row(props: {
@@ -114,6 +112,13 @@ export default function SettingsPage() {
   const [refreshingOutputs, setRefreshingOutputs] = createSignal(false);
   const [unlockingOutputs, setUnlockingOutputs] = createSignal(false);
   const [labelsHidden, setLabelsHidden] = createSignal(false);
+  const [mpvInfo, setMpvInfo] = createSignal<MpvStatus | null>(null);
+  const [checkingPlayer, setCheckingPlayer] = createSignal(false);
+
+  const mpvLabel = () => {
+    const version = mpvInfo()?.version;
+    return version ? `mpv ${version}` : t("settings.audioPlayerMpv");
+  };
 
   const deviceDescription = () => {
     if (!outputSupported) return t("settings.audioDeviceUnsupported");
@@ -172,6 +177,11 @@ export default function SettingsPage() {
   }
 
   onMount(() => {
+    if (!isTauri) return;
+    void mpvStatus().then(setMpvInfo);
+  });
+
+  onMount(() => {
     if (!outputSupported) return;
 
     void (async () => {
@@ -191,6 +201,34 @@ export default function SettingsPage() {
       media?.removeEventListener("devicechange", handleDeviceChange);
     });
   });
+
+  async function changeAudioPlayer(value: AudioPlayer) {
+    if (value === "web") {
+      setAudioPlayer("web");
+      return;
+    }
+    if (checkingPlayer()) return;
+    if (!isTauri) {
+      toast(t("settings.mpvMissingTitle"), t("settings.mpvMissing"), "error");
+      return;
+    }
+    setCheckingPlayer(true);
+    try {
+      const status = await mpvEnsure();
+      setMpvInfo(status);
+      if (!status.available) {
+        toast(
+          t("settings.mpvMissingTitle"),
+          status.error ?? t("settings.mpvMissing"),
+          "error",
+        );
+        return;
+      }
+      setAudioPlayer("mpv");
+    } finally {
+      setCheckingPlayer(false);
+    }
+  }
 
   async function switchServer(id: string, name: string) {
     if (switchingId()) return;
@@ -289,29 +327,45 @@ export default function SettingsPage() {
               label={t("settings.audioPlayer")}
               description={t("settings.audioPlayerHint")}
             >
-              <div class="w-44">
-                <Select
-                  aria-label={t("settings.audioPlayer")}
-                  value={audioPlayer()}
-                  options={playerOptions.map((option) => ({
-                    value: option.value,
-                    label: t(option.key),
-                  }))}
-                  onChange={(value) => setAudioPlayer(value as AudioPlayer)}
-                />
+              <div class="flex flex-col items-end gap-1">
+                <div class="w-44">
+                  <Select
+                    aria-label={t("settings.audioPlayer")}
+                    value={audioPlayer()}
+                    options={[
+                      {
+                        value: "web",
+                        label: t("settings.audioPlayerWeb"),
+                      },
+                      { value: "mpv", label: mpvLabel() },
+                    ]}
+                    onChange={(value) =>
+                      void changeAudioPlayer(value as AudioPlayer)
+                    }
+                  />
+                </div>
+                <Show when={checkingPlayer()}>
+                  <p class="max-w-[18rem] text-right text-xs text-muted-foreground">
+                    {t("settings.mpvChecking")}
+                  </p>
+                </Show>
               </div>
             </Row>
 
             <Row
               label={t("settings.audioDevice")}
-              description={deviceDescription()}
+              description={
+                audioPlayer() === "mpv"
+                  ? t("settings.audioDeviceMpvHint")
+                  : deviceDescription()
+              }
             >
               <div class="flex items-center gap-2">
                 <div class="w-44">
                   <Select
                     aria-label={t("settings.audioDevice")}
                     value={audioDeviceId()}
-                    disabled={!outputSupported}
+                    disabled={!outputSupported || audioPlayer() === "mpv"}
                     options={deviceOptions()}
                     onChange={setAudioDeviceId}
                   />
@@ -321,7 +375,11 @@ export default function SettingsPage() {
                   size="icon-sm"
                   title={t("settings.audioDeviceRefresh")}
                   aria-label={t("settings.audioDeviceRefresh")}
-                  disabled={!outputSupported || refreshingOutputs()}
+                  disabled={
+                    !outputSupported ||
+                    refreshingOutputs() ||
+                    audioPlayer() === "mpv"
+                  }
                   onClick={() => void refreshOutputs()}
                 >
                   <RefreshCw

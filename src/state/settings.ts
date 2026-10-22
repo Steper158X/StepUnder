@@ -5,10 +5,10 @@ import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
 export type Font = "system" | "sarabun";
-/** Playback engine. Only the built-in web player exists for now. */
-export type AudioPlayer = "web";
+/** Playback engine: the built-in web player or the libmpv engine. */
+export type AudioPlayer = "web" | "mpv";
 
-const AUDIO_PLAYERS: readonly AudioPlayer[] = ["web"];
+const AUDIO_PLAYERS: readonly AudioPlayer[] = ["web", "mpv"];
 
 const [theme, setThemeSignal] = createSignal<Theme>("dark");
 const [scrobble, setScrobbleSignal] = createSignal(true);

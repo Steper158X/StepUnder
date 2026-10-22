@@ -186,6 +186,7 @@ const en = {
   "player.remove": "Remove from queue",
   "player.playingFrom": "Playing from {name}",
   "player.streamError": "Playback failed. Check your server connection.",
+  "player.mpvError": "MPV playback failed.",
   "player.noServer": "Connect to a server to play music.",
   "player.lyrics": "Lyrics",
   "player.lyricsLoading": "Loading lyrics…",
@@ -205,9 +206,15 @@ const en = {
   "settings.font.sarabun": "Sarabun (Google)",
   "settings.playback": "Playback",
   "settings.audioPlayer": "Audio player",
-  "settings.audioPlayerHint":
-    "Playback engine used for streaming. Web is the player built into the app.",
+  "settings.audioPlayerHint": "Playback engine.",
   "settings.audioPlayerWeb": "Web (built-in)",
+  "settings.audioPlayerMpv": "MPV (libmpv)",
+  "settings.audioDeviceMpvHint":
+    "MPV plays through the output libmpv picks (system default).",
+  "settings.mpvMissing":
+    "libmpv was not found. Put libmpv-2.dll next to the app or install mpv, then restart.",
+  "settings.mpvChecking": "Looking for libmpv…",
+  "settings.mpvMissingTitle": "MPV is not available",
   "settings.audioDevice": "Audio device",
   "settings.audioDeviceHint":
     "Which speaker or headphones your music plays through.",
@@ -456,6 +463,7 @@ const th: Record<MessageKey, string> = {
   "player.remove": "นำออกจากคิว",
   "player.playingFrom": "เล่นจาก {name}",
   "player.streamError": "เล่นเพลงไม่สำเร็จ ตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์",
+  "player.mpvError": "เล่นเพลงด้วย MPV ไม่สำเร็จ",
   "player.noServer": "เชื่อมต่อเซิร์ฟเวอร์ก่อนเพื่อเล่นเพลง",
   "player.lyrics": "เนื้อเพลง",
   "player.lyricsLoading": "กำลังโหลดเนื้อเพลง…",
@@ -475,9 +483,15 @@ const th: Record<MessageKey, string> = {
   "settings.font.sarabun": "Sarabun (Google)",
   "settings.playback": "การเล่น",
   "settings.audioPlayer": "เครื่องเล่นเสียง",
-  "settings.audioPlayerHint":
-    "เอนจินที่ใช้เล่นเพลง ปกติจะใช้เครื่องเล่นเว็บที่อยู่ในแอป",
+  "settings.audioPlayerHint": "เอนจินที่ใช้เล่นเพลง",
   "settings.audioPlayerWeb": "เว็บ (ในแอป)",
+  "settings.audioPlayerMpv": "MPV (libmpv)",
+  "settings.audioDeviceMpvHint":
+    "MPV จะเล่นผ่านอุปกรณ์ที่ libmpv เลือก (ค่าเริ่มต้นของระบบ)",
+  "settings.mpvMissing":
+    "ไม่พบ libmpv กรุณาวางไฟล์ libmpv-2.dll ไว้ข้างโปรแกรม หรือติดตั้ง mpv แล้วรีสตาร์ท",
+  "settings.mpvChecking": "กำลังค้นหา libmpv…",
+  "settings.mpvMissingTitle": "ไม่สามารถใช้ MPV ได้",
   "settings.audioDevice": "อุปกรณ์เสียง",
   "settings.audioDeviceHint": "เลือกลำโพงหรือหูฟังที่ใช้เล่นเพลง",
   "settings.audioDeviceDefault": "ค่าเริ่มต้นของระบบ",

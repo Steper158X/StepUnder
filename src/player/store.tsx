@@ -18,9 +18,23 @@ import {
   audioPlayer,
   maxBitRate,
   scrobble,
+  setAudioPlayer,
   streamFormat,
 } from "~/state/settings";
 import { applyAudioOutput } from "~/lib/audio-output";
+import {
+  mpvEnsure,
+  mpvLoad,
+  mpvPause,
+  mpvSeek,
+  mpvSetMute,
+  mpvSetVolume,
+  mpvStop,
+  onMpvEnd,
+  onMpvState,
+  type MpvSnapshot,
+} from "~/lib/mpv";
+import { isTauri } from "~/lib/platform";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { toast } from "~/components/toaster";
 import { t } from "~/i18n";
@@ -141,6 +155,15 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   audio.preload = "metadata";
   audio.volume = INITIAL_STATE.volume;
 
+  // The MPV engine is validated lazily so a persisted "mpv" setting cannot
+  // leave the app with a dead player when libmpv is not installed.
+  const [mpvReady, setMpvReady] = createSignal(false);
+  let mpvLoaded = false;
+
+  function usingMpv() {
+    return isTauri && audioPlayer() === "mpv";
+  }
+
   let pendingSeek = 0;
   let scrobbledCurrent = false;
   let restoreAttempted = false;
@@ -195,6 +218,47 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     }
   }
 
+  function syncMediaSessionPosition(position: number, duration: number) {
+    if (duration <= 0) return;
+    try {
+      if (!("mediaSession" in navigator)) return;
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate: 1,
+        position: Math.min(Math.max(position, 0), duration),
+      });
+    } catch {
+      // not supported
+    }
+  }
+
+  function applyMpvSnapshot(snapshot: MpvSnapshot) {
+    if (!usingMpv()) return;
+    setState({
+      position: snapshot.position,
+      playing: snapshot.playing,
+      loading: snapshot.loading,
+      ...(snapshot.duration > 0 ? { duration: snapshot.duration } : {}),
+    });
+    maybeScrobble();
+    syncMediaSessionPosition(snapshot.position, snapshot.duration);
+  }
+
+  function handleMpvEnd(payload: { eof: boolean; error?: string | null }) {
+    if (!usingMpv()) return;
+    mpvLoaded = false;
+    if (payload.error) {
+      setState({
+        playing: false,
+        loading: false,
+        error: t("player.mpvError"),
+      });
+      toast(t("player.mpvError"), payload.error, "error");
+      return;
+    }
+    if (payload.eof) advance(true);
+  }
+
   function loadAndPlay(
     index: number,
     options: { autoplay?: boolean; position?: number } = {},
@@ -215,12 +279,39 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       duration: track.duration ?? 0,
     });
 
-    audio.src = client.streamUrl(track.id, {
+    const url = client.streamUrl(track.id, {
       maxBitRate: maxBitRate(),
       format: streamFormat(),
     });
     updateMediaSession(track);
     reportNowPlaying(track);
+
+    if (usingMpv()) {
+      audio.pause();
+      audio.removeAttribute("src");
+      void mpvLoad(url, {
+        position: resumeAt,
+        autoplay: options.autoplay !== false,
+        volume: state.volume,
+        muted: state.muted,
+      })
+        .then(() => {
+          mpvLoaded = true;
+        })
+        .catch((error) => {
+          console.warn("MPV playback failed", error);
+          mpvLoaded = false;
+          setState({
+            playing: false,
+            loading: false,
+            error: t("player.mpvError"),
+          });
+          toast(t("player.mpvError"), String(error), "error");
+        });
+      return;
+    }
+
+    audio.src = url;
 
     if (options.autoplay !== false) {
       void audio.play().catch((error) => {
@@ -282,6 +373,19 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       loadAndPlay(0, { autoplay: true });
       return;
     }
+    if (usingMpv()) {
+      if (!mpvLoaded) {
+        loadAndPlay(state.index, {
+          autoplay: true,
+          position: state.position,
+        });
+        return;
+      }
+      void mpvPause(false).catch(() =>
+        setState({ playing: false, loading: false }),
+      );
+      return;
+    }
     if (!audio.src) {
       loadAndPlay(state.index, {
         autoplay: true,
@@ -295,6 +399,12 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   }
 
   function pause() {
+    if (usingMpv()) {
+      if (mpvLoaded) {
+        void mpvPause(true).catch(() => undefined);
+      }
+      return;
+    }
     audio.pause();
   }
 
@@ -315,7 +425,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     let nextIndex = state.index + 1;
     if (nextIndex >= queue.length) {
       if (auto && state.repeat !== "all") {
-        audio.pause();
+        pause();
         setState({ playing: false });
         return;
       }
@@ -342,10 +452,14 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   function seek(seconds: number) {
     const duration = state.duration || current()?.duration || 0;
     const value = Math.min(Math.max(seconds, 0), duration > 0 ? duration : seconds);
-    try {
-      if (Number.isFinite(value)) audio.currentTime = value;
-    } catch {
-      // seeking before metadata is ready is a no-op
+    if (usingMpv()) {
+      if (mpvLoaded) void mpvSeek(value).catch(() => undefined);
+    } else {
+      try {
+        if (Number.isFinite(value)) audio.currentTime = value;
+      } catch {
+        // seeking before metadata is ready is a no-op
+      }
     }
     setState("position", value);
   }
@@ -384,6 +498,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     } catch {
       // ignore
     }
+    if (usingMpv()) void mpvStop().catch(() => undefined);
+    mpvLoaded = false;
     setState({
       queue: [],
       index: -1,
@@ -527,7 +643,64 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   createEffect(() => {
     audio.volume = state.volume;
     audio.muted = state.muted;
+    if (usingMpv() && mpvLoaded) {
+      void mpvSetVolume(state.volume).catch(() => undefined);
+      void mpvSetMute(state.muted).catch(() => undefined);
+    }
   });
+
+  // Make sure the saved engine really works before any track is loaded into
+  // it; libmpv is optional and may not be installed on this machine.
+  createEffect(() => {
+    if (!isTauri || audioPlayer() !== "mpv") {
+      setMpvReady(false);
+      return;
+    }
+    if (mpvReady()) return;
+    void (async () => {
+      const status = await mpvEnsure();
+      if (status.available) {
+        setMpvReady(true);
+        return;
+      }
+      setAudioPlayer("web");
+      toast(t("settings.mpvMissingTitle"), status.error ?? undefined, "error");
+    })();
+  });
+
+  // Move the current track between the two engines when the setting changes,
+  // keeping the position and the play/pause state.
+  createEffect(
+    on(
+      () => [audioPlayer(), mpvReady()] as const,
+      (value, previous) => {
+        const [engine, ready] = value;
+        if (!previous) return;
+        const engineChanged = engine !== previous[0];
+        const becameReady = engine === "mpv" && ready && !previous[1];
+        if (!engineChanged && !becameReady) return;
+        if (engine === "mpv" && !ready) return;
+
+        const index = state.index;
+        const wasPlaying = state.playing;
+        const position = state.position;
+
+        if (engine === "web") {
+          if (previous[0] === "mpv") {
+            void mpvStop().catch(() => undefined);
+          }
+          mpvLoaded = false;
+        } else {
+          audio.pause();
+          audio.removeAttribute("src");
+        }
+
+        if (index >= 0) {
+          loadAndPlay(index, { autoplay: wasPlaying, position });
+        }
+      },
+    ),
+  );
 
   // Follow the playback output chosen in Settings. Persisted device ids are
   // stable per origin, so this also re-applies after a restart.
@@ -553,6 +726,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
         if (previous === undefined || id === previous) return;
         audio.pause();
         audio.removeAttribute("src");
+        if (usingMpv()) void mpvStop().catch(() => undefined);
+        mpvLoaded = false;
         setState({
           queue: [],
           index: -1,
@@ -621,6 +796,19 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     };
     navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
 
+    // Playback state from libmpv arrives as events; the Rust engine is the
+    // source of truth while MPV is selected.
+    const unlisteners: Array<() => void> = [];
+    let disposed = false;
+    const keep = (promise: Promise<() => void>) => {
+      void promise.then((off) => {
+        if (disposed) off();
+        else unlisteners.push(off);
+      });
+    };
+    keep(onMpvState(applyMpvSnapshot));
+    keep(onMpvEnd(handleMpvEnd));
+
     const interval = setInterval(() => {
       if (state.playing) saveNow();
     }, 12000);
@@ -629,6 +817,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     window.addEventListener("beforeunload", handleUnload);
 
     onCleanup(() => {
+      disposed = true;
+      for (const off of unlisteners) off();
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleUnload);
       navigator.mediaDevices?.removeEventListener(

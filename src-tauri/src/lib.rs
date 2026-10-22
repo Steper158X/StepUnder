@@ -1,5 +1,8 @@
+mod mpv;
+
 use keyring::Entry;
 use tauri::webview::{PermissionKind, PermissionResponse};
+use tauri::Manager;
 
 #[tauri::command]
 fn save_secret(service: String, account: String, secret: String) -> Result<(), String> {
@@ -31,10 +34,11 @@ fn delete_secret(service: String, account: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_http::init())
+        .manage(mpv::MpvManager::default())
         // Chromium only reveals the full speaker list after getUserMedia has
         // succeeded once. The UI asks for that explicitly and immediately stops
         // the stream; only audio-output devices are ever shown.
@@ -45,8 +49,22 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             save_secret,
             get_secret,
-            delete_secret
+            delete_secret,
+            mpv::mpv_status,
+            mpv::mpv_ensure,
+            mpv::mpv_load,
+            mpv::mpv_pause,
+            mpv::mpv_seek,
+            mpv::mpv_set_volume,
+            mpv::mpv_set_mute,
+            mpv::mpv_stop
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
+            app_handle.state::<mpv::MpvManager>().shutdown();
+        }
+    });
 }
