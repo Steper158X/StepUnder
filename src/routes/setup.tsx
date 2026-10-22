@@ -1,12 +1,12 @@
 import { A, useNavigate } from "@solidjs/router";
 import { Show } from "solid-js";
-import { ListMusic } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
 import { toast } from "~/components/toaster";
 import { ServerForm } from "~/components/server-form";
 import { Card, CardContent } from "~/components/ui/card";
 import { Spinner } from "~/components/common";
+import logo from "~/assets/logo.svg";
 
 export default function SetupPage() {
   const servers = useServers();
@@ -17,9 +17,12 @@ export default function SetupPage() {
       <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,rgba(124,58,237,0.18),transparent_70%)]" />
       <div class="relative w-full max-w-lg py-6">
         <div class="mb-6 flex flex-col items-center text-center">
-          <div class="mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-            <ListMusic class="size-6" />
-          </div>
+          <img
+            src={logo}
+            alt=""
+            class="mb-3 size-12 rounded-2xl shadow-lg"
+            draggable={false}
+          />
           <h1 class="text-2xl font-bold tracking-tight">{t("setup.title")}</h1>
           <p class="mt-1.5 max-w-sm text-sm text-muted-foreground">
             {t("setup.subtitle")}

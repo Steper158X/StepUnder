@@ -1,6 +1,5 @@
 import { Navigate, type RouteSectionProps } from "@solidjs/router";
 import { Show } from "solid-js";
-import { ListMusic } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
 import { MobileHeader, Sidebar } from "~/components/sidebar";
@@ -8,13 +7,17 @@ import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
 import { Spinner } from "~/components/common";
+import logo from "~/assets/logo.svg";
 
 function BootScreen() {
   return (
     <div class="flex h-full flex-col items-center justify-center gap-4">
-      <div class="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-        <ListMusic class="size-6" />
-      </div>
+      <img
+        src={logo}
+        alt=""
+        class="size-12 rounded-2xl shadow-lg"
+        draggable={false}
+      />
       <Spinner />
       <p class="text-xs text-muted-foreground">{t("common.loading")}</p>
     </div>

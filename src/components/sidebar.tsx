@@ -15,6 +15,7 @@ import {
 import { usePlayer } from "~/player/store";
 import { t, type MessageKey } from "~/i18n";
 import { Dialog } from "~/components/ui/dialog";
+import logo from "~/assets/logo.svg";
 
 const navItems = [
   { href: "/", labelKey: "nav.home" as MessageKey, icon: House, end: true },
@@ -59,9 +60,12 @@ function NavLink(props: {
 function Brand() {
   return (
     <div class="flex items-center gap-2.5">
-      <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-        <ListMusic class="size-4" />
-      </div>
+      <img
+        src={logo}
+        alt=""
+        class="size-8 shrink-0 rounded-lg shadow-sm"
+        draggable={false}
+      />
       <div class="min-w-0 leading-tight">
         <p class="truncate text-sm font-semibold">{t("app.name")}</p>
         <p class="truncate text-[10px] text-muted-foreground">
@@ -139,6 +143,12 @@ export function MobileHeader() {
         </Dialog.Portal>
       </Dialog>
 
+      <img
+        src={logo}
+        alt=""
+        class="size-7 shrink-0 rounded-md shadow-sm"
+        draggable={false}
+      />
       <div class="min-w-0 leading-tight">
         <p class="truncate text-sm font-semibold">{t("app.name")}</p>
         <p class="truncate text-[10px] text-muted-foreground">

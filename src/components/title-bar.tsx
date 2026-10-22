@@ -3,6 +3,7 @@ import { Copy, Minus, Square, X } from "lucide-solid";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { t } from "~/i18n";
+import logo from "~/assets/logo.svg";
 
 const buttonClass =
   "flex w-11 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-none";
@@ -52,6 +53,12 @@ function WindowChrome() {
       class="flex h-10 shrink-0 select-none items-center gap-2 border-b border-border/60 bg-background pr-1 pl-3"
     >
       <div class="flex items-center gap-2">
+        <img
+          src={logo}
+          alt=""
+          class="size-4 rounded-[4px]"
+          draggable={false}
+        />
         <span class="text-sm font-semibold tracking-tight">
           {t("app.name")}
         </span>
