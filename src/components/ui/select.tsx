@@ -70,11 +70,11 @@ export function Select(props: {
       >
         <SelectTrigger
           aria-label={props["aria-label"]}
-          class="flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm transition-colors hover:bg-accent/30 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder-shown]:text-muted-foreground"
+          class="flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-md border border-input bg-transparent px-3 text-sm shadow-sm transition-colors hover:bg-accent/30 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder-shown]:text-muted-foreground"
         >
-          <SelectValue<string>>
+          <SelectValue<string> class="min-w-0 flex-1 overflow-hidden">
             {(state) => (
-              <span class="truncate">
+              <span class="block truncate">
                 {labelOf(state.selectedOption()) ??
                   props.placeholder ??
                   "\u00a0"}

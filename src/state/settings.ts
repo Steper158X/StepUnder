@@ -1,17 +1,34 @@
 import { createSignal } from "solid-js";
 import { readSetting, writeSetting } from "~/lib/storage";
+import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
 
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
 export type Font = "system" | "sarabun";
+/** Playback engine. Only the built-in web player exists for now. */
+export type AudioPlayer = "web";
+
+const AUDIO_PLAYERS: readonly AudioPlayer[] = ["web"];
 
 const [theme, setThemeSignal] = createSignal<Theme>("dark");
 const [scrobble, setScrobbleSignal] = createSignal(true);
 const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
 const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
 const [font, setFontSignal] = createSignal<Font>("system");
+const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
+const [audioDeviceId, setAudioDeviceIdSignal] = createSignal<string>(
+  DEFAULT_AUDIO_DEVICE,
+);
 
-export { theme, scrobble, maxBitRate, streamFormat, font };
+export {
+  theme,
+  scrobble,
+  maxBitRate,
+  streamFormat,
+  font,
+  audioPlayer,
+  audioDeviceId,
+};
 
 const FONT_STACKS: Record<Font, string> = {
   system: `"Segoe UI", "Leelawadee UI", "Noto Sans Thai", ui-sans-serif, system-ui, -apple-system, sans-serif`,
@@ -56,23 +73,37 @@ function apply(value: Theme) {
 }
 
 export async function initSettings(): Promise<void> {
-  const [savedTheme, savedScrobble, savedBitRate, savedFormat, savedFont] =
-    await Promise.all([
-      readSetting<Theme>("theme", "dark"),
-      readSetting<boolean>("scrobble", true),
-      readSetting<number>("maxBitRate", 0),
-      readSetting<StreamFormat>("streamFormat", "raw"),
-      readSetting<Font>("font", "system"),
-    ]);
+  const [
+    savedTheme,
+    savedScrobble,
+    savedBitRate,
+    savedFormat,
+    savedFont,
+    savedPlayer,
+    savedDevice,
+  ] = await Promise.all([
+    readSetting<Theme>("theme", "dark"),
+    readSetting<boolean>("scrobble", true),
+    readSetting<number>("maxBitRate", 0),
+    readSetting<StreamFormat>("streamFormat", "raw"),
+    readSetting<Font>("font", "system"),
+    readSetting<AudioPlayer>("audioPlayer", "web"),
+    readSetting<string>("audioDeviceId", DEFAULT_AUDIO_DEVICE),
+  ]);
 
   const nextTheme: Theme =
     savedTheme === "light" || savedTheme === "system" ? savedTheme : "dark";
   const nextFont: Font = savedFont === "sarabun" ? "sarabun" : "system";
+  const nextPlayer: AudioPlayer = AUDIO_PLAYERS.includes(savedPlayer)
+    ? savedPlayer
+    : "web";
   setThemeSignal(nextTheme);
   setScrobbleSignal(savedScrobble !== false);
   setMaxBitRateSignal(typeof savedBitRate === "number" ? savedBitRate : 0);
   setStreamFormatSignal(savedFormat ?? "raw");
   setFontSignal(nextFont);
+  setAudioPlayerSignal(nextPlayer);
+  setAudioDeviceIdSignal(savedDevice || DEFAULT_AUDIO_DEVICE);
   apply(nextTheme);
   applyFont(nextFont);
 
@@ -106,4 +137,15 @@ export function setFont(value: Font): void {
   setFontSignal(value);
   applyFont(value);
   void writeSetting("font", value);
+}
+
+export function setAudioPlayer(value: AudioPlayer): void {
+  setAudioPlayerSignal(value);
+  void writeSetting("audioPlayer", value);
+}
+
+export function setAudioDeviceId(value: string): void {
+  const next = value || DEFAULT_AUDIO_DEVICE;
+  setAudioDeviceIdSignal(next);
+  void writeSetting("audioDeviceId", next);
 }

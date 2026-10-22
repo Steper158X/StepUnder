@@ -13,7 +13,14 @@ import {
 import { createStore } from "solid-js/store";
 import type { Song } from "~/lib/types";
 import { useServers } from "~/state/servers";
-import { maxBitRate, scrobble, streamFormat } from "~/state/settings";
+import {
+  audioDeviceId,
+  audioPlayer,
+  maxBitRate,
+  scrobble,
+  streamFormat,
+} from "~/state/settings";
+import { applyAudioOutput } from "~/lib/audio-output";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { toast } from "~/components/toaster";
 import { t } from "~/i18n";
@@ -522,6 +529,14 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     audio.muted = state.muted;
   });
 
+  // Follow the playback output chosen in Settings. Persisted device ids are
+  // stable per origin, so this also re-applies after a restart.
+  createEffect(() => {
+    const deviceId = audioDeviceId();
+    if (audioPlayer() !== "web") return;
+    void applyAudioOutput(audio, deviceId);
+  });
+
   createEffect(() => {
     if ("mediaSession" in navigator) {
       navigator.mediaSession.playbackState = state.playing
@@ -597,6 +612,15 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       }
     });
 
+    // Re-apply the chosen output when devices appear (for example right after
+    // the user unlocks the speaker list in Settings).
+    const handleDeviceChange = () => {
+      if (audioPlayer() === "web") {
+        void applyAudioOutput(audio, audioDeviceId());
+      }
+    };
+    navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
+
     const interval = setInterval(() => {
       if (state.playing) saveNow();
     }, 12000);
@@ -607,6 +631,10 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     onCleanup(() => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleUnload);
+      navigator.mediaDevices?.removeEventListener(
+        "devicechange",
+        handleDeviceChange,
+      );
       if (saveTimer) clearTimeout(saveTimer);
     });
 

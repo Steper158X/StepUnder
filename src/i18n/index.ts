@@ -204,6 +204,24 @@ const en = {
   "settings.font.system": "System default",
   "settings.font.sarabun": "Sarabun (Google)",
   "settings.playback": "Playback",
+  "settings.audioPlayer": "Audio player",
+  "settings.audioPlayerHint":
+    "Playback engine used for streaming. Web is the player built into the app.",
+  "settings.audioPlayerWeb": "Web (built-in)",
+  "settings.audioDevice": "Audio device",
+  "settings.audioDeviceHint":
+    "Which speaker or headphones your music plays through.",
+  "settings.audioDeviceDefault": "System default",
+  "settings.audioDeviceUnavailable": "Saved device (unavailable)",
+  "settings.audioDeviceUnsupported":
+    "This platform does not allow choosing an audio output device.",
+  "settings.audioDeviceLockedHint":
+    "The speaker list could not be read yet. Make sure an audio output device is connected.",
+  "settings.audioDeviceLoading": "Reading speaker list…",
+  "settings.audioDeviceLabelsHint":
+    "The system is hiding output names; devices are listed in connection order.",
+  "settings.audioDeviceFallback": "Speaker {index}",
+  "settings.audioDeviceRefresh": "Refresh devices",
   "settings.scrobble": "Scrobble plays",
   "settings.scrobbleHint":
     "Report listens back to Navidrome so your play counts stay in sync.",
@@ -456,6 +474,23 @@ const th: Record<MessageKey, string> = {
   "settings.font.system": "ค่าเริ่มต้นของระบบ",
   "settings.font.sarabun": "Sarabun (Google)",
   "settings.playback": "การเล่น",
+  "settings.audioPlayer": "เครื่องเล่นเสียง",
+  "settings.audioPlayerHint":
+    "เอนจินที่ใช้เล่นเพลง ปกติจะใช้เครื่องเล่นเว็บที่อยู่ในแอป",
+  "settings.audioPlayerWeb": "เว็บ (ในแอป)",
+  "settings.audioDevice": "อุปกรณ์เสียง",
+  "settings.audioDeviceHint": "เลือกลำโพงหรือหูฟังที่ใช้เล่นเพลง",
+  "settings.audioDeviceDefault": "ค่าเริ่มต้นของระบบ",
+  "settings.audioDeviceUnavailable": "อุปกรณ์ที่บันทึกไว้ (ไม่พร้อมใช้งาน)",
+  "settings.audioDeviceUnsupported":
+    "แพลตฟอร์มนี้ไม่รองรับการเลือกอุปกรณ์เสียงขาออก",
+  "settings.audioDeviceLockedHint":
+    "ยังอ่านรายชื่อลำโพงไม่ได้ ตรวจสอบว่ามีอุปกรณ์เสียงขาออกเชื่อมต่ออยู่",
+  "settings.audioDeviceLoading": "กำลังอ่านรายชื่อลำโพง…",
+  "settings.audioDeviceLabelsHint":
+    "ระบบซ่อนชื่ออุปกรณ์ไว้ รายการจะแสดงตามลำดับการเชื่อมต่อ",
+  "settings.audioDeviceFallback": "ลำโพง {index}",
+  "settings.audioDeviceRefresh": "รีเฟรชรายชื่ออุปกรณ์",
   "settings.scrobble": "บันทึกประวัติการฟัง",
   "settings.scrobbleHint":
     "ส่งข้อมูลการเล่นกลับไปยัง Navidrome เพื่อให้ยอดเล่นซิงก์กัน",

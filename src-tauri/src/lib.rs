@@ -1,4 +1,5 @@
 use keyring::Entry;
+use tauri::webview::{PermissionKind, PermissionResponse};
 
 #[tauri::command]
 fn save_secret(service: String, account: String, secret: String) -> Result<(), String> {
@@ -34,6 +35,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_http::init())
+        // Chromium only reveals the full speaker list after getUserMedia has
+        // succeeded once. The UI asks for that explicitly and immediately stops
+        // the stream; only audio-output devices are ever shown.
+        .on_permission_request(|_webview, kind| match kind {
+            PermissionKind::Microphone => PermissionResponse::Allow,
+            _ => PermissionResponse::Default,
+        })
         .invoke_handler(tauri::generate_handler![
             save_secret,
             get_secret,

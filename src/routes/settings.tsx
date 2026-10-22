@@ -1,6 +1,12 @@
 import { useNavigate } from "@solidjs/router";
-import { For, Show, createSignal } from "solid-js";
-import { LoaderCircle, LogIn, Pencil, Server } from "lucide-solid";
+import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import {
+  LoaderCircle,
+  LogIn,
+  Pencil,
+  RefreshCw,
+  Server,
+} from "lucide-solid";
 import {
   locale,
   setLocale,
@@ -9,9 +15,13 @@ import {
   type Locale,
 } from "~/i18n";
 import {
+  audioDeviceId,
+  audioPlayer,
   font,
   maxBitRate,
   scrobble,
+  setAudioDeviceId,
+  setAudioPlayer,
   setFont,
   setMaxBitRate,
   setScrobble,
@@ -19,10 +29,19 @@ import {
   setTheme,
   streamFormat,
   theme,
+  type AudioPlayer,
   type Font,
   type StreamFormat,
   type Theme,
 } from "~/state/settings";
+import {
+  DEFAULT_AUDIO_DEVICE,
+  hasHiddenDeviceLabels,
+  listAudioOutputs,
+  supportsAudioOutputSelection,
+  unlockAudioOutputs,
+  type AudioOutputDevice,
+} from "~/lib/audio-output";
 import { useServers } from "~/state/servers";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { toast } from "~/components/toaster";
@@ -53,6 +72,10 @@ const fontOptions: Array<{ value: Font; key: MessageKey }> = [
   { value: "sarabun", key: "settings.font.sarabun" },
 ];
 
+const playerOptions: Array<{ value: AudioPlayer; key: MessageKey }> = [
+  { value: "web", key: "settings.audioPlayerWeb" },
+];
+
 function Row(props: {
   label: string;
   description?: string;
@@ -79,10 +102,95 @@ function Row(props: {
   );
 }
 
+/** Speakers only need to be unlocked once per app session. */
+let unlockedThisSession = false;
+
 export default function SettingsPage() {
   const servers = useServers();
   const navigate = useNavigate();
   const [switchingId, setSwitchingId] = createSignal<string | null>(null);
+  const outputSupported = supportsAudioOutputSelection();
+  const [outputs, setOutputs] = createSignal<AudioOutputDevice[]>([]);
+  const [refreshingOutputs, setRefreshingOutputs] = createSignal(false);
+  const [unlockingOutputs, setUnlockingOutputs] = createSignal(false);
+  const [labelsHidden, setLabelsHidden] = createSignal(false);
+
+  const deviceDescription = () => {
+    if (!outputSupported) return t("settings.audioDeviceUnsupported");
+    if (unlockingOutputs()) return t("settings.audioDeviceLoading");
+    if (outputs().length === 0) return t("settings.audioDeviceLockedHint");
+    if (labelsHidden()) return t("settings.audioDeviceLabelsHint");
+    return t("settings.audioDeviceHint");
+  };
+
+  const deviceOptions = () => {
+    const list = outputs().map((device, index) => ({
+      value: device.deviceId,
+      label:
+        device.label.trim() ||
+        t("settings.audioDeviceFallback", { index: index + 1 }),
+    }));
+    const selected = audioDeviceId();
+    if (
+      selected !== DEFAULT_AUDIO_DEVICE &&
+      !list.some((option) => option.value === selected)
+    ) {
+      list.push({
+        value: selected,
+        label: t("settings.audioDeviceUnavailable"),
+      });
+    }
+    return [
+      { value: DEFAULT_AUDIO_DEVICE, label: t("settings.audioDeviceDefault") },
+      ...list,
+    ];
+  };
+
+  async function refreshOutputs() {
+    if (!outputSupported || refreshingOutputs()) return;
+    setRefreshingOutputs(true);
+    try {
+      const devices = await listAudioOutputs();
+      setOutputs(devices);
+      setLabelsHidden(hasHiddenDeviceLabels(devices));
+    } finally {
+      setRefreshingOutputs(false);
+    }
+  }
+
+  async function unlockOutputs() {
+    if (!outputSupported || unlockingOutputs()) return;
+    setUnlockingOutputs(true);
+    try {
+      if (!(await unlockAudioOutputs())) return;
+      const devices = await listAudioOutputs();
+      setOutputs(devices);
+      setLabelsHidden(hasHiddenDeviceLabels(devices));
+    } finally {
+      setUnlockingOutputs(false);
+    }
+  }
+
+  onMount(() => {
+    if (!outputSupported) return;
+
+    void (async () => {
+      await refreshOutputs();
+      // Speakers are hidden until Chromium has opened an audio device once in
+      // this session, so unlock automatically on load.
+      if (!unlockedThisSession && (outputs().length === 0 || labelsHidden())) {
+        unlockedThisSession = true;
+        await unlockOutputs();
+      }
+    })();
+
+    const media = navigator.mediaDevices;
+    const handleDeviceChange = () => void refreshOutputs();
+    media?.addEventListener("devicechange", handleDeviceChange);
+    onCleanup(() => {
+      media?.removeEventListener("devicechange", handleDeviceChange);
+    });
+  });
 
   async function switchServer(id: string, name: string) {
     if (switchingId()) return;
@@ -177,6 +285,55 @@ export default function SettingsPage() {
             <CardTitle>{t("settings.playback")}</CardTitle>
           </CardHeader>
           <CardContent class="divide-y divide-border/60 pt-0">
+            <Row
+              label={t("settings.audioPlayer")}
+              description={t("settings.audioPlayerHint")}
+            >
+              <div class="w-44">
+                <Select
+                  aria-label={t("settings.audioPlayer")}
+                  value={audioPlayer()}
+                  options={playerOptions.map((option) => ({
+                    value: option.value,
+                    label: t(option.key),
+                  }))}
+                  onChange={(value) => setAudioPlayer(value as AudioPlayer)}
+                />
+              </div>
+            </Row>
+
+            <Row
+              label={t("settings.audioDevice")}
+              description={deviceDescription()}
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-44">
+                  <Select
+                    aria-label={t("settings.audioDevice")}
+                    value={audioDeviceId()}
+                    disabled={!outputSupported}
+                    options={deviceOptions()}
+                    onChange={setAudioDeviceId}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  title={t("settings.audioDeviceRefresh")}
+                  aria-label={t("settings.audioDeviceRefresh")}
+                  disabled={!outputSupported || refreshingOutputs()}
+                  onClick={() => void refreshOutputs()}
+                >
+                  <RefreshCw
+                    class={cn(
+                      "size-3.5",
+                      refreshingOutputs() && "animate-spin",
+                    )}
+                  />
+                </Button>
+              </div>
+            </Row>
+
             <Row
               label={t("settings.scrobble")}
               description={t("settings.scrobbleHint")}
