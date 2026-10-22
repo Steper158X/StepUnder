@@ -4,7 +4,6 @@ import {
   Disc3,
   Heart,
   House,
-  Languages,
   ListMusic,
   Search,
   Settings,
@@ -13,7 +12,6 @@ import {
 } from "lucide-solid";
 import { usePlayer } from "~/player/store";
 import { t, type MessageKey } from "~/i18n";
-import { locale, setLocale } from "~/i18n";
 
 const navItems = [
   { href: "/", labelKey: "nav.home" as MessageKey, icon: House, end: true },
@@ -118,14 +116,6 @@ export function Sidebar() {
           <Settings class="size-4" />
           {t("nav.settings")}
         </A>
-        <button
-          type="button"
-          onClick={() => setLocale(locale() === "th" ? "en" : "th")}
-          class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-        >
-          <Languages class="size-4" />
-          {locale() === "th" ? "English" : "ไทย"}
-        </button>
       </div>
     </aside>
   );
