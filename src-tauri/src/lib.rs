@@ -57,7 +57,9 @@ pub fn run() {
             mpv::mpv_seek,
             mpv::mpv_set_volume,
             mpv::mpv_set_mute,
-            mpv::mpv_stop
+            mpv::mpv_stop,
+            mpv::mpv_audio_devices,
+            mpv::mpv_set_audio_device
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

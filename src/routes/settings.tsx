@@ -1,5 +1,13 @@
 import { useNavigate } from "@solidjs/router";
-import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import {
+  For,
+  Show,
+  createEffect,
+  createSignal,
+  on,
+  onCleanup,
+  onMount,
+} from "solid-js";
 import {
   LoaderCircle,
   LogIn,
@@ -15,15 +23,18 @@ import {
   type Locale,
 } from "~/i18n";
 import {
+  DEFAULT_MPV_AUDIO_DEVICE,
   audioDeviceId,
   audioPlayer,
   font,
   maxBitRate,
+  mpvAudioDevice,
   scrobble,
   setAudioDeviceId,
   setAudioPlayer,
   setFont,
   setMaxBitRate,
+  setMpvAudioDevice,
   setScrobble,
   setStreamFormat,
   setTheme,
@@ -44,7 +55,13 @@ import {
 } from "~/lib/audio-output";
 import { useServers } from "~/state/servers";
 import { subsonicErrorKey } from "~/lib/subsonic";
-import { mpvEnsure, mpvStatus, type MpvStatus } from "~/lib/mpv";
+import {
+  mpvAudioDevices,
+  mpvEnsure,
+  mpvStatus,
+  type MpvAudioDevice,
+  type MpvStatus,
+} from "~/lib/mpv";
 import { isTauri } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import { Page, PageHeader } from "~/components/layout-bits";
@@ -114,6 +131,8 @@ export default function SettingsPage() {
   const [labelsHidden, setLabelsHidden] = createSignal(false);
   const [mpvInfo, setMpvInfo] = createSignal<MpvStatus | null>(null);
   const [checkingPlayer, setCheckingPlayer] = createSignal(false);
+  const [mpvDevices, setMpvDevices] = createSignal<MpvAudioDevice[]>([]);
+  const [refreshingMpvDevices, setRefreshingMpvDevices] = createSignal(false);
 
   const mpvLabel = () => {
     const version = mpvInfo()?.version;
@@ -128,7 +147,39 @@ export default function SettingsPage() {
     return t("settings.audioDeviceHint");
   };
 
+  const mpvDeviceDescription = () => {
+    if (refreshingMpvDevices() && mpvDevices().length === 0) {
+      return t("settings.audioDeviceLoading");
+    }
+    return t("settings.audioDeviceMpvHint");
+  };
+
+  const mpvDeviceOptions = () => {
+    const list = mpvDevices().map((device) => ({
+      value: device.id,
+      label:
+        device.id === DEFAULT_MPV_AUDIO_DEVICE
+          ? t("settings.audioDeviceDefault")
+          : device.label.trim() || device.id,
+    }));
+    if (!list.some((option) => option.value === DEFAULT_MPV_AUDIO_DEVICE)) {
+      list.unshift({
+        value: DEFAULT_MPV_AUDIO_DEVICE,
+        label: t("settings.audioDeviceDefault"),
+      });
+    }
+    const selected = mpvAudioDevice();
+    if (!list.some((option) => option.value === selected)) {
+      list.push({
+        value: selected,
+        label: t("settings.audioDeviceUnavailable"),
+      });
+    }
+    return list;
+  };
+
   const deviceOptions = () => {
+    if (audioPlayer() === "mpv") return mpvDeviceOptions();
     const list = outputs().map((device, index) => ({
       value: device.deviceId,
       label:
@@ -162,6 +213,24 @@ export default function SettingsPage() {
       setRefreshingOutputs(false);
     }
   }
+
+  async function refreshMpvDevices() {
+    if (audioPlayer() !== "mpv" || refreshingMpvDevices()) return;
+    setRefreshingMpvDevices(true);
+    try {
+      setMpvDevices(await mpvAudioDevices());
+    } finally {
+      setRefreshingMpvDevices(false);
+    }
+  }
+
+  // mpv is the source of truth for its own outputs, so (re)read the list when
+  // the engine is selected (including after settings were restored).
+  createEffect(
+    on(audioPlayer, (player) => {
+      if (player === "mpv") void refreshMpvDevices();
+    }),
+  );
 
   async function unlockOutputs() {
     if (!outputSupported || unlockingOutputs()) return;
@@ -356,7 +425,7 @@ export default function SettingsPage() {
               label={t("settings.audioDevice")}
               description={
                 audioPlayer() === "mpv"
-                  ? t("settings.audioDeviceMpvHint")
+                  ? mpvDeviceDescription()
                   : deviceDescription()
               }
             >
@@ -364,10 +433,19 @@ export default function SettingsPage() {
                 <div class="w-44">
                   <Select
                     aria-label={t("settings.audioDevice")}
-                    value={audioDeviceId()}
-                    disabled={!outputSupported || audioPlayer() === "mpv"}
+                    value={
+                      audioPlayer() === "mpv"
+                        ? mpvAudioDevice()
+                        : audioDeviceId()
+                    }
+                    disabled={
+                      audioPlayer() !== "mpv" && !outputSupported
+                    }
                     options={deviceOptions()}
-                    onChange={setAudioDeviceId}
+                    onChange={(value) => {
+                      if (audioPlayer() === "mpv") setMpvAudioDevice(value);
+                      else setAudioDeviceId(value);
+                    }}
                   />
                 </div>
                 <Button
@@ -376,16 +454,22 @@ export default function SettingsPage() {
                   title={t("settings.audioDeviceRefresh")}
                   aria-label={t("settings.audioDeviceRefresh")}
                   disabled={
-                    !outputSupported ||
-                    refreshingOutputs() ||
                     audioPlayer() === "mpv"
+                      ? refreshingMpvDevices()
+                      : !outputSupported || refreshingOutputs()
                   }
-                  onClick={() => void refreshOutputs()}
+                  onClick={() =>
+                    void (audioPlayer() === "mpv"
+                      ? refreshMpvDevices()
+                      : refreshOutputs())
+                  }
                 >
                   <RefreshCw
                     class={cn(
                       "size-3.5",
-                      refreshingOutputs() && "animate-spin",
+                      (audioPlayer() === "mpv"
+                        ? refreshingMpvDevices()
+                        : refreshingOutputs()) && "animate-spin",
                     )}
                   />
                 </Button>

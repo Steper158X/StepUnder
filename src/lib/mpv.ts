@@ -34,6 +34,12 @@ export interface MpvLoadOptions {
   autoplay?: boolean;
   volume?: number;
   muted?: boolean;
+  audioDevice?: string;
+}
+
+export interface MpvAudioDevice {
+  id: string;
+  label: string;
 }
 
 const UNAVAILABLE: MpvStatus = {
@@ -67,6 +73,7 @@ export function mpvLoad(url: string, options: MpvLoadOptions = {}) {
     autoplay: options.autoplay ?? true,
     volume: options.volume ?? 1,
     muted: options.muted ?? false,
+    audioDevice: options.audioDevice ?? null,
   });
 }
 
@@ -88,6 +95,21 @@ export function mpvSetMute(muted: boolean) {
 
 export function mpvStop() {
   return invoke("mpv_stop");
+}
+
+/** Audio outputs reported by mpv itself (wasapi, pipewire, coreaudio, ...). */
+export async function mpvAudioDevices(): Promise<MpvAudioDevice[]> {
+  if (!isTauri) return [];
+  try {
+    return await invoke<MpvAudioDevice[]>("mpv_audio_devices");
+  } catch (error) {
+    console.warn("mpv: could not list audio devices", error);
+    return [];
+  }
+}
+
+export function mpvSetAudioDevice(device: string) {
+  return invoke("mpv_set_audio_device", { device });
 }
 
 function subscribe<T>(

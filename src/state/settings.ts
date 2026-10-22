@@ -10,6 +10,9 @@ export type AudioPlayer = "web" | "mpv";
 
 const AUDIO_PLAYERS: readonly AudioPlayer[] = ["web", "mpv"];
 
+/** mpv treats `auto` as "pick the system default device". */
+export const DEFAULT_MPV_AUDIO_DEVICE = "auto";
+
 const [theme, setThemeSignal] = createSignal<Theme>("dark");
 const [scrobble, setScrobbleSignal] = createSignal(true);
 const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
@@ -18,6 +21,10 @@ const [font, setFontSignal] = createSignal<Font>("system");
 const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
 const [audioDeviceId, setAudioDeviceIdSignal] = createSignal<string>(
   DEFAULT_AUDIO_DEVICE,
+);
+/** mpv's own device name, e.g. `wasapi/{...}`; `auto` lets mpv decide. */
+const [mpvAudioDevice, setMpvAudioDeviceSignal] = createSignal<string>(
+  DEFAULT_MPV_AUDIO_DEVICE,
 );
 
 export {
@@ -28,6 +35,7 @@ export {
   font,
   audioPlayer,
   audioDeviceId,
+  mpvAudioDevice,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -81,6 +89,7 @@ export async function initSettings(): Promise<void> {
     savedFont,
     savedPlayer,
     savedDevice,
+    savedMpvDevice,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -89,6 +98,7 @@ export async function initSettings(): Promise<void> {
     readSetting<Font>("font", "system"),
     readSetting<AudioPlayer>("audioPlayer", "web"),
     readSetting<string>("audioDeviceId", DEFAULT_AUDIO_DEVICE),
+    readSetting<string>("mpvAudioDevice", DEFAULT_MPV_AUDIO_DEVICE),
   ]);
 
   const nextTheme: Theme =
@@ -104,6 +114,7 @@ export async function initSettings(): Promise<void> {
   setFontSignal(nextFont);
   setAudioPlayerSignal(nextPlayer);
   setAudioDeviceIdSignal(savedDevice || DEFAULT_AUDIO_DEVICE);
+  setMpvAudioDeviceSignal(savedMpvDevice || DEFAULT_MPV_AUDIO_DEVICE);
   apply(nextTheme);
   applyFont(nextFont);
 
@@ -148,4 +159,10 @@ export function setAudioDeviceId(value: string): void {
   const next = value || DEFAULT_AUDIO_DEVICE;
   setAudioDeviceIdSignal(next);
   void writeSetting("audioDeviceId", next);
+}
+
+export function setMpvAudioDevice(value: string): void {
+  const next = value || DEFAULT_MPV_AUDIO_DEVICE;
+  setMpvAudioDeviceSignal(next);
+  void writeSetting("mpvAudioDevice", next);
 }

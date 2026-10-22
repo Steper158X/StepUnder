@@ -17,6 +17,7 @@ import {
   audioDeviceId,
   audioPlayer,
   maxBitRate,
+  mpvAudioDevice,
   scrobble,
   setAudioPlayer,
   streamFormat,
@@ -27,6 +28,7 @@ import {
   mpvLoad,
   mpvPause,
   mpvSeek,
+  mpvSetAudioDevice,
   mpvSetMute,
   mpvSetVolume,
   mpvStop,
@@ -294,6 +296,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
         autoplay: options.autoplay !== false,
         volume: state.volume,
         muted: state.muted,
+        audioDevice: mpvAudioDevice(),
       })
         .then(() => {
           mpvLoaded = true;
@@ -646,6 +649,15 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     if (usingMpv() && mpvLoaded) {
       void mpvSetVolume(state.volume).catch(() => undefined);
       void mpvSetMute(state.muted).catch(() => undefined);
+    }
+  });
+
+  // Switch the mpv engine to the speaker picked in Settings. New tracks get
+  // the device through mpvLoad, so this only needs to handle live changes.
+  createEffect(() => {
+    const device = mpvAudioDevice();
+    if (usingMpv() && mpvLoaded) {
+      void mpvSetAudioDevice(device).catch(() => undefined);
     }
   });
 

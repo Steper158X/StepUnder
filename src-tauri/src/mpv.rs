@@ -11,7 +11,7 @@
 
 use std::{
     ffi::{c_char, c_double, c_int, c_void, CStr, CString},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         mpsc::{self, TryRecvError},
         Mutex, MutexGuard,
@@ -22,7 +22,7 @@ use std::{
 
 use libloading::Library;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 type MpvHandle = *mut c_void;
 
@@ -49,8 +49,35 @@ struct MpvEventEndFile {
     playlist_insert_num_entries: c_int,
 }
 
+#[repr(C)]
+union MpvNodeValue {
+    string: *mut c_char,
+    flag: c_int,
+    int64: i64,
+    double_: c_double,
+    list: *mut MpvNodeList,
+    byte_array: *mut c_void,
+}
+
+#[repr(C)]
+struct MpvNode {
+    value: MpvNodeValue,
+    format: c_int,
+}
+
+#[repr(C)]
+struct MpvNodeList {
+    num: c_int,
+    values: *mut MpvNode,
+    keys: *mut *mut c_char,
+}
+
+const MPV_FORMAT_STRING: c_int = 1;
 const MPV_FORMAT_FLAG: c_int = 3;
 const MPV_FORMAT_DOUBLE: c_int = 5;
+const MPV_FORMAT_NODE: c_int = 6;
+const MPV_FORMAT_NODE_ARRAY: c_int = 7;
+const MPV_FORMAT_NODE_MAP: c_int = 8;
 
 const MPV_EVENT_SHUTDOWN: c_int = 1;
 const MPV_EVENT_END_FILE: c_int = 7;
@@ -72,6 +99,7 @@ type MpvCommand = unsafe extern "C" fn(MpvHandle, *const *const c_char) -> c_int
 type MpvWaitEvent = unsafe extern "C" fn(MpvHandle, c_double) -> *mut MpvEvent;
 type MpvErrorString = unsafe extern "C" fn(c_int) -> *const c_char;
 type MpvClientApiVersion = unsafe extern "C" fn() -> u64;
+type MpvFreeNodeContents = unsafe extern "C" fn(*mut MpvNode);
 
 struct Api {
     // Keeps the shared library loaded for as long as the function pointers
@@ -88,6 +116,7 @@ struct Api {
     command: MpvCommand,
     wait_event: MpvWaitEvent,
     error_string: MpvErrorString,
+    free_node_contents: MpvFreeNodeContents,
 }
 
 // The function pointers are plain code addresses from a loaded library;
@@ -112,7 +141,7 @@ impl Api {
         ))
     }
 
-    unsafe fn from_library(library: Library, path: &PathBuf) -> Result<Self, String> {
+    unsafe fn from_library(library: Library, path: &Path) -> Result<Self, String> {
         unsafe fn symbol<T: Copy>(library: &Library, name: &[u8]) -> Result<T, String> {
             unsafe {
                 library
@@ -139,6 +168,8 @@ impl Api {
         let client_api_version = unsafe {
             symbol::<MpvClientApiVersion>(&library, b"mpv_client_api_version\0")?
         };
+        let free_node_contents =
+            unsafe { symbol::<MpvFreeNodeContents>(&library, b"mpv_free_node_contents\0")? };
 
         let api_version = unsafe { client_api_version() };
         let version = format!("{}.{}", api_version >> 16, api_version & 0xffff);
@@ -156,6 +187,7 @@ impl Api {
             command,
             wait_event,
             error_string,
+            free_node_contents,
         })
     }
 }
@@ -178,11 +210,11 @@ fn library_candidates() -> Vec<PathBuf> {
     let names: &[&str] = &["libmpv.so.2", "libmpv.so.1", "libmpv.so"];
 
     // Next to the executable (the recommended place for a bundled copy).
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            for name in names {
-                paths.push(dir.join(name));
-            }
+    if let Ok(exe) = std::env::current_exe()
+        && let Some(dir) = exe.parent()
+    {
+        for name in names {
+            paths.push(dir.join(name));
         }
     }
 
@@ -283,6 +315,15 @@ struct LoadRequest {
     autoplay: bool,
     volume: f64,
     muted: bool,
+    audio_device: Option<String>,
+}
+
+/// One entry of mpv's `audio-device-list`, exposed to the settings page.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MpvAudioDevice {
+    pub id: String,
+    pub label: String,
 }
 
 enum Request {
@@ -292,6 +333,8 @@ enum Request {
     Volume(f64),
     Mute(bool),
     Stop,
+    ListDevices(mpsc::Sender<Vec<MpvAudioDevice>>),
+    SetAudioDevice(String),
     Shutdown,
 }
 
@@ -341,10 +384,10 @@ impl MpvManager {
     }
 
     pub fn shutdown(&self) {
-        if let Ok(mut guard) = self.engine.lock() {
-            if let Some(engine) = guard.take() {
-                let _ = engine.tx.send(Request::Shutdown);
-            }
+        if let Ok(mut guard) = self.engine.lock()
+            && let Some(engine) = guard.take()
+        {
+            let _ = engine.tx.send(Request::Shutdown);
         }
     }
 }
@@ -471,6 +514,13 @@ fn apply_request(
 ) {
     match request {
         Request::Load(load) => {
+            if let Some(device) = load.audio_device.as_deref()
+                && !device.is_empty()
+            {
+                unsafe {
+                    set_property(api, handle, "audio-device", device);
+                }
+            }
             // The seek is issued once the file has actually loaded, which is
             // more reliable than the --start option set at runtime.
             *pending_seek = if load.position > 0.25 {
@@ -535,6 +585,16 @@ fn apply_request(
         Request::Stop => {
             *pending_seek = None;
             let _ = run_command(api, handle, &["stop"]);
+        }
+        Request::ListDevices(reply) => {
+            let _ = reply.send(read_audio_devices(api, handle));
+        }
+        Request::SetAudioDevice(device) => {
+            if !device.is_empty() {
+                unsafe {
+                    set_property(api, handle, "audio-device", &device);
+                }
+            }
         }
         Request::Shutdown => {}
     }
@@ -628,6 +688,84 @@ unsafe fn get_flag(api: &Api, handle: MpvHandle, name: &str) -> Option<bool> {
     (result >= 0).then_some(value != 0)
 }
 
+fn read_audio_devices(api: &Api, handle: MpvHandle) -> Vec<MpvAudioDevice> {
+    unsafe {
+        let Ok(name) = c_string("audio-device-list") else {
+            return Vec::new();
+        };
+        let mut node = MpvNode {
+            value: MpvNodeValue { int64: 0 },
+            format: 0,
+        };
+        let result = (api.get_property)(
+            handle,
+            name.as_ptr(),
+            MPV_FORMAT_NODE,
+            &mut node as *mut MpvNode as *mut c_void,
+        );
+        if result < 0 {
+            return Vec::new();
+        }
+
+        let devices = if node.format == MPV_FORMAT_NODE_ARRAY && !node.value.list.is_null() {
+            let entries = &*node.value.list;
+            (0..entries.num)
+                .filter_map(|index| {
+                    let entry = &*entries.values.offset(index as isize);
+                    let id = node_map_string(entry, "name")?;
+                    if id.is_empty() {
+                        return None;
+                    }
+                    let label = node_map_string(entry, "description").unwrap_or_default();
+                    Some(MpvAudioDevice { id, label })
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        (api.free_node_contents)(&mut node);
+        devices
+    }
+}
+
+/// Reads one string field out of an `MPV_FORMAT_NODE_MAP` node.
+unsafe fn node_map_string(node: &MpvNode, key: &str) -> Option<String> {
+    if node.format != MPV_FORMAT_NODE_MAP {
+        return None;
+    }
+    let map = unsafe { node.value.list };
+    if map.is_null() {
+        return None;
+    }
+    let list = unsafe { &*map };
+    for index in 0..list.num {
+        let index = index as isize;
+        let key_pointer = unsafe { *list.keys.offset(index) };
+        if key_pointer.is_null() {
+            continue;
+        }
+        let entry_key = unsafe { CStr::from_ptr(key_pointer) }.to_string_lossy();
+        if entry_key != key {
+            continue;
+        }
+        let value = unsafe { &*list.values.offset(index) };
+        if value.format != MPV_FORMAT_STRING {
+            return None;
+        }
+        let text = unsafe { value.value.string };
+        if text.is_null() {
+            return None;
+        }
+        return Some(
+            unsafe { CStr::from_ptr(text) }
+                .to_string_lossy()
+                .into_owned(),
+        );
+    }
+    None
+}
+
 unsafe fn error_text(api: &Api, code: c_int) -> String {
     let pointer = unsafe { (api.error_string)(code) };
     if pointer.is_null() {
@@ -664,6 +802,7 @@ pub fn mpv_ensure(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn mpv_load(
     app: AppHandle,
     manager: tauri::State<'_, MpvManager>,
@@ -672,6 +811,7 @@ pub fn mpv_load(
     autoplay: Option<bool>,
     volume: Option<f64>,
     muted: Option<bool>,
+    audio_device: Option<String>,
 ) -> Result<(), String> {
     manager.send(
         &app,
@@ -681,6 +821,7 @@ pub fn mpv_load(
             autoplay: autoplay.unwrap_or(true),
             volume: volume.unwrap_or(1.0),
             muted: muted.unwrap_or(false),
+            audio_device,
         }),
     )
 }
@@ -726,4 +867,24 @@ pub fn mpv_stop(app: AppHandle, manager: tauri::State<'_, MpvManager>) -> Result
     manager.send(&app, Request::Stop)
 }
 
+#[tauri::command]
+pub async fn mpv_audio_devices(app: AppHandle) -> Result<Vec<MpvAudioDevice>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let manager = app.state::<MpvManager>();
+        let (tx, rx) = mpsc::channel();
+        manager.send(&app, Request::ListDevices(tx))?;
+        rx.recv_timeout(Duration::from_millis(2000))
+            .map_err(|_| "MPV did not return its audio devices".to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
 
+#[tauri::command]
+pub fn mpv_set_audio_device(
+    app: AppHandle,
+    manager: tauri::State<'_, MpvManager>,
+    device: String,
+) -> Result<(), String> {
+    manager.send(&app, Request::SetAudioDevice(device))
+}

@@ -210,7 +210,7 @@ const en = {
   "settings.audioPlayerWeb": "Web (built-in)",
   "settings.audioPlayerMpv": "MPV (libmpv)",
   "settings.audioDeviceMpvHint":
-    "MPV plays through the output libmpv picks (system default).",
+    "Speaker or headphones MPV plays through.",
   "settings.mpvMissing":
     "libmpv was not found. Put libmpv-2.dll next to the app or install mpv, then restart.",
   "settings.mpvChecking": "Looking for libmpv…",
@@ -487,7 +487,7 @@ const th: Record<MessageKey, string> = {
   "settings.audioPlayerWeb": "เว็บ (ในแอป)",
   "settings.audioPlayerMpv": "MPV (libmpv)",
   "settings.audioDeviceMpvHint":
-    "MPV จะเล่นผ่านอุปกรณ์ที่ libmpv เลือก (ค่าเริ่มต้นของระบบ)",
+    "เลือกลำโพงหรือหูฟังที่ MPV ใช้เล่นเพลง",
   "settings.mpvMissing":
     "ไม่พบ libmpv กรุณาวางไฟล์ libmpv-2.dll ไว้ข้างโปรแกรม หรือติดตั้ง mpv แล้วรีสตาร์ท",
   "settings.mpvChecking": "กำลังค้นหา libmpv…",
