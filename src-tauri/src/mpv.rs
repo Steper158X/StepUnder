@@ -390,6 +390,16 @@ impl MpvManager {
             let _ = engine.tx.send(Request::Shutdown);
         }
     }
+
+    /// Stops playback without starting the engine. Used when the webview
+    /// reloads, so a page reload cannot leave orphaned audio playing.
+    pub fn stop_if_running(&self) {
+        if let Ok(guard) = self.engine.lock()
+            && let Some(engine) = guard.as_ref()
+        {
+            let _ = engine.tx.send(Request::Stop);
+        }
+    }
 }
 
 fn spawn_engine(api: Api, app: AppHandle) -> Result<Engine, String> {

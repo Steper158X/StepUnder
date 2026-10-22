@@ -1,7 +1,7 @@
 mod mpv;
 
 use keyring::Entry;
-use tauri::webview::{PermissionKind, PermissionResponse};
+use tauri::webview::{PageLoadEvent, PermissionKind, PermissionResponse};
 use tauri::Manager;
 
 #[tauri::command]
@@ -39,6 +39,16 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .manage(mpv::MpvManager::default())
+        // A webview reload (F5, dev-server reload) tears down the page but not
+        // libmpv, so stop the engine before the new document starts.
+        .on_page_load(|webview, payload| {
+            if matches!(payload.event(), PageLoadEvent::Started) {
+                webview
+                    .app_handle()
+                    .state::<mpv::MpvManager>()
+                    .stop_if_running();
+            }
+        })
         // Chromium only reveals the full speaker list after getUserMedia has
         // succeeded once. The UI asks for that explicitly and immediately stops
         // the stream; only audio-output devices are ever shown.

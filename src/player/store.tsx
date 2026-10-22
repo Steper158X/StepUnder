@@ -160,6 +160,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   // The MPV engine is validated lazily so a persisted "mpv" setting cannot
   // leave the app with a dead player when libmpv is not installed.
   const [mpvReady, setMpvReady] = createSignal(false);
+  // Whether the engine currently has our track loaded. libmpv reports
+  // END_FILE (reason STOP) when a file is replaced, which must not clear this.
   let mpvLoaded = false;
 
   function usingMpv() {
@@ -248,8 +250,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
   function handleMpvEnd(payload: { eof: boolean; error?: string | null }) {
     if (!usingMpv()) return;
-    mpvLoaded = false;
     if (payload.error) {
+      mpvLoaded = false;
       setState({
         playing: false,
         loading: false,
@@ -258,7 +260,14 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       toast(t("player.mpvError"), payload.error, "error");
       return;
     }
-    if (payload.eof) advance(true);
+    if (!payload.eof) {
+      // Replacing a file (next/previous/jump) also reports END_FILE with the
+      // STOP reason. That is not a real stop, so keep the engine marked as
+      // loaded or pause/mute/seek would be skipped for the new track.
+      return;
+    }
+    mpvLoaded = false;
+    advance(true);
   }
 
   function loadAndPlay(
@@ -403,9 +412,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
   function pause() {
     if (usingMpv()) {
-      if (mpvLoaded) {
-        void mpvPause(true).catch(() => undefined);
-      }
+      void mpvPause(true).catch(() => undefined);
       return;
     }
     audio.pause();
@@ -456,7 +463,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     const duration = state.duration || current()?.duration || 0;
     const value = Math.min(Math.max(seconds, 0), duration > 0 ? duration : seconds);
     if (usingMpv()) {
-      if (mpvLoaded) void mpvSeek(value).catch(() => undefined);
+      void mpvSeek(value).catch(() => undefined);
     } else {
       try {
         if (Number.isFinite(value)) audio.currentTime = value;
@@ -646,7 +653,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   createEffect(() => {
     audio.volume = state.volume;
     audio.muted = state.muted;
-    if (usingMpv() && mpvLoaded) {
+    if (usingMpv()) {
       void mpvSetVolume(state.volume).catch(() => undefined);
       void mpvSetMute(state.muted).catch(() => undefined);
     }
