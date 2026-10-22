@@ -40,7 +40,7 @@ function ControlButton(props: {
       title={props.label}
       aria-label={props.label}
       class={cn(
-        "flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40",
+        "flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40 max-md:p-2",
         props.active && "text-primary hover:text-primary",
         props.class,
       )}
@@ -89,9 +89,9 @@ export function PlayerBar() {
   };
 
   return (
-    <div class="shrink-0 border-t border-border/60 bg-card/50 backdrop-blur">
-      <div class="grid h-[92px] grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] items-center gap-4 px-4 md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)]">
-        <div class="flex min-w-0 items-center gap-3">
+    <div class="shrink-0 border-t border-border/60 bg-card/50 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 md:h-[92px] md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)] md:gap-4 md:px-4 md:py-0">
+        <div class="flex min-w-0 items-center gap-2.5 md:gap-3">
           <button
             type="button"
             onClick={() => player.setNowPlayingOpen(!player.nowPlayingOpen())}
@@ -112,7 +112,7 @@ export function PlayerBar() {
               coverArtId={track()?.coverArt}
               size={96}
               alt={track()?.album ?? track()?.title ?? ""}
-              class="size-12 rounded-md shadow-sm transition-transform duration-200 group-enabled:group-hover:scale-105"
+              class="size-11 rounded-md shadow-sm transition-transform duration-200 group-enabled:group-hover:scale-105 md:size-12"
             />
           </button>
           <div class="min-w-0">
@@ -145,8 +145,8 @@ export function PlayerBar() {
           </Show>
         </div>
 
-        <div class="flex min-w-0 flex-col items-center gap-1">
-          <div class="flex items-center gap-1">
+        <div class="col-span-2 row-start-2 flex min-w-0 flex-col items-center gap-1 md:col-span-1 md:col-start-auto md:row-start-auto">
+          <div class="flex items-center gap-0.5 md:gap-1">
             <ControlButton
               label={t("action.shuffle")}
               active={player.state.shuffle}
@@ -165,7 +165,7 @@ export function PlayerBar() {
               type="button"
               onClick={player.toggle}
               disabled={!track()}
-              class="mx-1 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform hover:scale-105 disabled:opacity-40"
+              class="mx-1 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform hover:scale-105 disabled:opacity-40 md:size-9"
               aria-label={t(player.state.playing ? "action.pause" : "action.play")}
             >
               <Show
@@ -197,7 +197,7 @@ export function PlayerBar() {
           </div>
 
           <div class="flex w-full items-center gap-2">
-            <span class="w-9 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+            <span class="w-8 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground md:w-9 md:text-[11px]">
               {formatTime(position())}
             </span>
             <Slider
@@ -213,13 +213,13 @@ export function PlayerBar() {
                 setDrag(null);
               }}
             />
-            <span class="w-9 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            <span class="w-8 shrink-0 text-[10px] tabular-nums text-muted-foreground md:w-9 md:text-[11px]">
               {formatTime(duration())}
             </span>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-1.5">
+        <div class="col-start-2 row-start-1 flex items-center justify-end gap-0.5 md:col-start-auto md:row-start-auto md:gap-1.5">
           <div class="hidden items-center gap-1.5 md:flex">
             <ControlButton
               label={t(player.state.muted ? "action.unmute" : "action.mute")}

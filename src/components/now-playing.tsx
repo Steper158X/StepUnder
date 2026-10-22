@@ -189,12 +189,12 @@ function NowPlayingBody(props: { track: Song }) {
   const lyricsOpen = () => player.lyricsOpen();
 
   return (
-    <div class="flex min-h-0 flex-1 items-stretch overflow-hidden">
+    <div class="flex min-h-0 flex-1 flex-col items-stretch overflow-hidden md:flex-row">
       {/* Artwork: full width when closed, slides to the left when lyrics open */}
       <div
         class={cn(
           "flex min-h-0 shrink-0 flex-col items-center justify-center gap-6 py-4 transition-[width] duration-500 ease-out",
-          lyricsOpen() ? "w-1/2" : "w-full",
+          lyricsOpen() ? "w-full max-md:hidden md:w-1/2" : "w-full",
         )}
       >
         <Cover
@@ -219,7 +219,9 @@ function NowPlayingBody(props: { track: Song }) {
       <div
         class={cn(
           "flex min-h-0 flex-col overflow-hidden transition-[width,opacity] duration-500 ease-out",
-          lyricsOpen() ? "w-1/2 opacity-100" : "w-0 opacity-0",
+          lyricsOpen()
+            ? "w-full flex-1 opacity-100 md:w-1/2 md:flex-none"
+            : "w-0 flex-none opacity-0",
         )}
       >
         <LyricsPanel song={props.track} active={lyricsOpen()} />
@@ -264,7 +266,7 @@ function NowPlayingView(props: { track: Song }) {
         <div class="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/70" />
       </div>
 
-      <div class="relative flex h-full animate-now-playing-in flex-col px-5 py-4">
+      <div class="relative flex h-full animate-now-playing-in flex-col px-3 py-3 md:px-5 md:py-4">
         <div class="flex shrink-0 justify-end">
           <button
             type="button"

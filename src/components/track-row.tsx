@@ -56,17 +56,19 @@ function TrackLikeButton(props: {
         void toggleStar();
       }}
       class={cn(
-        "rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+        "rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground max-md:p-2",
         starred() && "text-primary",
         props.revealOnHover &&
           !starred() &&
-          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100",
         props.class,
       )}
       title={t(starred() ? "action.unlike" : "action.like")}
       aria-label={t(starred() ? "action.unlike" : "action.like")}
     >
-      <Heart class={cn("size-3.5", starred() && "fill-current")} />
+      <Heart
+        class={cn("size-3.5 max-md:size-4", starred() && "fill-current")}
+      />
     </button>
   );
 }
@@ -133,12 +135,17 @@ export function TrackRow(props: {
       <ContextMenuTrigger
         data-allow-context-menu
         class={cn(
-          "group grid items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60",
+          "group grid items-center gap-2 rounded-md px-1.5 py-2 transition-colors hover:bg-accent/60 sm:gap-3 sm:px-2 sm:py-1.5",
           props.showCover
             ? "grid-cols-[2rem_minmax(0,1fr)_auto]"
             : "grid-cols-[1.75rem_minmax(0,1fr)_auto]",
           isCurrent() && "bg-accent/40",
         )}
+        onClick={() => {
+          // Touch devices have no hover state, so play on a single tap while
+          // keeping the familiar double-click behaviour on desktop.
+          if (window.matchMedia("(hover: none)").matches) play();
+        }}
         onDblClick={play}
       >
         <div class="flex items-center justify-center">
@@ -154,7 +161,10 @@ export function TrackRow(props: {
                     </span>
                     <button
                       type="button"
-                      onClick={play}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        play();
+                      }}
                       class="hidden text-foreground group-hover:block"
                       aria-label={t("action.play")}
                     >
@@ -165,7 +175,10 @@ export function TrackRow(props: {
               >
                 <button
                   type="button"
-                  onClick={() => player.toggle()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    player.toggle();
+                  }}
                   aria-label={t(isPlaying() ? "action.pause" : "action.play")}
                 >
                   <PlayingBars paused={!isPlaying()} />
@@ -175,7 +188,10 @@ export function TrackRow(props: {
           >
             <button
               type="button"
-              onClick={() => player.toggle()}
+              onClick={(event) => {
+                event.stopPropagation();
+                player.toggle();
+              }}
               class="relative size-8 overflow-hidden rounded"
               aria-label={t("action.play")}
             >

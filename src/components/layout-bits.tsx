@@ -32,7 +32,7 @@ export function Section(props: {
 
 export function Page(props: { children: JSX.Element; class?: string }) {
   return (
-    <div class={cn("mx-auto w-full max-w-[1400px] px-6 py-6", props.class)}>
+    <div class={cn("mx-auto w-full max-w-[1400px] px-4 py-4 sm:px-6 sm:py-6", props.class)}>
       {props.children}
     </div>
   );
