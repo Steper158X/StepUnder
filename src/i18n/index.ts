@@ -179,6 +179,7 @@ const en = {
   "search.all": "All",
 
   "player.nowPlaying": "Now playing",
+  "player.paused": "Paused",
   "player.openFullscreen": "Open full screen player",
   "player.nothingPlaying": "Nothing playing",
   "player.queue": "Queue",
@@ -235,6 +236,9 @@ const en = {
   "settings.scrobble": "Scrobble plays",
   "settings.scrobbleHint":
     "Report listens back to Navidrome so your play counts stay in sync.",
+  "settings.discordPresence": "Discord Rich Presence",
+  "settings.discordPresenceHint":
+    "Show the song you are listening to on your Discord profile. Requires the Discord desktop app.",
   "settings.bitrate": "Maximum bitrate",
   "settings.bitrateOriginal": "Original quality",
   "settings.bitrateHint": "Ask the server to transcode above this limit.",
@@ -459,6 +463,7 @@ const th: Record<MessageKey, string> = {
   "search.all": "ทั้งหมด",
 
   "player.nowPlaying": "กำลังเล่น",
+  "player.paused": "หยุดเล่นเพลงอยู่",
   "player.openFullscreen": "เปิดเครื่องเล่นเต็มหน้าจอ",
   "player.nothingPlaying": "ยังไม่มีเพลงที่เล่น",
   "player.queue": "คิวเพลง",
@@ -514,6 +519,9 @@ const th: Record<MessageKey, string> = {
   "settings.scrobble": "บันทึกประวัติการฟัง",
   "settings.scrobbleHint":
     "ส่งข้อมูลการเล่นกลับไปยัง Navidrome เพื่อให้ยอดเล่นซิงก์กัน",
+  "settings.discordPresence": "สถานะ Discord (Rich Presence)",
+  "settings.discordPresenceHint":
+    "แสดงเพลงที่กำลังฟังอยู่บนโปรไฟล์ Discord ต้องเปิดแอป Discord บนเครื่องไว้",
   "settings.bitrate": "บิตเรตสูงสุด",
   "settings.bitrateOriginal": "คุณภาพต้นฉบับ",
   "settings.bitrateHint": "ขอให้เซิร์ฟเวอร์แปลงคุณภาพหากเกินค่านี้",

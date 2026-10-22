@@ -1,3 +1,4 @@
+mod discord;
 mod mpv;
 
 use keyring::Entry;
@@ -39,6 +40,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .manage(mpv::MpvManager::default())
+        .manage(discord::DiscordManager::default())
         // A webview reload (F5, dev-server reload) tears down the page but not
         // libmpv, so stop the engine before the new document starts.
         .on_page_load(|webview, payload| {
@@ -69,7 +71,9 @@ pub fn run() {
             mpv::mpv_set_mute,
             mpv::mpv_stop,
             mpv::mpv_audio_devices,
-            mpv::mpv_set_audio_device
+            mpv::mpv_set_audio_device,
+            discord::discord_update_presence,
+            discord::discord_clear_presence
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
@@ -77,6 +81,7 @@ pub fn run() {
     app.run(|app_handle, event| {
         if let tauri::RunEvent::Exit = event {
             app_handle.state::<mpv::MpvManager>().shutdown();
+            app_handle.state::<discord::DiscordManager>().shutdown();
         }
     });
 }

@@ -19,6 +19,7 @@ const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
 const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
 const [font, setFontSignal] = createSignal<Font>("system");
 const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
+const [discordPresence, setDiscordPresenceSignal] = createSignal(false);
 const [audioDeviceId, setAudioDeviceIdSignal] = createSignal<string>(
   DEFAULT_AUDIO_DEVICE,
 );
@@ -34,6 +35,7 @@ export {
   streamFormat,
   font,
   audioPlayer,
+  discordPresence,
   audioDeviceId,
   mpvAudioDevice,
 };
@@ -90,6 +92,7 @@ export async function initSettings(): Promise<void> {
     savedPlayer,
     savedDevice,
     savedMpvDevice,
+    savedDiscordPresence,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -99,6 +102,7 @@ export async function initSettings(): Promise<void> {
     readSetting<AudioPlayer>("audioPlayer", "web"),
     readSetting<string>("audioDeviceId", DEFAULT_AUDIO_DEVICE),
     readSetting<string>("mpvAudioDevice", DEFAULT_MPV_AUDIO_DEVICE),
+    readSetting<boolean>("discordPresence", false),
   ]);
 
   const nextTheme: Theme =
@@ -113,6 +117,7 @@ export async function initSettings(): Promise<void> {
   setStreamFormatSignal(savedFormat ?? "raw");
   setFontSignal(nextFont);
   setAudioPlayerSignal(nextPlayer);
+  setDiscordPresenceSignal(savedDiscordPresence === true);
   setAudioDeviceIdSignal(savedDevice || DEFAULT_AUDIO_DEVICE);
   setMpvAudioDeviceSignal(savedMpvDevice || DEFAULT_MPV_AUDIO_DEVICE);
   apply(nextTheme);
@@ -153,6 +158,11 @@ export function setFont(value: Font): void {
 export function setAudioPlayer(value: AudioPlayer): void {
   setAudioPlayerSignal(value);
   void writeSetting("audioPlayer", value);
+}
+
+export function setDiscordPresence(value: boolean): void {
+  setDiscordPresenceSignal(value);
+  void writeSetting("discordPresence", value);
 }
 
 export function setAudioDeviceId(value: string): void {

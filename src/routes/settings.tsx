@@ -26,12 +26,14 @@ import {
   DEFAULT_MPV_AUDIO_DEVICE,
   audioDeviceId,
   audioPlayer,
+  discordPresence,
   font,
   maxBitRate,
   mpvAudioDevice,
   scrobble,
   setAudioDeviceId,
   setAudioPlayer,
+  setDiscordPresence,
   setFont,
   setMaxBitRate,
   setMpvAudioDevice,
@@ -486,6 +488,19 @@ export default function SettingsPage() {
                 label=""
               />
             </Row>
+
+            <Show when={isTauri}>
+              <Row
+                label={t("settings.discordPresence")}
+                description={t("settings.discordPresenceHint")}
+              >
+                <CheckboxField
+                  checked={discordPresence()}
+                  onChange={setDiscordPresence}
+                  label=""
+                />
+              </Row>
+            </Show>
 
             <Row
               label={t("settings.bitrate")}

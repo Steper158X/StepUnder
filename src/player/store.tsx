@@ -16,6 +16,7 @@ import { useServers } from "~/state/servers";
 import {
   audioDeviceId,
   audioPlayer,
+  discordPresence,
   maxBitRate,
   mpvAudioDevice,
   scrobble,
@@ -37,6 +38,7 @@ import {
   type MpvSnapshot,
 } from "~/lib/mpv";
 import { isTauri } from "~/lib/platform";
+import { clearDiscordPresence, updateDiscordPresence } from "~/lib/discord";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { toast } from "~/components/toaster";
 import { t } from "~/i18n";
@@ -472,6 +474,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       }
     }
     setState("position", value);
+    scheduleDiscordPresence(0);
   }
 
   function setVolume(value: number) {
@@ -592,6 +595,74 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   function scheduleSave(delay = 700) {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(saveNow, delay);
+  }
+
+  // ------------------------------------------------------------- discord
+  // Discord's IPC has no push channel, so the activity is only updated when
+  // the track, play state or seek position changes. The progress bar itself is
+  // driven by Discord from the timestamps.
+  let discordTimer: ReturnType<typeof setTimeout> | undefined;
+  let discordCleared = true;
+
+  function clipDiscord(value: string): string {
+    // Discord truncates detail/state/large text at 128 characters.
+    return value.length > 128 ? `${value.slice(0, 127)}…` : value;
+  }
+
+  function pushDiscordPresence() {
+    const track = current();
+    if (!isTauri || !discordPresence() || !track) {
+      // The effect can fire several times in a row; only send one clear.
+      if (!discordCleared) {
+        discordCleared = true;
+        void clearDiscordPresence();
+      }
+      return;
+    }
+
+    const client = servers.client();
+    const playing = state.playing;
+    const duration = state.duration || track.duration || 0;
+    let start: number | undefined;
+    let end: number | undefined;
+    if (playing && duration > 0) {
+      const position = Math.min(Math.max(state.position, 0), duration);
+      start = Date.now() - Math.round(position * 1000);
+      end = start + Math.round(duration * 1000);
+    }
+    const subtitle = [track.artist, track.album].filter(Boolean).join(" • ");
+    const songLine = [track.title, track.artist].filter(Boolean).join(" • ");
+
+    discordCleared = false;
+    void updateDiscordPresence({
+      // Paused playback replaces the first line with the status text and keeps
+      // the song itself on the second line.
+      details: clipDiscord(
+        playing ? track.title || "StepUnder" : t("player.paused"),
+      ),
+      state: clipDiscord(
+        playing ? subtitle || "StepUnder" : songLine || "StepUnder",
+      ),
+      largeImage:
+        track.coverArt && client
+          ? client.coverUrl(track.coverArt, 512)
+          : undefined,
+      largeText: clipDiscord(
+        track.album || track.artist || track.title || "StepUnder",
+      ),
+      start,
+      end,
+      paused: !playing,
+    });
+  }
+
+  function scheduleDiscordPresence(delay = 250) {
+    if (!isTauri) return;
+    if (discordTimer) clearTimeout(discordTimer);
+    discordTimer = setTimeout(() => {
+      discordTimer = undefined;
+      pushDiscordPresence();
+    }, delay);
   }
 
   audio.addEventListener("timeupdate", () => {
@@ -737,6 +808,21 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     }
   });
 
+  // Track/play-state changes (and the moment a server becomes active) republish
+  // the Discord activity.
+  createEffect(
+    on(
+      () => [
+        discordPresence(),
+        current()?.id ?? null,
+        state.playing,
+        state.duration,
+        servers.activeId(),
+      ],
+      () => scheduleDiscordPresence(),
+    ),
+  );
+
   // Stop and reset the queue when the active server changes.
   createEffect(
     on(
@@ -832,6 +918,12 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       if (state.playing) saveNow();
     }, 12000);
 
+    // Re-send the activity now and then so a Discord restart (or progress
+    // drift) recovers without waiting for the next track change.
+    const discordHeartbeat = setInterval(() => {
+      if (state.playing && discordPresence()) scheduleDiscordPresence(0);
+    }, 30000);
+
     const handleUnload = () => saveNow();
     window.addEventListener("beforeunload", handleUnload);
 
@@ -839,12 +931,16 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       disposed = true;
       for (const off of unlisteners) off();
       clearInterval(interval);
+      clearInterval(discordHeartbeat);
       window.removeEventListener("beforeunload", handleUnload);
       navigator.mediaDevices?.removeEventListener(
         "devicechange",
         handleDeviceChange,
       );
       if (saveTimer) clearTimeout(saveTimer);
+      if (discordTimer) clearTimeout(discordTimer);
+      // Do not leave a stale "listening to ..." behind after a reload.
+      void clearDiscordPresence();
     });
 
     if ("mediaSession" in navigator) {
