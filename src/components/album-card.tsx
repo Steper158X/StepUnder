@@ -1,5 +1,5 @@
 import { A } from "@solidjs/router";
-import { Show, createSignal } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 import { LoaderCircle, Play } from "lucide-solid";
 import type { Album } from "~/lib/types";
 import { useServers } from "~/state/servers";
@@ -72,9 +72,7 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
 export function AlbumRow(props: { albums: Album[]; class?: string }) {
   return (
     <div class={cn("flex gap-4 overflow-x-auto pb-2", props.class)}>
-      {props.albums.map((album) => (
-        <AlbumCard album={album} />
-      ))}
+      <For each={props.albums}>{(album) => <AlbumCard album={album} />}</For>
     </div>
   );
 }
@@ -87,9 +85,9 @@ export function AlbumGrid(props: { albums: Album[]; class?: string }) {
         props.class,
       )}
     >
-      {props.albums.map((album) => (
-        <AlbumCard album={album} class="w-full" />
-      ))}
+      <For each={props.albums}>
+        {(album) => <AlbumCard album={album} class="w-full" />}
+      </For>
     </div>
   );
 }

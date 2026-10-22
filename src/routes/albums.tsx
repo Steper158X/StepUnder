@@ -1,4 +1,10 @@
-import { createEffect, createSignal, on, Show } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  on,
+  onCleanup,
+  Show,
+} from "solid-js";
 import { Disc3, LoaderCircle } from "lucide-solid";
 import type { Album, AlbumListType } from "~/lib/types";
 import { useServers } from "~/state/servers";
@@ -7,10 +13,10 @@ import { subsonicErrorKey } from "~/lib/subsonic";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { AlbumGrid } from "~/components/album-card";
 import { EmptyState, ErrorState } from "~/components/common";
-import { Button } from "~/components/ui/button";
 import { Select, Skeleton } from "~/components/ui/select";
 
 const PAGE_SIZE = 60;
+const LOAD_MORE_MARGIN = 600;
 
 const sortOptions: Array<{ value: AlbumListType; key: MessageKey }> = [
   { value: "newest", key: "albums.sort.newest" },
@@ -32,10 +38,39 @@ export default function AlbumsPage() {
   const [error, setError] = createSignal<unknown>(null);
 
   let requestId = 0;
+  let loadMoreSentinel: HTMLDivElement | undefined;
+  let observer: IntersectionObserver | undefined;
+
+  function canLoadMore() {
+    return hasMore() && !loading() && !error();
+  }
+
+  function loadMoreIfNeeded() {
+    if (!canLoadMore()) return;
+    if (!loadMoreSentinel) return;
+    const distanceToBottom = loadMoreSentinel.getBoundingClientRect().top;
+    if (distanceToBottom > window.innerHeight + LOAD_MORE_MARGIN) return;
+    void load(false);
+  }
+
+  function observeSentinel(el: HTMLDivElement) {
+    loadMoreSentinel = el;
+    observer?.disconnect();
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMoreIfNeeded();
+      },
+      { rootMargin: `0px 0px ${LOAD_MORE_MARGIN}px 0px` },
+    );
+    observer.observe(el);
+  }
+
+  onCleanup(() => observer?.disconnect());
 
   async function load(reset: boolean) {
     const client = servers.client();
     if (!client) return;
+    if (!reset && (!hasMore() || loading())) return;
     const id = (requestId += 1);
     const startOffset = reset ? 0 : offset();
     setLoading(true);
@@ -53,7 +88,11 @@ export default function AlbumsPage() {
     } catch (err) {
       if (id === requestId) setError(err);
     } finally {
-      if (id === requestId) setLoading(false);
+      if (id === requestId) {
+        setLoading(false);
+        // Content may still not fill the viewport, so keep loading page after page.
+        if (!reset) loadMoreIfNeeded();
+      }
     }
   }
 
@@ -120,18 +159,13 @@ export default function AlbumsPage() {
         >
           <AlbumGrid albums={albums()} />
 
-          <div class="mt-6 flex justify-center">
-            <Show when={hasMore()}>
-              <Button
-                variant="outline"
-                disabled={loading()}
-                onClick={() => void load(false)}
-              >
-                <Show when={loading()}>
-                  <LoaderCircle class="size-4 animate-spin" />
-                </Show>
-                {t("action.loadMore")}
-              </Button>
+          <div
+            ref={observeSentinel}
+            aria-hidden="true"
+            class="mt-6 flex h-10 items-center justify-center"
+          >
+            <Show when={loading()}>
+              <LoaderCircle class="size-5 animate-spin text-muted-foreground" />
             </Show>
           </div>
         </Show>
