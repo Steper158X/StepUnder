@@ -1,7 +1,8 @@
 import { A, useParams } from "@solidjs/router";
 import { createMemo, createResource, Show } from "solid-js";
-import { Disc3, Play, Shuffle } from "lucide-solid";
+import { Disc3, ListPlus, Play, Shuffle } from "lucide-solid";
 import { useServers } from "~/state/servers";
+import { usePlaylists } from "~/state/playlists";
 import { usePlayer } from "~/player/store";
 import { t, type MessageKey } from "~/i18n";
 import { subsonicErrorKey } from "~/lib/subsonic";
@@ -17,6 +18,7 @@ export default function AlbumPage() {
   const params = useParams();
   const servers = useServers();
   const player = usePlayer();
+  const playlists = usePlaylists();
 
   const [data, { refetch: reloadAlbum }] = createResource(
     () => (servers.client() && params.id ? params.id : undefined),
@@ -118,6 +120,17 @@ export default function AlbumPage() {
                 >
                   <Shuffle class="size-4" />
                   {t("album.shufflePlay")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="shrink-0"
+                  onClick={() => playlists.openAddTo(songs())}
+                  disabled={!songs().length}
+                  title={t("playlist.addTo.action")}
+                  aria-label={t("playlist.addTo.action")}
+                >
+                  <ListPlus class="size-4" />
                 </Button>
               </div>
             </div>

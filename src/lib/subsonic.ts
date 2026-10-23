@@ -18,7 +18,8 @@ export const API_VERSION = "1.16.1";
 export const CLIENT_NAME = "StepUnder";
 
 type ParamValue = string | number | boolean | null | undefined;
-type Params = Record<string, ParamValue>;
+/** Arrays become repeated query keys (`songId=1&songId=2`). */
+type Params = Record<string, ParamValue | ParamValue[]>;
 type Json = Record<string, any>;
 
 /** Error coming from the Subsonic API or the transport layer. */
@@ -137,17 +138,24 @@ export class SubsonicClient {
     if (json) url.searchParams.set("f", "json");
 
     for (const [key, value] of Object.entries(params)) {
-      const cleaned = clean(value);
-      if (cleaned !== undefined) url.searchParams.set(key, cleaned);
+      for (const item of toArray(value)) {
+        const cleaned = clean(item);
+        if (cleaned !== undefined) url.searchParams.append(key, cleaned);
+      }
     }
 
     return url.toString();
   }
 
+  /**
+   * Runs a Subsonic call. `post` sends the parameters as a form body instead
+   * of the query string, for calls that may carry hundreds of song ids.
+   */
   private async request<T extends Json = Json>(
     endpoint: string,
     params: Params = {},
     timeoutMs = 20000,
+    post = false,
   ): Promise<T & Json> {
     const url = this.buildUrl(endpoint, params);
     const controller = new AbortController();
@@ -155,11 +163,22 @@ export class SubsonicClient {
 
     let response: Response;
     try {
-      response = (await httpFetch(url, {
-        method: "GET",
-        signal: controller.signal,
-      })) as unknown as Response;
-    } catch (error: any) {      if (error?.name === "AbortError") {
+      if (post) {
+        const [base, query] = url.split("?");
+        response = (await httpFetch(base, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: query,
+          signal: controller.signal,
+        })) as unknown as Response;
+      } else {
+        response = (await httpFetch(url, {
+          method: "GET",
+          signal: controller.signal,
+        })) as unknown as Response;
+      }
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
         throw new SubsonicError(-3, "Request timed out");
       }
       throw new SubsonicError(-3, error?.message ?? "Network request failed");
@@ -301,6 +320,166 @@ export class SubsonicClient {
     return { playlist, songs: (playlist.entry ?? []) as Song[] };
   }
 
+  async createPlaylist(name: string, songIds: string[] = []): Promise<Playlist> {
+    const body = await this.request(
+      "createPlaylist",
+      { name, songId: songIds },
+      20000,
+      true,
+    );
+    if (body.playlist?.id) return body.playlist as Playlist;
+    // Servers older than API 1.14 return nothing; find the newest match instead.
+    const playlists = await this.getPlaylists();
+    const matches = playlists.filter((playlist) => playlist.name === name);
+    const created = matches.sort((a, b) =>
+      String(b.created ?? "").localeCompare(String(a.created ?? "")),
+    )[0];
+    if (!created) throw new SubsonicError(-2, "Playlist was not created");
+    return created;
+  }
+
+  async updatePlaylist(
+    id: string,
+    changes: {
+      name?: string;
+      comment?: string;
+      public?: boolean;
+      songIdsToAdd?: string[];
+      songIndexesToRemove?: number[];
+    },
+  ): Promise<void> {
+    await this.request(
+      "updatePlaylist",
+      {
+        playlistId: id,
+        name: changes.name,
+        // An empty string is dropped by buildUrl, so send a space to clear it.
+        comment: changes.comment === "" ? " " : changes.comment,
+        public: changes.public,
+        songIdToAdd: changes.songIdsToAdd,
+        songIndexToRemove: changes.songIndexesToRemove,
+      },
+      20000,
+      true,
+    );
+  }
+
+  /**
+   * Overwrites the playlist's songs with `songIds`, in that order. Goes through
+   * updatePlaylist (drop every index, re-add in order) rather than
+   * createPlaylist so admins may also reorder playlists they do not own.
+   */
+  async replacePlaylistSongs(
+    id: string,
+    currentCount: number,
+    songIds: string[],
+  ): Promise<void> {
+    await this.request(
+      "updatePlaylist",
+      {
+        playlistId: id,
+        songIndexToRemove: Array.from({ length: currentCount }, (_, i) => i),
+        songIdToAdd: songIds,
+      },
+      30000,
+      true,
+    );
+  }
+
+  /** Whether the signed-in account has the admin role. */
+  async isAdmin(): Promise<boolean> {
+    try {
+      const body = await this.request("getUser", { username: this.username });
+      return body.user?.adminRole === true;
+    } catch {
+      return false;
+    }
+  }
+
+  async deletePlaylist(id: string): Promise<void> {
+    await this.request("deletePlaylist", { id });
+  }
+
+  // ------------------------------------------------- Navidrome native API
+  private nativeToken: string | null = null;
+
+  private async nativeLogin(): Promise<string> {
+    let response: Response;
+    try {
+      response = (await httpFetch(`${this.baseUrl}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: this.username,
+          password: this.password,
+        }),
+      })) as unknown as Response;
+    } catch (error: any) {
+      throw new SubsonicError(-3, error?.message ?? "Network request failed");
+    }
+    if (response.status === 401) throw new SubsonicError(40, "Login failed");
+    if (response.status === 404) {
+      throw new SubsonicError(-4, "Not a Navidrome server");
+    }
+    if (!response.ok) {
+      throw new SubsonicError(response.status, `HTTP ${response.status}`);
+    }
+    const body = (await response.json().catch(() => null)) as Json | null;
+    if (!body?.token) {
+      throw new SubsonicError(-2, "The server returned an invalid response");
+    }
+    this.nativeToken = String(body.token);
+    return this.nativeToken;
+  }
+
+  /** Calls Navidrome's own REST API, logging in (again) when needed. */
+  private async nativeRequest(
+    path: string,
+    init: { method: string; body?: BodyInit },
+  ): Promise<void> {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const token = this.nativeToken ?? (await this.nativeLogin());
+      let response: Response;
+      try {
+        response = (await httpFetch(`${this.baseUrl}/api/${path}`, {
+          method: init.method,
+          headers: { "x-nd-authorization": `Bearer ${token}` },
+          body: init.body,
+        })) as unknown as Response;
+      } catch (error: any) {
+        throw new SubsonicError(-3, error?.message ?? "Network request failed");
+      }
+      if (response.status === 401 && attempt === 0) {
+        this.nativeToken = null;
+        continue;
+      }
+      if (response.ok) return;
+      if (response.status === 404 || response.status === 405) {
+        throw new SubsonicError(-4, "Not supported by this server");
+      }
+      if (response.status === 403) throw new SubsonicError(50, "Forbidden");
+      throw new SubsonicError(response.status, `HTTP ${response.status}`);
+    }
+    throw new SubsonicError(40, "Login failed");
+  }
+
+  /** Custom playlist cover (Navidrome 0.61+). */
+  async uploadPlaylistImage(id: string, image: Blob, filename = "cover.jpg") {
+    const form = new FormData();
+    form.append("image", image, filename);
+    await this.nativeRequest(`playlist/${encodeURIComponent(id)}/image`, {
+      method: "POST",
+      body: form,
+    });
+  }
+
+  /** Drops the custom cover so the server falls back to its generated mosaic. */
+  async removePlaylistImage(id: string) {
+    await this.nativeRequest(`playlist/${encodeURIComponent(id)}/image`, {
+      method: "DELETE",
+    });
+  }
+
   async getRandomSongs(size = 50): Promise<Song[]> {
     const body = await this.request("getRandomSongs", { size });
     return (body.randomSongs?.song ?? []) as Song[];
@@ -412,6 +591,7 @@ export function subsonicErrorKey(error: unknown): string {
     if (error.code === 50) return "error.notAuthorized";
     if (error.code === 70) return "error.notFound";
     if (error.code === -3) return "error.unreachable";
+    if (error.code === -4) return "error.unsupported";
     if (error.code === 10) return "error.invalidRequest";
   }
   return "error.generic";

@@ -1,32 +1,108 @@
 import { useParams } from "@solidjs/router";
-import { createMemo, createResource, Show } from "solid-js";
-import { ListMusic, Play, Shuffle } from "lucide-solid";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  Show,
+} from "solid-js";
+import {
+  Ellipsis,
+  Globe,
+  ListMusic,
+  ListPlus,
+  Lock,
+  Pencil,
+  Play,
+  Shuffle,
+  Trash2,
+} from "lucide-solid";
+import type { Song } from "~/lib/types";
 import { useServers } from "~/state/servers";
+import { usePlaylists } from "~/state/playlists";
 import { usePlayer } from "~/player/store";
 import { t, type MessageKey } from "~/i18n";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { formatTime } from "~/lib/format";
-import { Cover, ErrorState } from "~/components/common";
+import { toast } from "~/components/toaster";
+import { Cover, EmptyState, ErrorState } from "~/components/common";
 import { Page } from "~/components/layout-bits";
 import { TrackList } from "~/components/track-row";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 export default function PlaylistPage() {
   const params = useParams();
   const servers = useServers();
+  const playlists = usePlaylists();
   const player = usePlayer();
 
   const [data, { refetch: reloadPlaylist }] = createResource(
-    () => (servers.client() && params.id ? params.id : undefined),
-    (id) => servers.client()!.getPlaylist(id),
+    () =>
+      servers.client() && params.id
+        ? { id: params.id, revision: playlists.revision() }
+        : undefined,
+    ({ id }) => servers.client()!.getPlaylist(id),
   );
 
-  const playlist = () => data()?.playlist;
-  const songs = () => data()?.songs ?? [];
+  // Local copy so reordering and removing feel instant; the server catches up.
+  const [songs, setSongs] = createSignal<Song[]>([]);
+  createEffect(() => setSongs(data.latest?.songs ?? []));
+
+  const playlist = () => data.latest?.playlist;
+  const editable = () => playlists.canEdit(playlist());
   const totalDuration = createMemo(() =>
     songs().reduce((total, song) => total + (song.duration ?? 0), 0),
   );
+
+  // Edits run one after another so index-based removals stay correct.
+  let pending: Promise<unknown> = Promise.resolve();
+  function persist(previous: Song[], run: () => Promise<void>) {
+    pending = pending.then(run).catch((error) => {
+      setSongs(previous);
+      toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
+    });
+  }
+
+  function moveSong(from: number, to: number) {
+    const id = playlist()?.id;
+    if (!id) return;
+    const previous = songs();
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setSongs(next);
+    const ids = next.map((song) => song.id);
+    persist(previous, () =>
+      servers.client()!.replacePlaylistSongs(id, previous.length, ids),
+    );
+  }
+
+  function removeSong(index: number) {
+    const id = playlist()?.id;
+    if (!id) return;
+    const previous = songs();
+    const removed = previous[index];
+    setSongs(previous.filter((_, position) => position !== index));
+    persist(previous, async () => {
+      await servers
+        .client()!
+        .updatePlaylist(id, { songIndexesToRemove: [index] });
+      toast(
+        t("playlist.toast.removed", { title: removed?.title ?? "" }),
+        undefined,
+        "success",
+      );
+      playlists.reload();
+    });
+  }
 
   function playAll(shuffle = false) {
     if (!songs().length) return;
@@ -34,10 +110,12 @@ export default function PlaylistPage() {
     if (shuffle && !player.state.shuffle) player.toggleShuffle();
   }
 
+  const comment = () => playlist()?.comment?.trim();
+
   return (
     <Page>
       <Show
-        when={!data.loading}
+        when={!data.loading || data.latest}
         fallback={
           <div class="flex flex-col gap-6 sm:flex-row">
             <Skeleton class="size-44 shrink-0 rounded-xl" />
@@ -60,21 +138,70 @@ export default function PlaylistPage() {
           }
         >
           <div class="flex flex-col gap-6 sm:flex-row">
-            <Cover
-              coverArtId={playlist()!.coverArt ?? playlist()!.id}
-              size={400}
-              alt={playlist()!.name}
-              class="size-44 shrink-0 rounded-xl shadow-lg"
-              iconClass="size-10"
-            />
+            <Show
+              when={editable()}
+              fallback={
+                <Cover
+                  coverArtId={playlist()!.coverArt ?? playlist()!.id}
+                  cacheKey={playlists.coverKey(playlist()!.id)}
+                  size={400}
+                  alt={playlist()!.name}
+                  class="size-44 shrink-0 rounded-xl shadow-lg"
+                  iconClass="size-10"
+                  zoomable
+                />
+              }
+            >
+              <button
+                type="button"
+                class="group relative size-44 shrink-0 overflow-hidden rounded-xl shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => playlists.openEdit(playlist()!)}
+                aria-label={t("playlist.edit")}
+              >
+                <Cover
+                  coverArtId={playlist()!.coverArt ?? playlist()!.id}
+                  cacheKey={playlists.coverKey(playlist()!.id)}
+                  size={400}
+                  alt={playlist()!.name}
+                  class="size-full"
+                  iconClass="size-10"
+                />
+                <span class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <Pencil class="size-5" />
+                  {t("playlist.edit")}
+                </span>
+              </button>
+            </Show>
             <div class="flex min-w-0 flex-1 flex-col justify-end gap-3">
               <p class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <ListMusic class="size-3.5" />
                 {t("nav.playlists")}
+                <Show when={playlist()!.public !== undefined}>
+                  <span class="px-0.5">•</span>
+                  <Show
+                    when={playlist()!.public}
+                    fallback={
+                      <span class="flex items-center gap-1">
+                        <Lock class="size-3" />
+                        {t("playlist.private")}
+                      </span>
+                    }
+                  >
+                    <span class="flex items-center gap-1">
+                      <Globe class="size-3" />
+                      {t("playlist.public")}
+                    </span>
+                  </Show>
+                </Show>
               </p>
-              <h1 class="text-2xl font-bold leading-tight sm:text-3xl">
+              <h1 class="text-2xl font-bold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
                 {playlist()!.name}
               </h1>
+              <Show when={comment()}>
+                <p class="line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">
+                  {comment()}
+                </p>
+              </Show>
               <p class="text-sm text-muted-foreground">
                 <Show when={playlist()!.owner}>
                   <span>{t("playlists.owner", { owner: playlist()!.owner! })}</span>
@@ -99,6 +226,51 @@ export default function PlaylistPage() {
                   <Shuffle class="size-4" />
                   {t("album.shufflePlay")}
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    as={Button}
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("action.more")}
+                    title={t("action.more")}
+                  >
+                    <Ellipsis class="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <Show when={editable()}>
+                      <DropdownMenuItem
+                        onSelect={() => playlists.openEdit(playlist()!)}
+                      >
+                        <Pencil class="size-4" />
+                        {t("playlist.edit")}
+                      </DropdownMenuItem>
+                    </Show>
+                    <DropdownMenuItem
+                      disabled={!songs().length}
+                      onSelect={() => player.addToQueue(songs())}
+                    >
+                      <ListPlus class="size-4" />
+                      {t("action.addToQueue")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={!songs().length}
+                      onSelect={() => playlists.openAddTo(songs())}
+                    >
+                      <ListMusic class="size-4" />
+                      {t("playlist.addTo.action")}
+                    </DropdownMenuItem>
+                    <Show when={editable()}>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        destructive
+                        onSelect={() => playlists.openDelete(playlist()!)}
+                      >
+                        <Trash2 class="size-4" />
+                        {t("playlist.delete.action")}
+                      </DropdownMenuItem>
+                    </Show>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -107,7 +279,11 @@ export default function PlaylistPage() {
             <Show
               when={songs().length > 0}
               fallback={
-                <p class="text-sm text-muted-foreground">{t("common.empty")}</p>
+                <EmptyState
+                  icon={<ListMusic class="size-5" />}
+                  title={t("playlist.emptyTitle")}
+                  description={editable() ? t("playlist.emptyHint") : undefined}
+                />
               }
             >
               <TrackList
@@ -115,6 +291,8 @@ export default function PlaylistPage() {
                 sourceName={playlist()!.name}
                 showAlbum
                 showCover
+                onMove={editable() ? moveSong : undefined}
+                onRemove={editable() ? removeSong : undefined}
               />
             </Show>
           </div>

@@ -2,6 +2,7 @@ import { Router, Route, type RouteSectionProps } from "@solidjs/router";
 import { onMount } from "solid-js";
 import { ServersProvider } from "~/state/servers";
 import { PlayerProvider } from "~/player/store";
+import { PlaylistsProvider } from "~/state/playlists";
 import { initI18n } from "~/i18n";
 import { initSettings } from "~/state/settings";
 import {
@@ -43,11 +44,11 @@ function Root(props: RouteSectionProps) {
   });
 
   return (
-    <>
+    <PlaylistsProvider>
       {props.children}
       <Toaster />
       <UpdatePrompt />
-    </>
+    </PlaylistsProvider>
   );
 }
 

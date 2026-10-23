@@ -68,6 +68,8 @@ export function Cover(props: {
   iconClass?: string;
   /** Click to open the artwork full-screen. */
   zoomable?: boolean;
+  /** Bump to reload artwork that changed on the server under the same id. */
+  cacheKey?: number;
 }) {
   const servers = useServers();
   const [failed, setFailed] = createSignal(false);
@@ -75,15 +77,18 @@ export function Cover(props: {
 
   createEffect(
     on(
-      () => props.coverArtId,
+      () => [props.coverArtId, props.cacheKey],
       () => setFailed(false),
       { defer: true },
     ),
   );
 
+  // Every URL carries a fresh auth salt, so re-running the memo is enough to
+  // bypass the webview's image cache.
   const url = createMemo(() => {
     const client = servers.client();
     const id = props.coverArtId;
+    void props.cacheKey;
     if (!client || !id || failed()) return null;
     return client.coverUrl(id, props.size ?? 300);
   });
@@ -92,6 +97,7 @@ export function Cover(props: {
   const fullUrl = createMemo(() => {
     const client = servers.client();
     const id = props.coverArtId;
+    void props.cacheKey;
     if (!client || !id || failed()) return null;
     return client.coverUrl(id, Math.max(props.size ?? 300, 1200));
   });

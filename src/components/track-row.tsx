@@ -1,17 +1,21 @@
 import { A, useNavigate } from "@solidjs/router";
-import { Show, createSignal, type JSX } from "solid-js";
+import { Show, createSignal, onCleanup, type JSX } from "solid-js";
 import {
+  GripVertical,
   Heart,
   Info,
   ListEnd,
+  ListMusic,
   ListPlus,
   Play,
   Plus,
   Radio,
+  X,
 } from "lucide-solid";
 import type { Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
+import { usePlaylists } from "~/state/playlists";
 import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
 import { cn } from "~/lib/utils";
@@ -91,8 +95,15 @@ export function TrackRow(props: {
   showAlbum?: boolean;
   showArtist?: boolean;
   showAlbumArt?: boolean;
+  /** Shows "remove from playlist" actions. */
+  onRemove?: () => void;
+  /** Pointer-down on the drag handle; the handle only renders when set. */
+  onDragStart?: (event: PointerEvent) => void;
+  dropIndicator?: "before" | "after" | null;
+  dragging?: boolean;
 }) {
   const player = usePlayer();
+  const playlists = usePlaylists();
   const navigate = useNavigate();
   const isCurrent = () => player.isCurrent(props.song.id);
   const isPlaying = () => isCurrent() && player.state.playing;
@@ -145,12 +156,18 @@ export function TrackRow(props: {
       <ContextMenu>
         <ContextMenuTrigger
           data-allow-context-menu
+          data-track-index={props.index}
           class={cn(
-            "group grid items-center gap-2 rounded-md px-1.5 py-2 transition-colors hover:bg-accent/60 sm:gap-3 sm:px-2 sm:py-1.5",
+            "group relative grid items-center gap-2 rounded-md px-1.5 py-2 transition-colors hover:bg-accent/60 sm:gap-3 sm:px-2 sm:py-1.5",
             props.showCover
               ? "grid-cols-[2rem_minmax(0,1fr)_auto]"
               : "grid-cols-[1.75rem_minmax(0,1fr)_auto]",
             isCurrent() && "bg-accent/40",
+            props.dragging && "bg-accent/70 opacity-60",
+            props.dropIndicator === "before" &&
+              "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
+            props.dropIndicator === "after" &&
+              "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary",
           )}
           onClick={() => {
             // Touch devices have no hover state, so play on a single tap while
@@ -241,6 +258,34 @@ export function TrackRow(props: {
             <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
               {formatTime(props.song.duration)}
             </span>
+            <Show when={props.onRemove}>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  props.onRemove?.();
+                }}
+                class="rounded-md p-1.5 text-muted-foreground opacity-0 transition-colors hover:bg-accent hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 max-md:p-2 max-md:opacity-100"
+                title={t("playlist.removeSong")}
+                aria-label={t("playlist.removeSong")}
+              >
+                <X class="size-3.5 max-md:size-4" />
+              </button>
+            </Show>
+            <Show when={props.onDragStart}>
+              <span
+                role="button"
+                tabIndex={-1}
+                class="cursor-grab touch-none rounded-md p-1.5 text-muted-foreground opacity-40 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 active:cursor-grabbing max-md:p-2 max-md:opacity-100"
+                title={t("playlist.dragToReorder")}
+                aria-label={t("playlist.dragToReorder")}
+                onPointerDown={(event) => props.onDragStart?.(event)}
+                onClick={(event) => event.stopPropagation()}
+                onDblClick={(event) => event.stopPropagation()}
+              >
+                <GripVertical class="size-3.5 max-md:size-4" />
+              </span>
+            </Show>
           </div>
         </ContextMenuTrigger>
 
@@ -261,6 +306,20 @@ export function TrackRow(props: {
             <Radio class="size-4" />
             {t("action.startRadio")}
           </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem onSelect={() => playlists.openAddTo([props.song])}>
+            <ListMusic class="size-4" />
+            {t("playlist.addTo.action")}
+          </ContextMenuItem>
+          <Show when={props.onRemove}>
+            <ContextMenuItem
+              class="text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive"
+              onSelect={() => props.onRemove?.()}
+            >
+              <X class="size-4" />
+              {t("playlist.removeSong")}
+            </ContextMenuItem>
+          </Show>
           <ContextMenuSeparator />
           <Show when={props.song.albumId}>
             <ContextMenuItem
@@ -292,9 +351,101 @@ export function TrackList(props: {
   showAlbum?: boolean;
   showArtist?: boolean;
   class?: string;
+  /** Enables the drag handle; called with the old and new index. */
+  onMove?: (from: number, to: number) => void;
+  onRemove?: (index: number) => void;
 }) {
+  let container: HTMLDivElement | undefined;
+  // `over` is the insertion slot, 0..songs.length.
+  const [drag, setDrag] = createSignal<{ from: number; over: number } | null>(
+    null,
+  );
+  let stopDrag: (() => void) | undefined;
+  onCleanup(() => stopDrag?.());
+
+  function scrollParent(element: HTMLElement | null): HTMLElement | null {
+    for (let node = element?.parentElement; node; node = node.parentElement) {
+      const overflow = getComputedStyle(node).overflowY;
+      if (overflow === "auto" || overflow === "scroll") return node;
+    }
+    return null;
+  }
+
+  function startDrag(index: number, event: PointerEvent) {
+    if (event.button !== 0 || !container) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture(event.pointerId);
+    const scroller = scrollParent(container);
+    setDrag({ from: index, over: index });
+
+    const move = (moveEvent: PointerEvent) => {
+      const rows = Array.from(
+        container!.querySelectorAll<HTMLElement>("[data-track-index]"),
+      );
+      let over = rows.length;
+      for (let i = 0; i < rows.length; i += 1) {
+        const rect = rows[i].getBoundingClientRect();
+        if (moveEvent.clientY < rect.top + rect.height / 2) {
+          over = i;
+          break;
+        }
+      }
+      setDrag((current) => (current ? { ...current, over } : current));
+
+      if (scroller) {
+        const bounds = scroller.getBoundingClientRect();
+        const edge = 56;
+        if (moveEvent.clientY < bounds.top + edge) scroller.scrollBy(0, -12);
+        else if (moveEvent.clientY > bounds.bottom - edge) scroller.scrollBy(0, 12);
+      }
+    };
+
+    const finish = (commit: boolean) => {
+      const state = drag();
+      stopDrag?.();
+      if (!commit || !state) return;
+      const to = state.over > state.from ? state.over - 1 : state.over;
+      if (to !== state.from) props.onMove?.(state.from, to);
+    };
+    const up = () => finish(true);
+    const cancel = () => finish(false);
+    const key = (keyEvent: KeyboardEvent) => {
+      if (keyEvent.key === "Escape") cancel();
+    };
+
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", cancel);
+    window.addEventListener("keydown", key);
+    document.body.classList.add("select-none");
+    stopDrag = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("keydown", key);
+      document.body.classList.remove("select-none");
+      setDrag(null);
+      stopDrag = undefined;
+    };
+  }
+
+  function indicator(index: number): "before" | "after" | null {
+    const state = drag();
+    // Dropping right above or below the dragged row changes nothing.
+    if (!state || state.over === state.from || state.over === state.from + 1) {
+      return null;
+    }
+    if (state.over === index) return "before";
+    if (state.over === props.songs.length && index === props.songs.length - 1) {
+      return "after";
+    }
+    return null;
+  }
+
   return (
-    <div class={cn("flex flex-col gap-0.5", props.class)}>
+    <div ref={container} class={cn("flex flex-col gap-0.5", props.class)}>
       {props.songs.map((song, index) => (
         <TrackRow
           song={song}
@@ -304,6 +455,12 @@ export function TrackList(props: {
           showCover={props.showCover}
           showAlbum={props.showAlbum}
           showArtist={props.showArtist}
+          onRemove={props.onRemove ? () => props.onRemove!(index) : undefined}
+          onDragStart={
+            props.onMove ? (event) => startDrag(index, event) : undefined
+          }
+          dropIndicator={indicator(index)}
+          dragging={drag()?.from === index}
         />
       ))}
     </div>

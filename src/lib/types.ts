@@ -74,6 +74,7 @@ export interface Playlist {
   name: string;
   comment?: string;
   owner?: string;
+  public?: boolean;
   songCount?: number;
   duration?: number;
   created?: string;
