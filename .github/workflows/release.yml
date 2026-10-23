@@ -96,7 +96,9 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$feed" --clobber \
             || { echo "::error::latest.json was not uploaded; leaving the release as a draft."; exit 1; }
           # A re-run can find a stale feed from an earlier attempt on this tag.
-          version=$(node -p "require('$feed/latest.json').version.replace(/^v/, '')")
+          # Pass the path as an argument: RUNNER_TEMP is a Windows path, and its
+          # backslashes would be eaten as escapes inside a JS string literal.
+          version=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).version.replace(/^v/, '')" "$feed/latest.json")
           if [[ "$version" != "${GITHUB_REF_NAME#v}" ]]; then
             echo "::error::latest.json is for $version, not $GITHUB_REF_NAME; leaving the release as a draft."
             exit 1
