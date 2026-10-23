@@ -91,6 +91,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qx latest.json \
+          feed="$RUNNER_TEMP/feed"
+          mkdir -p "$feed"
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$feed" --clobber \
             || { echo "::error::latest.json was not uploaded; leaving the release as a draft."; exit 1; }
+          # A re-run can find a stale feed from an earlier attempt on this tag.
+          version=$(node -p "require('$feed/latest.json').version.replace(/^v/, '')")
+          if [[ "$version" != "${GITHUB_REF_NAME#v}" ]]; then
+            echo "::error::latest.json is for $version, not $GITHUB_REF_NAME; leaving the release as a draft."
+            exit 1
+          fi
+          # Draft assets live under releases/download/untagged-*/ until the
+          # release is published; point the feed at the tag so its URLs survive.
+          if grep -q '/download/untagged-' "$feed/latest.json"; then
+            sed -i -E "s#/download/untagged-[^/]+/#/download/$GITHUB_REF_NAME/#g" "$feed/latest.json"
+            gh release upload "$GITHUB_REF_NAME" "$feed/latest.json" --clobber
+          fi
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest

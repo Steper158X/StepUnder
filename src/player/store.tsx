@@ -165,6 +165,9 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   // Whether the engine currently has our track loaded. libmpv reports
   // END_FILE (reason STOP) when a file is replaced, which must not clear this.
   let mpvLoaded = false;
+  // mpv renames its mixer entry for every file it loads, even when playback
+  // never pauses between tracks, so each load needs its own claim.
+  let mpvClaimPending = false;
 
   function usingMpv() {
     return isTauri && audioPlayer() === "mpv";
@@ -242,7 +245,10 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     if (!usingMpv()) return;
     // mpv renames its mixer entry after each track title; take it back.
     const audible = snapshot.playing && !snapshot.loading;
-    if (audible && !(state.playing && !state.loading)) claimAudioSessions();
+    if (audible && (mpvClaimPending || !(state.playing && !state.loading))) {
+      mpvClaimPending = false;
+      claimAudioSessions();
+    }
     setState({
       position: snapshot.position,
       playing: snapshot.playing,
@@ -305,6 +311,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     if (usingMpv()) {
       audio.pause();
       audio.removeAttribute("src");
+      mpvClaimPending = true;
       void mpvLoad(url, {
         position: resumeAt,
         autoplay: options.autoplay !== false,
