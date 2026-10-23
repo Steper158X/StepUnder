@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { Show, createSignal, type JSX } from "solid-js";
-import { Heart, ListEnd, ListPlus, Play, Plus } from "lucide-solid";
+import { Heart, ListEnd, ListPlus, Play, Plus, Radio } from "lucide-solid";
 import type { Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
@@ -245,6 +245,10 @@ export function TrackRow(props: {
         <ContextMenuItem onSelect={() => player.addToQueue([props.song])}>
           <ListPlus class="size-4" />
           {t("action.addToQueue")}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => player.startRadio(props.song)}>
+          <Radio class="size-4" />
+          {t("action.startRadio")}
         </ContextMenuItem>
         <Show when={props.song.albumId}>
           <ContextMenuSeparator />

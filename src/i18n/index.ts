@@ -45,6 +45,7 @@ const en = {
   "action.addToQueue": "Add to queue",
   "action.playNext": "Play next",
   "action.goToAlbum": "Go to album",
+  "action.startRadio": "Start track radio",
   "action.more": "More options",
   "action.mute": "Mute",
   "action.unmute": "Unmute",
@@ -309,6 +310,11 @@ const en = {
   "toast.unstarred": "Removed from favorites",
   "toast.queueCleared": "Queue cleared",
 
+  "radio.source": "{name} Radio",
+  "radio.empty": "Navidrome found no similar tracks",
+  "radio.emptyHint":
+    "Check that Last.fm (or another agent) is enabled on the server.",
+
   "empty.noServer": "Connect a server first",
 } as const;
 
@@ -356,6 +362,7 @@ const th: Record<MessageKey, string> = {
   "action.addToQueue": "เพิ่มเข้าคิว",
   "action.playNext": "เล่นถัดไป",
   "action.goToAlbum": "ไปที่อัลบั้ม",
+  "action.startRadio": "เริ่มวิทยุจากเพลงนี้",
   "action.more": "ตัวเลือกเพิ่มเติม",
   "action.mute": "ปิดเสียง",
   "action.unmute": "เปิดเสียง",
@@ -617,6 +624,11 @@ const th: Record<MessageKey, string> = {
   "toast.starred": "เพิ่มในรายการชื่นชอบแล้ว",
   "toast.unstarred": "นำออกจากรายการชื่นชอบแล้ว",
   "toast.queueCleared": "ล้างคิวเพลงแล้ว",
+
+  "radio.source": "วิทยุ: {name}",
+  "radio.empty": "Navidrome ไม่พบเพลงที่คล้ายกัน",
+  "radio.emptyHint":
+    "ตรวจสอบว่าเปิดใช้ Last.fm (หรือ agent อื่น) บนเซิร์ฟเวอร์แล้ว",
 
   "empty.noServer": "เชื่อมต่อเซิร์ฟเวอร์ก่อน",
 };

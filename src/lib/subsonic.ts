@@ -252,6 +252,22 @@ export class SubsonicClient {
     }
   }
 
+  /** Songs similar to a song, album or artist id (Navidrome resolves all three). */
+  async getSimilarSongs(id: string, count = 50): Promise<Song[]> {
+    const body = await this.request("getSimilarSongs", { id, count });
+    return (body.similarSongs?.song ?? []) as Song[];
+  }
+
+  async getSimilarSongs2(artistId: string, count = 50): Promise<Song[]> {
+    const body = await this.request("getSimilarSongs2", { id: artistId, count });
+    return (body.similarSongs2?.song ?? []) as Song[];
+  }
+
+  async getSongsByGenre(genre: string, count = 50, offset = 0): Promise<Song[]> {
+    const body = await this.request("getSongsByGenre", { genre, count, offset });
+    return (body.songsByGenre?.song ?? []) as Song[];
+  }
+
   async getPlaylists(): Promise<Playlist[]> {
     const body = await this.request("getPlaylists");
     return (body.playlists?.playlist ?? []) as Playlist[];

@@ -6,6 +6,7 @@ import {
   on,
   onCleanup,
   onMount,
+  untrack,
   useContext,
   type Accessor,
   type JSX,
@@ -58,6 +59,8 @@ export interface PlayerState {
   repeat: RepeatMode;
   error: string | null;
   sourceName: string | null;
+  /** Track radio: the queue keeps growing with songs Navidrome finds similar. */
+  radio: boolean;
 }
 
 interface PersistedPlayer {
@@ -68,7 +71,14 @@ interface PersistedPlayer {
   volume: number;
   shuffle: boolean;
   repeat: RepeatMode;
+  radio?: boolean;
+  sourceName?: string | null;
 }
+
+/** How many songs a radio asks Navidrome for at a time. */
+const RADIO_BATCH = 30;
+/** Fewer new songs than this and the radio also tries the broader sources. */
+const RADIO_MIN = 10;
 
 export interface PlayerContextValue {
   state: PlayerState;
@@ -81,6 +91,7 @@ export interface PlayerContextValue {
   toggleLyrics: () => void;
   playNow: (songs: Song[], index?: number, sourceName?: string) => void;
   playSong: (song: Song, context?: Song[], sourceName?: string) => void;
+  startRadio: (song: Song) => void;
   addToQueue: (songs: Song[]) => void;
   playNext: (songs: Song[]) => void;
   toggle: () => void;
@@ -116,6 +127,7 @@ const INITIAL_STATE: PlayerState = {
   repeat: "off",
   error: null,
   sourceName: null,
+  radio: false,
 };
 
 function shuffled<T>(items: T[]): T[] {
@@ -355,6 +367,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     const list = songs.filter(Boolean);
     if (!list.length) return;
     const safeIndex = Math.min(Math.max(index, 0), list.length - 1);
+    stopRadio();
     setState({
       queue: [...list],
       index: safeIndex,
@@ -363,6 +376,113 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       duration: list[safeIndex]?.duration ?? 0,
     });
     loadAndPlay(safeIndex, { autoplay: true });
+  }
+
+  // ---------------------------------------------------------------- radio
+  // Bumped whenever the radio stops or restarts so a slow response from an
+  // older radio never lands in the new queue.
+  let radioToken = 0;
+  let radioFetching = false;
+
+  function stopRadio() {
+    radioToken += 1;
+    radioFetching = false;
+    if (state.radio) setState("radio", false);
+  }
+
+  /**
+   * Asks Navidrome for songs like the seed, from the closest match outwards:
+   * similar songs, similar artists, the artist's top songs, the same genre
+   * and finally random songs. Similarity needs an external agent (Last.fm)
+   * that often knows nothing about a song, so the later sources keep the
+   * radio from running dry. Anything in `exclude` is dropped so the radio
+   * does not repeat itself.
+   */
+  async function fetchRadioSongs(seed: Song, exclude: Set<string>) {
+    const client = servers.client();
+    if (!client) return [];
+    const sources: Array<[string, () => Promise<Song[]>]> = [
+      ["getSimilarSongs", () => client.getSimilarSongs(seed.id, RADIO_BATCH)],
+      [
+        "getSimilarSongs2",
+        async () =>
+          seed.artistId
+            ? client.getSimilarSongs2(seed.artistId, RADIO_BATCH)
+            : [],
+      ],
+      [
+        "getTopSongs",
+        async () =>
+          seed.artist ? client.getTopSongs(seed.artist, RADIO_BATCH) : [],
+      ],
+      [
+        "getSongsByGenre",
+        async () =>
+          seed.genre
+            ? shuffled(await client.getSongsByGenre(seed.genre, 200))
+            : [],
+      ],
+      ["getRandomSongs", () => client.getRandomSongs(RADIO_BATCH)],
+    ];
+
+    const seen = new Set(exclude);
+    const found: Song[] = [];
+    for (const [name, load] of sources) {
+      if (found.length >= RADIO_MIN) break;
+      let songs: Song[] = [];
+      try {
+        songs = await load();
+      } catch (error) {
+        console.warn(`Radio: ${name} failed`, error);
+      }
+      for (const song of songs) {
+        if (!song?.id || seen.has(song.id)) continue;
+        seen.add(song.id);
+        found.push(song);
+        if (found.length >= RADIO_BATCH) break;
+      }
+    }
+    return found;
+  }
+
+  async function extendRadio(seed: Song, notifyEmpty: boolean) {
+    if (radioFetching) return;
+    radioFetching = true;
+    const token = radioToken;
+    const songs = await fetchRadioSongs(
+      seed,
+      new Set(state.queue.map((song) => song.id)),
+    );
+    if (token !== radioToken) return;
+    radioFetching = false;
+    if (!songs.length) {
+      // Nothing new to add; stop so the effect below does not keep asking.
+      setState("radio", false);
+      if (notifyEmpty) {
+        toast(t("radio.empty"), t("radio.emptyHint"), "error");
+      }
+      return;
+    }
+    setState("queue", (queue) => [...queue, ...songs]);
+  }
+
+  function startRadio(song: Song) {
+    const sourceName = t("radio.source", { name: song.title });
+    const playing = current();
+    if (playing?.id === song.id) {
+      // Already on this song: rebuild the queue around it without
+      // restarting playback.
+      stopRadio();
+      setState({ queue: [playing], index: 0, sourceName });
+    } else {
+      playNow([song], 0, sourceName);
+    }
+    // Start the request before flagging the radio, so the effect that keeps
+    // the radio going sees a fetch in flight and leaves this one (which
+    // reports an empty result) alone.
+    const pending = extendRadio(song, true);
+    setState("radio", true);
+    void pending;
   }
 
   function playSong(song: Song, context?: Song[], sourceName?: string) {
@@ -523,6 +643,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     }
     if (usingMpv()) void mpvStop().catch(() => undefined);
     mpvLoaded = false;
+    stopRadio();
     setState({
       queue: [],
       index: -1,
@@ -598,6 +719,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       volume: state.volume,
       shuffle: state.shuffle,
       repeat: state.repeat,
+      radio: state.radio,
+      sourceName: state.sourceName,
     };
     void writeSetting("player", payload);
   }
@@ -847,6 +970,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
         audio.removeAttribute("src");
         if (usingMpv()) void mpvStop().catch(() => undefined);
         mpvLoaded = false;
+        stopRadio();
         setState({
           queue: [],
           index: -1,
@@ -881,7 +1005,19 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       volume: typeof saved.volume === "number" ? saved.volume : 0.8,
       shuffle: Boolean(saved.shuffle),
       repeat: saved.repeat ?? "off",
+      radio: Boolean(saved.radio),
+      sourceName: saved.sourceName ?? null,
     });
+  });
+
+  // Keep a radio going: once playback nears the end of the queue, ask
+  // Navidrome for more songs like the last one queued.
+  createEffect(() => {
+    if (!state.radio || state.index < 0) return;
+    const length = state.queue.length;
+    if (state.index < length - 2) return;
+    const seed = state.queue[length - 1];
+    if (seed) untrack(() => void extendRadio(seed, false));
   });
 
   createEffect(
@@ -892,6 +1028,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
         state.volume,
         state.shuffle,
         state.repeat,
+        state.radio,
         servers.activeId(),
       ],
       () => scheduleSave(700),
@@ -988,6 +1125,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     toggleLyrics,
     playNow,
     playSong,
+    startRadio,
     addToQueue,
     playNext,
     toggle,
