@@ -23,7 +23,7 @@ import {
   setAudioPlayer,
   streamFormat,
 } from "~/state/settings";
-import { applyAudioOutput } from "~/lib/audio-output";
+import { applyAudioOutput, claimAudioSessions } from "~/lib/audio-output";
 import {
   mpvEnsure,
   mpvLoad,
@@ -240,6 +240,9 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
   function applyMpvSnapshot(snapshot: MpvSnapshot) {
     if (!usingMpv()) return;
+    // mpv renames its mixer entry after each track title; take it back.
+    const audible = snapshot.playing && !snapshot.loading;
+    if (audible && !(state.playing && !state.loading)) claimAudioSessions();
     setState({
       position: snapshot.position,
       playing: snapshot.playing,
@@ -702,6 +705,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
   audio.addEventListener("playing", () => {
     setState({ playing: true, loading: false, error: null });
+    claimAudioSessions();
   });
 
   audio.addEventListener("pause", () => setState("playing", false));
@@ -797,7 +801,10 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   createEffect(() => {
     const deviceId = audioDeviceId();
     if (audioPlayer() !== "web") return;
-    void applyAudioOutput(audio, deviceId);
+    // Switching speakers opens a new mixer session on that device.
+    void applyAudioOutput(audio, deviceId).then((ok) => {
+      if (ok && !audio.paused) claimAudioSessions();
+    });
   });
 
   createEffect(() => {

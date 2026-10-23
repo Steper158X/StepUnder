@@ -1,3 +1,5 @@
+#[cfg(windows)]
+mod audio_session;
 mod discord;
 mod mpv;
 
@@ -62,6 +64,14 @@ fn set_webview_memory_low(window: &tauri::Window, low: bool) {
     });
 }
 
+#[cfg(windows)]
+use audio_session::claim_audio_sessions;
+
+/// Only Windows splits the webview's audio into a separate mixer entry.
+#[cfg(not(windows))]
+#[tauri::command]
+fn claim_audio_sessions() {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -99,6 +109,7 @@ pub fn run() {
             save_secret,
             get_secret,
             delete_secret,
+            claim_audio_sessions,
             mpv::mpv_status,
             mpv::mpv_ensure,
             mpv::mpv_load,

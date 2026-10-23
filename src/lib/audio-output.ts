@@ -5,6 +5,8 @@
  * `HTMLMediaElement.setSinkId()` plus `enumerateDevices()`. Only audio-output
  * devices are used; the microphone is never requested or opened.
  */
+import { invoke } from "@tauri-apps/api/core";
+import { isTauri } from "./platform";
 
 export interface AudioOutputDevice {
   deviceId: string;
@@ -76,6 +78,15 @@ export function hasHiddenDeviceLabels(devices: AudioOutputDevice[]): boolean {
       (device) => !device.label.trim() || looksLikePlaceholder(device.label),
     )
   );
+}
+
+/**
+ * WebView2 plays audio from its own process, which the Windows volume mixer
+ * lists as "WebView2 Manager". Ask the backend to relabel it as StepUnder.
+ */
+export function claimAudioSessions() {
+  if (!isTauri) return;
+  void invoke("claim_audio_sessions").catch(() => undefined);
 }
 
 /** Route `audio` to the given output. Returns false when unsupported/failed. */
