@@ -241,8 +241,7 @@ const en = {
   "settings.theme.system": "System",
   "settings.language": "Language",
   "settings.font": "Font",
-  "settings.fontHint":
-    "Typeface used across the app. Sarabun is a Thai-friendly font from Google Fonts and is downloaded on demand.",
+  "settings.fontHint": "Typeface used across the app.",
   "settings.font.system": "System default",
   "settings.font.sarabun": "Sarabun (Google)",
   "settings.playback": "Playback",
@@ -289,6 +288,11 @@ const en = {
     "StepUnder is a lightweight desktop client for Navidrome and other Subsonic compatible servers.",
   "settings.keychainHint":
     "Saved passwords live in the system credential vault, never in this app's files.",
+  "settings.appearanceDesc": "Theme, font and language",
+  "settings.playbackDesc": "Audio player, output device and stream quality",
+  "settings.serversDesc": "Switch or manage your music servers",
+  "settings.aboutDesc": "Version and app updates",
+  "settings.openGithub": "Open on GitHub",
 
   "settings.updates": "Updates",
   "settings.autoUpdate": "Check for updates automatically",
@@ -594,8 +598,7 @@ const th: Record<MessageKey, string> = {
   "settings.theme.system": "ตามระบบ",
   "settings.language": "ภาษา",
   "settings.font": "แบบอักษร",
-  "settings.fontHint":
-    "แบบอักษรที่ใช้ทั่วทั้งแอป Sarabun เป็นฟอนต์ไทยจาก Google Fonts และจะโหลดเมื่อเลือกใช้งาน",
+  "settings.fontHint": "แบบอักษรที่ใช้ทั่วทั้งแอป",
   "settings.font.system": "ค่าเริ่มต้นของระบบ",
   "settings.font.sarabun": "Sarabun (Google)",
   "settings.playback": "การเล่น",
@@ -641,6 +644,11 @@ const th: Record<MessageKey, string> = {
     "StepUnder เป็นไคลเอนต์เดสก์ท็อปขนาดเล็กสำหรับ Navidrome และเซิร์ฟเวอร์ที่รองรับ Subsonic",
   "settings.keychainHint":
     "รหัสผ่านที่บันทึกไว้จะอยู่ในระบบจัดเก็บข้อมูลลับของเครื่อง ไม่ได้อยู่ในไฟล์ของแอป",
+  "settings.appearanceDesc": "ธีม แบบอักษร และภาษา",
+  "settings.playbackDesc": "เครื่องเล่นเสียง อุปกรณ์เสียง และคุณภาพสตรีม",
+  "settings.serversDesc": "สลับหรือจัดการเซิร์ฟเวอร์เพลง",
+  "settings.aboutDesc": "เวอร์ชันและการอัปเดตแอป",
+  "settings.openGithub": "เปิดใน GitHub",
 
   "settings.updates": "อัปเดต",
   "settings.autoUpdate": "ตรวจหาอัปเดตอัตโนมัติ",

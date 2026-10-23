@@ -27,6 +27,10 @@ import GenresPage from "~/routes/genres";
 import GenrePage from "~/routes/genre";
 import ProfilePage from "~/routes/profile";
 import SettingsPage from "~/routes/settings";
+import AppearanceSettingsPage from "~/routes/settings/appearance";
+import PlaybackSettingsPage from "~/routes/settings/playback";
+import ServersSettingsPage from "~/routes/settings/servers";
+import AboutSettingsPage from "~/routes/settings/about";
 import NotFoundPage from "~/routes/not-found";
 
 function Root(props: RouteSectionProps) {
@@ -71,6 +75,19 @@ export default function App() {
                 <Route path="/genre/:name" component={GenrePage} />
                 <Route path="/profile" component={ProfilePage} />
                 <Route path="/settings" component={SettingsPage} />
+                <Route
+                  path="/settings/appearance"
+                  component={AppearanceSettingsPage}
+                />
+                <Route
+                  path="/settings/playback"
+                  component={PlaybackSettingsPage}
+                />
+                <Route
+                  path="/settings/servers"
+                  component={ServersSettingsPage}
+                />
+                <Route path="/settings/about" component={AboutSettingsPage} />
               </Route>
               <Route path="*" component={NotFoundPage} />
             </Router>

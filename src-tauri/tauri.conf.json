@@ -40,7 +40,7 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["Thai", "English"],
+        "languages": ["English", "Thai"],
         "customLanguageFiles": {
           "Thai": "windows/thai.nsh"
         }
