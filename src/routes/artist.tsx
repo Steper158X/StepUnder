@@ -3,11 +3,10 @@ import { createResource, Show } from "solid-js";
 import { Users } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t, type MessageKey } from "~/i18n";
-import { initials } from "~/lib/format";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { Page } from "~/components/layout-bits";
 import { AlbumGrid } from "~/components/album-card";
-import { ErrorState, Spinner } from "~/components/common";
+import { ArtistAvatar, ErrorState, Spinner } from "~/components/common";
 import { TrackList } from "~/components/track-row";
 import { Section } from "~/components/layout-bits";
 
@@ -46,9 +45,13 @@ export default function ArtistPage() {
           }
         >
           <div class="mb-8 flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-            <div class="flex size-32 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondary via-muted to-secondary/70 text-3xl font-semibold text-muted-foreground shadow ring-1 ring-black/5">
-              {initials(data()!.artist.name)}
-            </div>
+            <ArtistAvatar
+              id={data()!.artist.id}
+              name={data()!.artist.name}
+              coverArt={data()!.artist.coverArt}
+              size={400}
+              class="size-32 text-3xl shadow ring-1 ring-black/5"
+            />
             <div class="min-w-0">
               <p class="flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:justify-start">
                 <Users class="size-3.5" />

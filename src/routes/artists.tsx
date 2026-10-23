@@ -4,10 +4,14 @@ import { Users } from "lucide-solid";
 import type { Artist } from "~/lib/types";
 import { useServers } from "~/state/servers";
 import { t, type MessageKey } from "~/i18n";
-import { initials } from "~/lib/format";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { Page, PageHeader } from "~/components/layout-bits";
-import { EmptyState, ErrorState, Spinner } from "~/components/common";
+import {
+  ArtistAvatar,
+  EmptyState,
+  ErrorState,
+  Spinner,
+} from "~/components/common";
 
 export function ArtistTile(props: { artist: Artist }) {
   return (
@@ -15,9 +19,13 @@ export function ArtistTile(props: { artist: Artist }) {
       href={`/artist/${props.artist.id}`}
       class="group flex w-36 flex-col items-center gap-2 text-center"
     >
-      <div class="flex size-28 items-center justify-center rounded-full bg-gradient-to-br from-secondary via-muted to-secondary/70 text-2xl font-semibold text-muted-foreground shadow-sm ring-1 ring-black/5 transition-all group-hover:ring-2 group-hover:ring-primary/40">
-        {initials(props.artist.name)}
-      </div>
+      <ArtistAvatar
+        id={props.artist.id}
+        name={props.artist.name}
+        coverArt={props.artist.coverArt}
+        size={240}
+        class="size-28 text-2xl shadow-sm ring-1 ring-black/5 transition-all group-hover:ring-2 group-hover:ring-primary/40"
+      />
       <p class="w-full truncate text-sm font-medium" title={props.artist.name}>
         {props.artist.name}
       </p>

@@ -26,7 +26,13 @@ import { Page, PageHeader } from "~/components/layout-bits";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/select";
-import { Cover, EmptyState, ErrorState, Spinner } from "~/components/common";
+import {
+  ArtistAvatar,
+  Cover,
+  EmptyState,
+  ErrorState,
+  Spinner,
+} from "~/components/common";
 import { TrackList } from "~/components/track-row";
 
 interface ProfileData {
@@ -439,9 +445,12 @@ export default function ProfilePage() {
                         <span class="w-4 text-center text-xs font-semibold tabular-nums text-muted-foreground">
                           {index() + 1}
                         </span>
-                        <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-muted-foreground">
-                          {initials(artist.name)}
-                        </div>
+                        <ArtistAvatar
+                          id={artist.id}
+                          name={artist.name}
+                          size={72}
+                          class="size-9 text-[11px]"
+                        />
                         <div class="min-w-0 flex-1">
                           <p class="truncate text-sm font-medium group-hover:text-primary">
                             {artist.name}

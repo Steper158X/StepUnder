@@ -3,7 +3,59 @@ import { Music, X } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
 import { cn } from "~/lib/utils";
+import { initials } from "~/lib/format";
 import { Dialog } from "~/components/ui/dialog";
+
+/**
+ * Round artist picture. Navidrome serves artist images through getCoverArt
+ * (`ar-<id>`); falls back to the artist's initials when there is none.
+ */
+export function ArtistAvatar(props: {
+  id?: string;
+  name?: string;
+  coverArt?: string;
+  size?: number;
+  class?: string;
+}) {
+  const servers = useServers();
+  const [failed, setFailed] = createSignal(false);
+
+  createEffect(
+    on(
+      () => props.coverArt ?? props.id,
+      () => setFailed(false),
+      { defer: true },
+    ),
+  );
+
+  const url = createMemo(() => {
+    const client = servers.client();
+    const id = props.coverArt ?? (props.id ? `ar-${props.id}` : undefined);
+    if (!client || !id || failed()) return null;
+    return client.coverUrl(id, props.size ?? 300);
+  });
+
+  return (
+    <div
+      class={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-secondary via-muted to-secondary/70 font-semibold text-muted-foreground",
+        props.class,
+      )}
+    >
+      <Show when={url()} fallback={initials(props.name)}>
+        <img
+          src={url()!}
+          alt={props.name ?? ""}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          class="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      </Show>
+    </div>
+  );
+}
 
 const coverBaseClass =
   "relative flex shrink-0 items-center justify-center overflow-hidden bg-muted";
