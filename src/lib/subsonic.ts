@@ -5,6 +5,7 @@ import type {
   Album,
   AlbumListType,
   Artist,
+  Genre,
   Lyrics,
   Playlist,
   SearchResult,
@@ -267,6 +268,21 @@ export class SubsonicClient {
   async getSimilarSongs2(artistId: string, count = 50): Promise<Song[]> {
     const body = await this.request("getSimilarSongs2", { id: artistId, count });
     return (body.similarSongs2?.song ?? []) as Song[];
+  }
+
+  async getGenres(): Promise<Genre[]> {
+    const body = await this.request("getGenres");
+    return (body.genres?.genre ?? []) as Genre[];
+  }
+
+  async getAlbumsByGenre(genre: string, size = 50, offset = 0): Promise<Album[]> {
+    const body = await this.request("getAlbumList2", {
+      type: "byGenre",
+      genre,
+      size,
+      offset,
+    });
+    return (body.albumList2?.album ?? []) as Album[];
   }
 
   async getSongsByGenre(genre: string, count = 50, offset = 0): Promise<Song[]> {

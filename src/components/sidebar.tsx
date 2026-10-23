@@ -8,6 +8,7 @@ import {
   Menu,
   Search,
   Settings,
+  Tags,
   UserRound,
   Users,
   X,
@@ -18,6 +19,7 @@ import { Dialog } from "~/components/ui/dialog";
 import logo from "~/assets/logo.svg";
 
 const navItems = [
+  { href: "/search", labelKey: "nav.search" as MessageKey, icon: Search },
   { href: "/", labelKey: "nav.home" as MessageKey, icon: House, end: true },
   {
     href: "/favorites",
@@ -26,12 +28,12 @@ const navItems = [
   },
   { href: "/albums", labelKey: "nav.albums" as MessageKey, icon: Disc3 },
   { href: "/artists", labelKey: "nav.artists" as MessageKey, icon: Users },
+  { href: "/genres", labelKey: "nav.genres" as MessageKey, icon: Tags },
   {
     href: "/playlists",
     labelKey: "nav.playlists" as MessageKey,
     icon: ListMusic,
   },
-  { href: "/search", labelKey: "nav.search" as MessageKey, icon: Search },
 ];
 
 function NavLink(props: {

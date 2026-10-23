@@ -82,6 +82,12 @@ export interface Playlist {
   entry?: Song[];
 }
 
+export interface Genre {
+  value: string;
+  songCount?: number;
+  albumCount?: number;
+}
+
 export interface SearchResult {
   artists: Artist[];
   albums: Album[];

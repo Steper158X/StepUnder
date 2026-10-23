@@ -11,6 +11,7 @@ import { Page } from "~/components/layout-bits";
 import { TrackList } from "~/components/track-row";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/select";
+import { genreHref } from "~/routes/genres";
 
 export default function AlbumPage() {
   const params = useParams();
@@ -136,10 +137,13 @@ export default function AlbumPage() {
           </div>
 
           <Show when={album()!.genre}>
-            <div class="mt-6 flex items-center gap-2 text-xs text-muted-foreground sm:mt-8">
+            <A
+              href={genreHref(album()!.genre!)}
+              class="mt-6 flex w-fit max-w-full items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground sm:mt-8"
+            >
               <Disc3 class="size-3.5 shrink-0" />
               <span class="min-w-0 truncate">{album()!.genre}</span>
-            </div>
+            </A>
           </Show>
         </Show>
       </Show>

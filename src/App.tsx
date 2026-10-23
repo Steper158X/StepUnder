@@ -23,6 +23,8 @@ import ArtistPage from "~/routes/artist";
 import PlaylistsPage from "~/routes/playlists";
 import PlaylistPage from "~/routes/playlist";
 import SearchPage from "~/routes/search";
+import GenresPage from "~/routes/genres";
+import GenrePage from "~/routes/genre";
 import ProfilePage from "~/routes/profile";
 import SettingsPage from "~/routes/settings";
 import NotFoundPage from "~/routes/not-found";
@@ -65,6 +67,8 @@ export default function App() {
                 <Route path="/playlists" component={PlaylistsPage} />
                 <Route path="/playlist/:id" component={PlaylistPage} />
                 <Route path="/search" component={SearchPage} />
+                <Route path="/genres" component={GenresPage} />
+                <Route path="/genre/:name" component={GenrePage} />
                 <Route path="/profile" component={ProfilePage} />
                 <Route path="/settings" component={SettingsPage} />
               </Route>
