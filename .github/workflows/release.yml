@@ -76,9 +76,21 @@ jobs:
           releaseBody: |
             Download the installer below, or let an existing StepUnder install
             update itself from **Settings → Updates**.
-          releaseDraft: false
+          # Stay a draft until latest.json is uploaded; otherwise
+          # releases/latest points here before the feed exists and installed
+          # apps fail with "Could not fetch a valid release JSON".
+          releaseDraft: true
           prerelease: false
           tauriScript: bun run tauri
           # NSIS keeps the updater feed unambiguous: one installer, one signature.
           updaterJsonPreferNsis: true
           args: --bundles nsis
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qx latest.json \
+            || { echo "::error::latest.json was not uploaded; leaving the release as a draft."; exit 1; }
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
