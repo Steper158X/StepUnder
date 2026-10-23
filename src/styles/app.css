@@ -7,6 +7,8 @@
   --radius: 0.65rem;
   --font-app: "Segoe UI", "Leelawadee UI", "Noto Sans Thai", ui-sans-serif,
     system-ui, -apple-system, sans-serif;
+  /* Accent hue; set from the "Accent color" setting. 293 = purple. */
+  --brand-h: 293;
 
   --background: oklch(0.99 0.002 286);
   --foreground: oklch(0.16 0.006 286);
@@ -14,7 +16,7 @@
   --card-foreground: oklch(0.16 0.006 286);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.006 286);
-  --primary: oklch(0.55 0.22 293);
+  --primary: oklch(0.55 0.22 var(--brand-h));
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.965 0.002 286);
   --secondary-foreground: oklch(0.21 0.006 286);
@@ -26,7 +28,7 @@
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.91 0.004 286);
   --input: oklch(0.91 0.004 286);
-  --ring: oklch(0.62 0.19 293);
+  --ring: oklch(0.62 0.19 var(--brand-h));
 }
 
 .dark {
@@ -36,8 +38,8 @@
   --card-foreground: oklch(0.97 0.002 286);
   --popover: oklch(0.21 0.007 286);
   --popover-foreground: oklch(0.97 0.002 286);
-  --primary: oklch(0.7 0.17 293);
-  --primary-foreground: oklch(0.15 0.02 293);
+  --primary: oklch(0.7 0.17 var(--brand-h));
+  --primary-foreground: oklch(0.15 0.02 var(--brand-h));
   --secondary: oklch(0.27 0.007 286);
   --secondary-foreground: oklch(0.97 0.002 286);
   --muted: oklch(0.26 0.007 286);
@@ -48,7 +50,7 @@
   --destructive-foreground: oklch(0.15 0.01 25);
   --border: oklch(1 0 0 / 11%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.62 0.16 293);
+  --ring: oklch(0.62 0.16 var(--brand-h));
 }
 
 @theme inline {

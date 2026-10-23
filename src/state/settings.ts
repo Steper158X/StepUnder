@@ -5,6 +5,25 @@ import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
 export type Font = "system" | "sarabun";
+export type Accent =
+  | "purple"
+  | "blue"
+  | "teal"
+  | "green"
+  | "orange"
+  | "red"
+  | "pink";
+
+/** OKLCH hue for each accent; feeds `--brand-h` in app.css. */
+export const ACCENT_HUES: Record<Accent, number> = {
+  purple: 293,
+  blue: 260,
+  teal: 190,
+  green: 150,
+  orange: 50,
+  red: 25,
+  pink: 350,
+};
 /** Playback engine: the built-in web player or the libmpv engine. */
 export type AudioPlayer = "web" | "mpv";
 
@@ -18,6 +37,7 @@ const [scrobble, setScrobbleSignal] = createSignal(true);
 const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
 const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
 const [font, setFontSignal] = createSignal<Font>("system");
+const [accent, setAccentSignal] = createSignal<Accent>("purple");
 const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
 const [discordPresence, setDiscordPresenceSignal] = createSignal(false);
 const [autoUpdate, setAutoUpdateSignal] = createSignal(true);
@@ -35,6 +55,7 @@ export {
   maxBitRate,
   streamFormat,
   font,
+  accent,
   audioPlayer,
   discordPresence,
   audioDeviceId,
@@ -67,6 +88,13 @@ function applyFont(value: Font) {
   document.documentElement.dataset.font = value;
 }
 
+function applyAccent(value: Accent) {
+  document.documentElement.style.setProperty(
+    "--brand-h",
+    String(ACCENT_HUES[value]),
+  );
+}
+
 const darkQuery =
   typeof window !== "undefined"
     ? window.matchMedia("(prefers-color-scheme: dark)")
@@ -91,6 +119,7 @@ export async function initSettings(): Promise<void> {
     savedBitRate,
     savedFormat,
     savedFont,
+    savedAccent,
     savedPlayer,
     savedDevice,
     savedMpvDevice,
@@ -102,6 +131,7 @@ export async function initSettings(): Promise<void> {
     readSetting<number>("maxBitRate", 0),
     readSetting<StreamFormat>("streamFormat", "raw"),
     readSetting<Font>("font", "system"),
+    readSetting<Accent>("accent", "purple"),
     readSetting<AudioPlayer>("audioPlayer", "web"),
     readSetting<string>("audioDeviceId", DEFAULT_AUDIO_DEVICE),
     readSetting<string>("mpvAudioDevice", DEFAULT_MPV_AUDIO_DEVICE),
@@ -112,6 +142,12 @@ export async function initSettings(): Promise<void> {
   const nextTheme: Theme =
     savedTheme === "light" || savedTheme === "system" ? savedTheme : "dark";
   const nextFont: Font = savedFont === "sarabun" ? "sarabun" : "system";
+  const nextAccent: Accent = Object.prototype.hasOwnProperty.call(
+    ACCENT_HUES,
+    savedAccent,
+  )
+    ? savedAccent
+    : "purple";
   const nextPlayer: AudioPlayer = AUDIO_PLAYERS.includes(savedPlayer)
     ? savedPlayer
     : "web";
@@ -120,6 +156,7 @@ export async function initSettings(): Promise<void> {
   setMaxBitRateSignal(typeof savedBitRate === "number" ? savedBitRate : 0);
   setStreamFormatSignal(savedFormat ?? "raw");
   setFontSignal(nextFont);
+  setAccentSignal(nextAccent);
   setAudioPlayerSignal(nextPlayer);
   setDiscordPresenceSignal(savedDiscordPresence === true);
   setAutoUpdateSignal(savedAutoUpdate !== false);
@@ -127,6 +164,7 @@ export async function initSettings(): Promise<void> {
   setMpvAudioDeviceSignal(savedMpvDevice || DEFAULT_MPV_AUDIO_DEVICE);
   apply(nextTheme);
   applyFont(nextFont);
+  applyAccent(nextAccent);
 
   darkQuery?.addEventListener("change", () => {
     if (theme() === "system") apply("system");
@@ -158,6 +196,12 @@ export function setFont(value: Font): void {
   setFontSignal(value);
   applyFont(value);
   void writeSetting("font", value);
+}
+
+export function setAccent(value: Accent): void {
+  setAccentSignal(value);
+  applyAccent(value);
+  void writeSetting("accent", value);
 }
 
 export function setAudioPlayer(value: AudioPlayer): void {
