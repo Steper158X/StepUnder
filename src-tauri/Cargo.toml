@@ -54,6 +54,9 @@ keyring = { version = "3", default-features = false, features = ["apple-native"]
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 keyring = { version = "3", default-features = false, features = ["sync-secret-service"] }
 
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+# A second launch focuses the existing window instead of opening another one.
+tauri-plugin-single-instance = "2"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
