@@ -33,6 +33,35 @@ fn delete_secret(service: String, account: String) -> Result<(), String> {
     }
 }
 
+/// Asks WebView2 to trim its working set while the window is minimized and
+/// restores the normal target when it comes back. Scripts (and the built-in
+/// audio engine) keep running either way.
+#[cfg(windows)]
+fn set_webview_memory_low(window: &tauri::Window, low: bool) {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2_19, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW,
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+    };
+    use windows_core::Interface;
+
+    let Some(webview) = window.app_handle().get_webview_window(window.label()) else {
+        return;
+    };
+    let level = if low {
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW
+    } else {
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL
+    };
+    let _ = webview.with_webview(move |platform| unsafe {
+        // Older WebView2 runtimes lack ICoreWebView2_19; ignore them.
+        if let Ok(core) = platform.controller().CoreWebView2()
+            && let Ok(core) = core.cast::<ICoreWebView2_19>()
+        {
+            let _ = core.SetMemoryUsageTargetLevel(level);
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -59,6 +88,12 @@ pub fn run() {
         .on_permission_request(|_webview, kind| match kind {
             PermissionKind::Microphone => PermissionResponse::Allow,
             _ => PermissionResponse::Default,
+        })
+        .on_window_event(|_window, _event| {
+            #[cfg(windows)]
+            if let tauri::WindowEvent::Resized(_) = _event {
+                set_webview_memory_low(_window, _window.is_minimized().unwrap_or(false));
+            }
         })
         .invoke_handler(tauri::generate_handler![
             save_secret,

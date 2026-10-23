@@ -436,6 +436,20 @@ fn spawn_engine(api: Api, app: AppHandle) -> Result<Engine, String> {
         ("osc", "no"),
         ("force-window", "no"),
         ("audio-client-name", "StepUnder"),
+        // mpv defaults to a 150 MiB forward + 50 MiB back demuxer cache,
+        // far more than a single audio track needs.
+        ("demuxer-max-bytes", "32MiB"),
+        ("demuxer-max-back-bytes", "8MiB"),
+        // Skip the bundled Lua/JS scripts; each one runs in its own thread
+        // with its own interpreter. Unknown names on older builds are ignored.
+        ("load-scripts", "no"),
+        ("ytdl", "no"),
+        ("load-stats-overlay", "no"),
+        ("load-console", "no"),
+        ("load-auto-profiles", "no"),
+        ("load-select", "no"),
+        ("load-commands", "no"),
+        ("load-positioning", "no"),
     ] {
         unsafe {
             set_option(&api, handle.0, name, value);

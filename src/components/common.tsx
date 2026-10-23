@@ -57,6 +57,7 @@ export function Cover(props: {
         src={url()!}
         alt={props.alt ?? ""}
         loading="lazy"
+        decoding="async"
         draggable={false}
         class={cn(
           "size-full object-cover",

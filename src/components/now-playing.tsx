@@ -199,7 +199,7 @@ function NowPlayingBody(props: { track: Song }) {
       >
         <Cover
           coverArtId={props.track.coverArt}
-          size={1000}
+          size={800}
           alt={props.track.album ?? props.track.title}
           class={coverClass}
           iconClass="size-16"
@@ -255,9 +255,10 @@ function NowPlayingView(props: { track: Song }) {
     >
       {/* Large blurred album art backdrop */}
       <div class="absolute inset-0" aria-hidden="true">
+        {/* Blurred this heavily, a tiny thumbnail looks the same and decodes to a fraction of the memory. */}
         <Cover
           coverArtId={props.track.coverArt}
-          size={1000}
+          size={64}
           alt=""
           class="size-full scale-110 blur-[80px]"
           iconClass="size-32"
