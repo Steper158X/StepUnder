@@ -60,6 +60,9 @@ jobs:
 
       - name: Fetch libmpv
         run: bun run mpv:fetch
+        env:
+          # Raises the GitHub API rate limit when resolving the mpv release.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
