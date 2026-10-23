@@ -1,127 +1,164 @@
 <p align="center">
-  <img src="src-tauri/icons/128x128.png" width="96" height="96" alt="StepUnder icon" />
+  <img src="src-tauri/icons/128x128.png" width="112" height="112" alt="StepUnder icon" />
 </p>
 
 <h1 align="center">StepUnder</h1>
 
 <p align="center">
-  Your music, your server.
+  <strong>Your music, your server.</strong><br />
+  A fast, private desktop player for Navidrome and Subsonic-compatible servers.
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="#thai">ไทย</a>
+  <a href="https://github.com/Steper158X/StepUnder/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Steper158X/StepUnder?style=flat-square&color=8b5cf6" /></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square" />
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" /></a>
 </p>
 
-StepUnder is a desktop music player for Navidrome and other Subsonic-compatible
-music servers. Connect it to your own server and listen to your library — no
-cloud account, no telemetry, and no uploads.
+<p align="center">
+  <strong>English</strong> · <a href="README.th.md">ภาษาไทย</a>
+</p>
 
-> **Status:** early development (0.1.x). Features and UI may still change.
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="StepUnder home screen" width="100%" />
+</p>
+
+StepUnder connects to the music server you already run and turns it into a
+polished desktop listening experience — no cloud account, no telemetry, and no
+uploads. Everything stays between you and your server.
+
+> [!NOTE]
+> StepUnder is in active development (v0.2.x). Features and UI may still change.
+
+## Contents
+
+- [Highlights](#highlights)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Installation](#installation)
+- [License](#license)
+
+## Highlights
+
+|                            |                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| 🎵 **Your own server**     | Navidrome and any Subsonic / OpenSubsonic server — switch between several at will.  |
+| 📻 **Track radio**         | Start an endless radio of similar songs from any track.                              |
+| 📝 **Full playlist editor** | Create, edit, reorder with drag & drop, set custom covers, public or private.      |
+| 🎚️ **Two audio engines**   | Built-in web player or the bundled **MPV** engine for wider format support.         |
+| 🎨 **Make it yours**       | Dark / light / system theme, 7 accent colors, Thai or English UI.                   |
+| 🔄 **Auto-updates**        | Signed in-app updates straight from GitHub Releases.                                 |
+| 🔒 **Private by design**   | Passwords in the OS credential store. No backend, no analytics, no telemetry.        |
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/now-playing.png" alt="Full-screen Now Playing with synced lyrics" width="100%" />
+  <br /><sub><b>Now Playing</b> — full-screen artwork with synced lyrics</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/album.png" alt="Album page" /><p align="center"><sub><b>Album</b></sub></p></td>
+    <td width="50%"><img src="docs/screenshots/playlist.png" alt="Playlist page" /><p align="center"><sub><b>Playlist</b> — drag to reorder</sub></p></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/artist.png" alt="Artist page" /><p align="center"><sub><b>Artist</b></sub></p></td>
+    <td width="50%"><img src="docs/screenshots/genres.png" alt="Genres page" /><p align="center"><sub><b>Genres</b></sub></p></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/profile.png" alt="Profile with listening stats" /><p align="center"><sub><b>Profile</b> — listening stats from your server</sub></p></td>
+  </tr>
+</table>
+
+<sub>Screenshots use demo data with generated artwork.</sub>
 
 ## Features
 
-### Your library
+### 📚 Library
 
-- **Your own server** — works with Navidrome and other Subsonic/OpenSubsonic
-  music servers.
-- **Multiple servers** — save several servers and switch between them whenever
-  you want.
+- **Multiple servers** — save several servers and switch between them anytime.
 - **Home** — newest albums, recently played, random picks, and your favorites.
-- **Albums** — browse your collection, sort it, and keep scrolling to load more.
-- **Artists** — open an artist to see their albums and most-played songs.
-- **Playlists** — browse your server playlists and play them in one click.
+- **Albums** — browse, sort, and keep scrolling to load more.
+- **Artists** — artist pages with artwork, albums, and most-played songs.
+- **Genres** — browse every genre, filter as you type, and shuffle a whole genre.
 - **Favorites** — all your starred songs, albums, and artists in one place.
 - **Search** — find songs, albums, and artists as you type.
+- **Profile** — your listening stats from the server: total plays, top albums,
+  top artists, most-played songs, and recent history.
 
-### Playback
+### 🎶 Playlists
 
-- **Queue** — play now, add to queue, play next, remove tracks, or clear the
-  queue.
-- **Playback controls** — shuffle, repeat (off / all / one), seek, volume, and
-  mute.
-- **Resume where you left off** — the queue, current track, and playback
-  position are restored per server.
-- **Now playing** — a full-screen view with large artwork.
-- **Lyrics** — shows lyrics from your server and scrolls along automatically
-  when synced lyrics are available.
-- **Two playback engines** — use the built-in player, or switch to the optional
-  MPV engine for wider format support.
-- **Audio output** — choose which speaker or headphone output to use.
-- **Streaming quality** — play the original file, or transcode to
-  MP3/AAC/Opus/FLAC with an optional bitrate limit.
-- **Scrobbling** — send your plays back to your server, or turn it off.
-- **Discord Rich Presence** — optionally show what you are listening to on
-  Discord.
+- **Create & edit** — name, description, and public / private visibility.
+- **Custom covers** — upload a JPEG, PNG, WebP, or GIF cover
+  (requires Navidrome 0.61+).
+- **Add from anywhere** — right-click any song and choose *Add to playlist*,
+  with a quick filter to find the right one.
+- **Drag to reorder** — rearrange songs and remove the ones you don't want.
+- **Delete** playlists you no longer need.
 
-### Comfort
+### ▶️ Playback
 
-- **Thai and English UI** — switch languages at any time.
+- **Queue** — play now, play next, add to queue, remove, or clear.
+- **Controls** — shuffle, repeat (off / all / one), seek, volume, and mute.
+- **Track radio** — build a queue of similar tracks from any song.
+- **Resume where you left off** — queue, current track, and position are
+  restored per server.
+- **Now Playing** — a full-screen view with large artwork and a cover viewer.
+- **Lyrics** — lyrics from your server, auto-scrolling when synced lyrics exist.
+- **Song info** — title, album, genre, format, bit rate, sample rate, bit depth,
+  channels, file size, play count, path, and more.
+- **Two playback engines** — built-in web player, or MPV for broader format
+  support.
+- **Audio output** — choose which speaker or headphones to use.
+- **Streaming quality** — original file, or transcode to MP3 / AAC / Opus / FLAC
+  with an optional bitrate cap.
+- **Scrobbling** — report plays to your server, or turn it off.
+- **Discord Rich Presence** — optionally show what you're listening to.
+
+### 🖥️ Desktop experience
+
+- **Custom title bar** with a clean, native-feeling window.
+- **Single instance** — launching again focuses the window that's already open.
+- **Clean volume mixer** — appears as one *StepUnder* entry in the Windows
+  volume mixer.
+- **Automatic updates** — check on startup or manually, with release notes and
+  download progress.
+
+### 🎨 Personalization
+
+- **Languages** — Thai and English, switchable at any time.
 - **Themes** — dark, light, or follow the system.
-- **Font choice** — use the system font or the Sarabun font for Thai text.
-- **Keyboard shortcuts** — `Space` to play/pause, arrows to seek and change
-  volume, `Shift` + arrows to skip tracks, `Esc` to close the full-screen view.
-- **Secure sign-in** — passwords are saved in your operating system's
-  credential store, not in a plain settings file.
-- **Privacy first** — your music and account stay on your server; StepUnder has
-  no backend, no analytics, and no telemetry.
+- **Accent colors** — purple, blue, teal, green, orange, red, or pink.
+- **Fonts** — system font or Sarabun for beautiful Thai text.
 
----
+### 🔒 Privacy & security
 
-<a id="thai"></a>
+- Passwords are saved in your operating system's credential store, never in a
+  plain settings file.
+- Your music and account stay on your server. StepUnder has no backend, no
+  analytics, and no telemetry.
 
-# StepUnder (ภาษาไทย)
+## Keyboard shortcuts
 
-<p align="right"><a href="#stepunder">English ↑</a></p>
+| Key                  | Action                       |
+| -------------------- | ---------------------------- |
+| `Space`              | Play / pause                 |
+| `←` / `→`            | Seek backward / forward      |
+| `↑` / `↓`            | Volume up / down             |
+| `Shift` + `←` / `→`  | Previous / next track        |
+| `Esc`                | Close the full-screen view   |
 
-StepUnder คือโปรแกรมเล่นเพลงสำหรับเดสก์ท็อปที่ใช้กับ Navidrome และเซิร์ฟเวอร์เพลง
-ที่รองรับ Subsonic รายอื่น เชื่อมต่อกับเซิร์ฟเวอร์ของคุณเองแล้วฟังเพลงได้ทันที —
-ไม่มีบัญชีคลาวด์ ไม่มี telemetry และไม่อัปโหลดข้อมูลใด ๆ
+## Installation
 
-> **สถานะ:** อยู่ระหว่างการพัฒนา (0.1.x) ฟีเจอร์และ UI อาจเปลี่ยนแปลงได้
+1. Download the latest installer from the
+   [**Releases page**](https://github.com/Steper158X/StepUnder/releases/latest).
+2. Run the setup and launch **StepUnder**.
+3. Enter your server URL, username, and password — and start listening.
 
-## ฟีเจอร์
+After that, StepUnder keeps itself up to date automatically.
 
-### ไลบรารีเพลงของคุณ
+## License
 
-- **ใช้เซิร์ฟเวอร์ของคุณเอง** — ใช้งานได้กับ Navidrome และเซิร์ฟเวอร์เพลงที่รองรับ
-  Subsonic/OpenSubsonic
-- **หลายเซิร์ฟเวอร์** — บันทึกได้หลายเครื่องและสลับไปมาได้ทุกเมื่อ
-- **หน้าแรก** — อัลบั้มใหม่ เพิ่งเล่นล่าสุด สุ่มเพลง และรายการโปรด
-- **อัลบั้ม** — เรียกดูทั้งคอลเลกชัน เรียงลำดับ และเลื่อนโหลดเพิ่มได้เรื่อย ๆ
-- **ศิลปิน** — เปิดหน้าศิลปินเพื่อดูอัลบั้มและเพลงที่เล่นบ่อยที่สุด
-- **เพลย์ลิสต์** — ดูเพลย์ลิสต์บนเซิร์ฟเวอร์และกดเล่นได้ทันที
-- **รายการโปรด** — รวมเพลง อัลบั้ม และศิลปินที่กดถูกใจไว้ในที่เดียว
-- **ค้นหา** — ค้นหาเพลง อัลบั้ม และศิลปินได้ขณะพิมพ์
-
-### การเล่นเพลง
-
-- **คิวเพลง** — เล่นทันที เพิ่มเข้าคิว เล่นถัดไป ลบเพลง หรือล้างคิวทั้งหมด
-- **ปุ่มควบคุม** — shuffle, repeat (ปิด / ทั้งหมด / เพลงเดียว), เลื่อนตำแหน่ง,
-  ปรับเสียง และ mute
-- **เล่นต่อจากเดิม** — คิว เพลงปัจจุบัน และตำแหน่งเล่นถูกกู้คืนแยกตามเซิร์ฟเวอร์
-- **หน้า Now Playing** — หน้าจอเต็มพร้อมปกอัลบั้มขนาดใหญ่
-- **เนื้อเพลง** — แสดงเนื้อเพลงจากเซิร์ฟเวอร์ และเลื่อนตามจังหวะอัตโนมัติ
-  เมื่อมีเนื้อเพลงแบบ synced
-- **สองเอนจินเสียง** — ใช้เครื่องเล่นในตัว หรือสลับไปใช้ MPV เพื่อรองรับ
-  ฟอร์แมตกว้างขึ้น
-- **อุปกรณ์เสียงออก** — เลือกลำโพงหรือหูฟังที่ต้องการใช้
-- **คุณภาพการสตรีม** — เล่นไฟล์ต้นฉบับ หรือแปลงเป็น MP3/AAC/Opus/FLAC
-  พร้อมจำกัด bitrate
-- **Scrobbling** — ส่งประวัติการเล่นกลับเซิร์ฟเวอร์ หรือปิดก็ได้
-- **Discord Rich Presence** — แสดงเพลงที่กำลังฟังบน Discord (เปิดใช้ได้ตามต้องการ)
-
-### ความสะดวกในการใช้งาน
-
-- **UI ไทยและอังกฤษ** — สลับภาษาได้ทุกเมื่อ
-- **ธีม** — มืด สว่าง หรือตามระบบ
-- **เลือกฟอนต์** — ใช้ฟอนต์ของระบบ หรือฟอนต์ Sarabun สำหรับข้อความไทย
-- **คีย์ลัด** — `Space` เล่น/หยุด, ลูกศรเลื่อนตำแหน่งและปรับเสียง,
-  `Shift` + ลูกศรเปลี่ยนเพลง, `Esc` ปิดหน้าจอเต็ม
-- **เข้าสู่ระบบอย่างปลอดภัย** — รหัสผ่านถูกเก็บใน credential store ของระบบ
-  ไม่ได้เก็บในไฟล์ตั้งค่าแบบข้อความธรรมดา
-- **ความเป็นส่วนตัวมาก่อน** — เพลงและบัญชีอยู่บนเซิร์ฟเวอร์ของคุณ
-  StepUnder ไม่มี backend ไม่มี analytics และไม่มี telemetry
-
----
-
-**License:** MIT
+Released under the [MIT License](LICENSE).
