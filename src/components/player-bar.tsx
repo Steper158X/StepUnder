@@ -2,6 +2,7 @@ import { Show, createSignal } from "solid-js";
 import { A } from "@solidjs/router";
 import {
   Heart,
+  Infinity as InfinityIcon,
   ListMusic,
   MicVocal,
   Pause,
@@ -11,6 +12,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Square,
   Volume1,
   Volume2,
   VolumeX,
@@ -81,6 +83,28 @@ export function PlayerBar() {
     } finally {
       setStarBusy(false);
     }
+  }
+
+  /** Format, bit depth and sample rate of the playing track, e.g. "FLAC · 24-bit · 96 kHz". */
+  const quality = () => {
+    const current = track();
+    if (!current) return "";
+    const khz = current.samplingRate
+      ? `${Number((current.samplingRate / 1000).toFixed(1))} kHz`
+      : "";
+    return [
+      current.suffix?.toUpperCase(),
+      current.bitDepth ? `${current.bitDepth}-bit` : "",
+      khz,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  };
+
+  function toggleAutoMix() {
+    const current = track();
+    if (player.state.radio) player.stopRadio();
+    else if (current) player.startRadio(current);
   }
 
   const volumeIcon = () => {
@@ -177,10 +201,25 @@ export function PlayerBar() {
               <Heart class={cn("size-4", starred() && "fill-current")} />
             </button>
           </Show>
+          <Show when={quality()}>
+            <span
+              title={quality()}
+              class="hidden shrink-0 whitespace-nowrap rounded-md border border-yellow-500/40 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-yellow-600 dark:text-yellow-400 lg:inline-block"
+            >
+              {quality()}
+            </span>
+          </Show>
         </div>
 
         <div class="col-span-2 row-start-2 flex min-w-0 flex-col items-center gap-1 md:col-span-1 md:col-start-auto md:row-start-auto">
           <div class="flex items-center gap-0.5 md:gap-1">
+            <ControlButton
+              label={t("action.stop")}
+              onClick={player.stop}
+              disabled={!track()}
+            >
+              <Square class="size-3.5 fill-current" />
+            </ControlButton>
             <ControlButton
               label={t("action.shuffle")}
               active={player.state.shuffle}
@@ -227,6 +266,16 @@ export function PlayerBar() {
               >
                 <Repeat1 class="size-4" />
               </Show>
+            </ControlButton>
+            <ControlButton
+              label={t("action.autoMix")}
+              active={player.state.radio}
+              disabled={!track()}
+              onClick={toggleAutoMix}
+            >
+              <InfinityIcon
+                class={cn("size-4", player.radioLoading() && "animate-pulse")}
+              />
             </ControlButton>
           </div>
 

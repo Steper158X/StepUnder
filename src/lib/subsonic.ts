@@ -225,6 +225,12 @@ export class SubsonicClient {
     return { album, songs: (album.song ?? []) as Song[] };
   }
 
+  /** Full song entry, including any extra OpenSubsonic fields the server sends. */
+  async getSong(id: string): Promise<Song & Json> {
+    const body = await this.request("getSong", { id });
+    return (body.song ?? { id, title: "" }) as Song & Json;
+  }
+
   async getArtists(): Promise<Artist[]> {
     const body = await this.request("getArtists");
     const indexes = (body.artists?.index ?? []) as Array<{ artist?: Artist[] }>;

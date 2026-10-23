@@ -34,6 +34,10 @@ export interface Song {
   size?: number;
   suffix?: string;
   bitRate?: number;
+  /** OpenSubsonic: sample rate in Hz. */
+  samplingRate?: number;
+  /** OpenSubsonic: bits per sample, lossless formats only. */
+  bitDepth?: number;
   contentType?: string;
   playCount?: number;
   played?: string;

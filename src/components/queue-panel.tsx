@@ -1,5 +1,5 @@
 import { For, Show } from "solid-js";
-import { ListMusic, Play, Trash2, X } from "lucide-solid";
+import { ListMusic, LoaderCircle, Play, Trash2, X } from "lucide-solid";
 import { usePlayer } from "~/player/store";
 import { t } from "~/i18n";
 import { formatTime } from "~/lib/format";
@@ -123,6 +123,28 @@ export function QueuePanel() {
                 );
               }}
             </For>
+          </Show>
+          <Show when={player.radioLoading()}>
+            <div role="status" aria-live="polite">
+              <div class="flex items-center gap-2 px-1.5 pb-1 pt-3 text-xs text-muted-foreground">
+                <LoaderCircle class="size-3.5 animate-spin text-primary" />
+                {t("radio.loading")}
+              </div>
+              <For each={[0, 1, 2, 3]}>
+                {(row) => (
+                  <div
+                    class="flex animate-pulse items-center gap-2.5 px-1.5 py-1.5"
+                    style={{ "animation-delay": `${row * 150}ms` }}
+                  >
+                    <div class="size-9 shrink-0 rounded bg-muted" />
+                    <div class="flex-1 space-y-1.5">
+                      <div class="h-2.5 w-3/4 rounded bg-muted" />
+                      <div class="h-2 w-1/2 rounded bg-muted/70" />
+                    </div>
+                  </div>
+                )}
+              </For>
+            </div>
           </Show>
         </div>
 

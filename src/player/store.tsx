@@ -79,6 +79,24 @@ interface PersistedPlayer {
 const RADIO_BATCH = 30;
 /** Fewer new songs than this and the radio also tries the broader sources. */
 const RADIO_MIN = 10;
+/** A radio source slower than this is skipped so the queue fills quickly. */
+const RADIO_SOURCE_TIMEOUT = 8000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Timed out")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 export interface PlayerContextValue {
   state: PlayerState;
@@ -92,11 +110,15 @@ export interface PlayerContextValue {
   playNow: (songs: Song[], index?: number, sourceName?: string) => void;
   playSong: (song: Song, context?: Song[], sourceName?: string) => void;
   startRadio: (song: Song) => void;
+  stopRadio: () => void;
+  /** True while the radio is fetching more songs for the queue. */
+  radioLoading: Accessor<boolean>;
   addToQueue: (songs: Song[]) => void;
   playNext: (songs: Song[]) => void;
   toggle: () => void;
   play: () => void;
   pause: () => void;
+  stop: () => void;
   next: () => void;
   previous: () => void;
   seek: (seconds: number) => void;
@@ -383,10 +405,12 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   // older radio never lands in the new queue.
   let radioToken = 0;
   let radioFetching = false;
+  const [radioLoading, setRadioLoading] = createSignal(false);
 
   function stopRadio() {
     radioToken += 1;
     radioFetching = false;
+    setRadioLoading(false);
     if (state.radio) setState("radio", false);
   }
 
@@ -425,13 +449,21 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       ["getRandomSongs", () => client.getRandomSongs(RADIO_BATCH)],
     ];
 
+    // Ask every source at once; a slow similarity lookup on the server must
+    // not hold up the broader sources behind it.
+    const pending = sources.map(
+      ([name, load]) =>
+        [name, withTimeout(load(), RADIO_SOURCE_TIMEOUT)] as const,
+    );
+    for (const [, promise] of pending) promise.catch(() => undefined);
+
     const seen = new Set(exclude);
     const found: Song[] = [];
-    for (const [name, load] of sources) {
+    for (const [name, promise] of pending) {
       if (found.length >= RADIO_MIN) break;
       let songs: Song[] = [];
       try {
-        songs = await load();
+        songs = await promise;
       } catch (error) {
         console.warn(`Radio: ${name} failed`, error);
       }
@@ -448,6 +480,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   async function extendRadio(seed: Song, notifyEmpty: boolean) {
     if (radioFetching) return;
     radioFetching = true;
+    setRadioLoading(true);
     const token = radioToken;
     const songs = await fetchRadioSongs(
       seed,
@@ -455,6 +488,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     );
     if (token !== radioToken) return;
     radioFetching = false;
+    setRadioLoading(false);
     if (!songs.length) {
       // Nothing new to add; stop so the effect below does not keep asking.
       setState("radio", false);
@@ -548,6 +582,12 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       return;
     }
     audio.pause();
+  }
+
+  /** Pause and rewind to the start of the current track. */
+  function stop() {
+    pause();
+    if (state.index >= 0) seek(0);
   }
 
   function toggle() {
@@ -1102,7 +1142,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
         ["previoustrack", () => previous()],
         ["seekbackward", () => seek(state.position - 10)],
         ["seekforward", () => seek(state.position + 10)],
-        ["stop", () => pause()],
+        ["stop", () => stop()],
       ];
       for (const [action, handler] of handlers) {
         try {
@@ -1126,11 +1166,14 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     playNow,
     playSong,
     startRadio,
+    stopRadio,
+    radioLoading,
     addToQueue,
     playNext,
     toggle,
     play,
     pause,
+    stop,
     next,
     previous,
     seek,
