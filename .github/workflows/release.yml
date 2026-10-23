@@ -1,0 +1,81 @@
+name: Release
+
+# Push a tag like v0.2.0 to build, sign and publish a release. tauri-action
+# uploads latest.json next to the installer, which is the feed the in-app
+# updater reads (see plugins.updater in src-tauri/tauri.conf.json).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify version matches tag
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          tag="${GITHUB_REF_NAME#v}"
+          if [[ "$version" != "$tag" ]]; then
+            echo "::error::src-tauri/tauri.conf.json is $version but the tag is $tag. Run 'bun run version:set $tag' first."
+            exit 1
+          fi
+
+      - name: Verify signing key is configured
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SIGNING_KEY" ]]; then
+            echo "::error::Add the updater private key as the TAURI_SIGNING_PRIVATE_KEY repository secret."
+            exit 1
+          fi
+
+      - name: Fetch libmpv
+        run: bun run mpv:fetch
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "StepUnder ${{ github.ref_name }}"
+          releaseBody: |
+            Download the installer below, or let an existing StepUnder install
+            update itself from **Settings → Updates**.
+          releaseDraft: false
+          prerelease: false
+          tauriScript: bun run tauri
+          # NSIS keeps the updater feed unambiguous: one installer, one signature.
+          updaterJsonPreferNsis: true
+          args: --bundles nsis

@@ -10,6 +10,8 @@
     "build:desktop": "node scripts/check-libmpv.mjs && vite build",
     "serve": "vite preview",
     "tauri": "tauri",
+    "version:set": "node scripts/set-version.mjs",
+    "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1",
     "mpv:fetch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-libmpv.ps1 -Destination src-tauri/resources"
   },
   "license": "MIT",
@@ -21,7 +23,9 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-http": "^2.8.3",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-store": "^2.5.0",
+    "@tauri-apps/plugin-updater": "^2.14.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "js-md5": "^0.9.2",

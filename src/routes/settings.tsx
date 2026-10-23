@@ -9,6 +9,7 @@ import {
   onMount,
 } from "solid-js";
 import {
+  Download,
   LoaderCircle,
   LogIn,
   Pencil,
@@ -26,6 +27,7 @@ import {
   DEFAULT_MPV_AUDIO_DEVICE,
   audioDeviceId,
   audioPlayer,
+  autoUpdate,
   discordPresence,
   font,
   maxBitRate,
@@ -33,6 +35,7 @@ import {
   scrobble,
   setAudioDeviceId,
   setAudioPlayer,
+  setAutoUpdate,
   setDiscordPresence,
   setFont,
   setMaxBitRate,
@@ -65,6 +68,16 @@ import {
   type MpvStatus,
 } from "~/lib/mpv";
 import { isTauri } from "~/lib/platform";
+import {
+  appVersion,
+  available as availableUpdate,
+  checkForUpdates,
+  error as updateError,
+  installUpdate,
+  isBusy as updateBusy,
+  progressPercent,
+  status as updateStatus,
+} from "~/lib/updater";
 import { toast } from "~/components/toaster";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -154,6 +167,35 @@ export default function SettingsPage() {
       return t("settings.audioDeviceLoading");
     }
     return t("settings.audioDeviceMpvHint");
+  };
+
+  const updateDescription = () => {
+    switch (updateStatus()) {
+      case "checking":
+        return t("settings.checkingUpdate");
+      case "available":
+        return t("settings.updateAvailable", {
+          version: availableUpdate()?.version ?? "",
+        });
+      case "up-to-date":
+        return t("settings.updateUpToDate");
+      case "downloading": {
+        const percent = progressPercent();
+        return percent === null
+          ? t("settings.updateProgressUnknown")
+          : t("settings.updateDownloading", { percent: `${percent}%` });
+      }
+      case "installing":
+        return t("settings.updateInstalling");
+      case "error":
+        return [t("settings.updateError"), updateError()]
+          .filter(Boolean)
+          .join(" ");
+      default:
+        return isTauri
+          ? t("settings.autoUpdateHint")
+          : t("settings.updateDesktopOnly");
+    }
   };
 
   const mpvDeviceOptions = () => {
@@ -547,6 +589,80 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
+          <CardHeader class="pb-2">
+            <CardTitle>{t("settings.updates")}</CardTitle>
+          </CardHeader>
+          <CardContent class="divide-y divide-border/60 pt-0">
+            <Row
+              label={t("settings.autoUpdate")}
+              description={t("settings.autoUpdateHint")}
+            >
+              <CheckboxField
+                checked={autoUpdate()}
+                onChange={setAutoUpdate}
+                label=""
+                disabled={!isTauri}
+              />
+            </Row>
+
+            <Row
+              label={t("settings.version")}
+              description={updateDescription()}
+            >
+              <div class="flex items-center gap-2">
+                <Badge>v{appVersion()}</Badge>
+                <Show when={updateStatus() === "available"}>
+                  <Button size="sm" onClick={() => void installUpdate()}>
+                    <Download class="size-3.5" />
+                    {t("settings.updateNow")}
+                  </Button>
+                </Show>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !isTauri ||
+                    updateBusy() ||
+                    updateStatus() === "available"
+                  }
+                  onClick={() => void checkForUpdates()}
+                >
+                  <RefreshCw
+                    class={cn(
+                      "size-3.5",
+                      updateStatus() === "checking" && "animate-spin",
+                    )}
+                  />
+                  {t("settings.checkUpdate")}
+                </Button>
+              </div>
+            </Row>
+
+            <Show
+              when={
+                updateStatus() === "downloading" ||
+                updateStatus() === "installing"
+              }
+            >
+              <div class="py-3">
+                <div class="h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    class={cn(
+                      "h-full rounded-full bg-primary transition-[width] duration-200",
+                      progressPercent() === null && "animate-pulse",
+                    )}
+                    style={{ width: `${progressPercent() ?? 100}%` }}
+                  />
+                </div>
+                <p class="mt-1.5 text-xs text-muted-foreground">
+                  {updateDescription()}
+                </p>
+              </div>
+            </Show>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader class="flex-row items-center justify-between pb-2">
             <CardTitle>{t("settings.servers")}</CardTitle>
             <Button
@@ -627,7 +743,7 @@ export default function SettingsPage() {
               {t("settings.aboutHint")}
             </p>
             <p class="mt-3 text-xs text-muted-foreground">
-              {t("settings.version")}: 0.1.0
+              {t("settings.version")}: {appVersion()}
             </p>
           </CardContent>
         </Card>

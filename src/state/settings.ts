@@ -20,6 +20,7 @@ const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
 const [font, setFontSignal] = createSignal<Font>("system");
 const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
 const [discordPresence, setDiscordPresenceSignal] = createSignal(false);
+const [autoUpdate, setAutoUpdateSignal] = createSignal(true);
 const [audioDeviceId, setAudioDeviceIdSignal] = createSignal<string>(
   DEFAULT_AUDIO_DEVICE,
 );
@@ -38,6 +39,7 @@ export {
   discordPresence,
   audioDeviceId,
   mpvAudioDevice,
+  autoUpdate,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -93,6 +95,7 @@ export async function initSettings(): Promise<void> {
     savedDevice,
     savedMpvDevice,
     savedDiscordPresence,
+    savedAutoUpdate,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -103,6 +106,7 @@ export async function initSettings(): Promise<void> {
     readSetting<string>("audioDeviceId", DEFAULT_AUDIO_DEVICE),
     readSetting<string>("mpvAudioDevice", DEFAULT_MPV_AUDIO_DEVICE),
     readSetting<boolean>("discordPresence", false),
+    readSetting<boolean>("autoUpdate", true),
   ]);
 
   const nextTheme: Theme =
@@ -118,6 +122,7 @@ export async function initSettings(): Promise<void> {
   setFontSignal(nextFont);
   setAudioPlayerSignal(nextPlayer);
   setDiscordPresenceSignal(savedDiscordPresence === true);
+  setAutoUpdateSignal(savedAutoUpdate !== false);
   setAudioDeviceIdSignal(savedDevice || DEFAULT_AUDIO_DEVICE);
   setMpvAudioDeviceSignal(savedMpvDevice || DEFAULT_MPV_AUDIO_DEVICE);
   apply(nextTheme);
@@ -163,6 +168,11 @@ export function setAudioPlayer(value: AudioPlayer): void {
 export function setDiscordPresence(value: boolean): void {
   setDiscordPresenceSignal(value);
   void writeSetting("discordPresence", value);
+}
+
+export function setAutoUpdate(value: boolean): void {
+  setAutoUpdateSignal(value);
+  void writeSetting("autoUpdate", value);
 }
 
 export function setAudioDeviceId(value: string): void {

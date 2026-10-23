@@ -1,3 +1,5 @@
 node_modules
 dist
 src-tauri/resources/libmpv-2.dll
+# Updater signing key: keep it on your machine, never in git.
+src-tauri/keys/

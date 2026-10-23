@@ -253,6 +253,32 @@ const en = {
   "settings.keychainHint":
     "Saved passwords live in the system credential vault, never in this app's files.",
 
+  "settings.updates": "Updates",
+  "settings.autoUpdate": "Check for updates automatically",
+  "settings.autoUpdateHint":
+    "Look for a new StepUnder release a few seconds after startup.",
+  "settings.checkUpdate": "Check for updates",
+  "settings.checkingUpdate": "Checking for updates…",
+  "settings.updateUpToDate": "You are on the latest version.",
+  "settings.updateAvailable": "Version {version} is available.",
+  "settings.updateError": "Could not check for updates.",
+  "settings.updateDesktopOnly": "Updates are only available in the desktop app.",
+  "settings.updateNow": "Install update",
+  "settings.updateDownloading": "Downloading update… {percent}",
+  "settings.updateInstalling": "Installing update…",
+  "settings.updateDone": "Update installed. Restarting…",
+  "settings.updateProgressUnknown": "Downloading update…",
+
+  "update.title": "Update available",
+  "update.description":
+    "StepUnder {version} is ready to install. You are on {current}.",
+  "update.notes": "What's new",
+  "update.later": "Later",
+  "update.install": "Install now",
+  "update.downloading": "Downloading… {percent}",
+  "update.installing": "Installing update…",
+  "update.error": "The update could not be installed.",
+
   "profile.title": "Profile",
   "profile.subtitle": "Listening data from your music server",
   "profile.signedInAs": "Signed in as",
@@ -535,6 +561,32 @@ const th: Record<MessageKey, string> = {
     "StepUnder เป็นไคลเอนต์เดสก์ท็อปขนาดเล็กสำหรับ Navidrome และเซิร์ฟเวอร์ที่รองรับ Subsonic",
   "settings.keychainHint":
     "รหัสผ่านที่บันทึกไว้จะอยู่ในระบบจัดเก็บข้อมูลลับของเครื่อง ไม่ได้อยู่ในไฟล์ของแอป",
+
+  "settings.updates": "อัปเดต",
+  "settings.autoUpdate": "ตรวจหาอัปเดตอัตโนมัติ",
+  "settings.autoUpdateHint":
+    "ตรวจหาเวอร์ชันใหม่ของ StepUnder ไม่กี่วินาทีหลังเปิดแอป",
+  "settings.checkUpdate": "ตรวจหาอัปเดต",
+  "settings.checkingUpdate": "กำลังตรวจหาอัปเดต…",
+  "settings.updateUpToDate": "คุณใช้เวอร์ชันล่าสุดอยู่แล้ว",
+  "settings.updateAvailable": "มีเวอร์ชัน {version} ให้อัปเดต",
+  "settings.updateError": "ตรวจหาอัปเดตไม่สำเร็จ",
+  "settings.updateDesktopOnly": "การอัปเดตใช้ได้เฉพาะในแอปเดสก์ท็อป",
+  "settings.updateNow": "ติดตั้งอัปเดต",
+  "settings.updateDownloading": "กำลังดาวน์โหลดอัปเดต… {percent}",
+  "settings.updateInstalling": "กำลังติดตั้งอัปเดต…",
+  "settings.updateDone": "ติดตั้งอัปเดตแล้ว กำลังรีสตาร์ท…",
+  "settings.updateProgressUnknown": "กำลังดาวน์โหลดอัปเดต…",
+
+  "update.title": "มีอัปเดตใหม่",
+  "update.description":
+    "StepUnder {version} พร้อมติดตั้งแล้ว คุณใช้เวอร์ชัน {current} อยู่",
+  "update.notes": "มีอะไรใหม่",
+  "update.later": "ไว้ภายหลัง",
+  "update.install": "ติดตั้งเลย",
+  "update.downloading": "กำลังดาวน์โหลด… {percent}",
+  "update.installing": "กำลังติดตั้งอัปเดต…",
+  "update.error": "ติดตั้งอัปเดตไม่สำเร็จ",
 
   "profile.title": "โปรไฟล์",
   "profile.subtitle": "ข้อมูลการฟังเพลงจากเซิร์ฟเวอร์ของคุณ",

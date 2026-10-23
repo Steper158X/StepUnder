@@ -4,7 +4,12 @@ import { ServersProvider } from "~/state/servers";
 import { PlayerProvider } from "~/player/store";
 import { initI18n } from "~/i18n";
 import { initSettings } from "~/state/settings";
+import {
+  checkForUpdatesOnStartup,
+  loadAppVersion,
+} from "~/lib/updater";
 import { Toaster } from "~/components/toaster";
+import { UpdatePrompt } from "~/components/update-prompt";
 import { TitleBar } from "~/components/title-bar";
 import { AppLayout } from "~/components/app-layout";
 import SetupPage from "~/routes/setup";
@@ -25,13 +30,17 @@ import NotFoundPage from "~/routes/not-found";
 function Root(props: RouteSectionProps) {
   onMount(() => {
     void initI18n();
-    void initSettings();
+    void initSettings().then(() => {
+      void loadAppVersion();
+      void checkForUpdatesOnStartup();
+    });
   });
 
   return (
     <>
       {props.children}
       <Toaster />
+      <UpdatePrompt />
     </>
   );
 }

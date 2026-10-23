@@ -24,6 +24,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-store = "2.5.0"
 tauri-plugin-http = "2.8.3"
+# In-app auto updates: checks GitHub Releases and installs signed builds.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 # libmpv is opened at runtime (see src/mpv.rs); libloading keeps the build
 # working on machines without libmpv installed.
 libloading = "0.8"
