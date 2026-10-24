@@ -80,7 +80,7 @@ function SideLyrics() {
           <Maximize2 class="size-4" />
         </Button>
       </div>
-      <div class="flex min-h-0 flex-1 flex-col px-3">
+      <div class="flex min-h-0 flex-1 flex-col">
         <Show when={player.current()}>
           {(song) => (
             <LyricsPanel
