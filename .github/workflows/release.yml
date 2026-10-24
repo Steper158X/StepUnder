@@ -64,6 +64,24 @@ jobs:
           # Raises the GitHub API rate limit when resolving the mpv release.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Notes for a release live in .github/release-notes/<tag>.md. They become
+      # the release body and the notes the in-app updater shows.
+      - name: Read release notes
+        id: notes
+        shell: bash
+        run: |
+          file=".github/release-notes/$GITHUB_REF_NAME.md"
+          {
+            echo "body<<RELEASE_NOTES_EOF"
+            if [[ -f "$file" ]]; then
+              cat "$file"
+            else
+              echo "Download the installer below, or let an existing StepUnder install"
+              echo "update itself from **Settings → Updates**."
+            fi
+            echo "RELEASE_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
@@ -73,9 +91,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "StepUnder ${{ github.ref_name }}"
-          releaseBody: |
-            Download the installer below, or let an existing StepUnder install
-            update itself from **Settings → Updates**.
+          releaseBody: ${{ steps.notes.outputs.body }}
           # Stay a draft until latest.json is uploaded; otherwise
           # releases/latest points here before the feed exists and installed
           # apps fail with "Could not fetch a valid release JSON".
