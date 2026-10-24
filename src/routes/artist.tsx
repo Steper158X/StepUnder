@@ -21,7 +21,7 @@ export default function ArtistPage() {
 
   const [topSongs] = createResource(
     () => data()?.artist.name,
-    (name) => servers.client()!.getTopSongs(name, 15),
+    (name) => servers.client()!.getTopSongs(name, 10),
   );
 
   return (
@@ -66,20 +66,20 @@ export default function ArtistPage() {
             </div>
           </div>
 
-          <Show when={data()!.albums.length > 0}>
-            <Section title={t("artists.albums")}>
-              <AlbumGrid albums={data()!.albums} />
-            </Section>
-          </Show>
-
           <Show when={(topSongs() ?? []).length > 0}>
-            <Section title={t("artists.topSongs")} class="mt-8">
+            <Section title={t("artists.topSongs")} class="mb-8">
               <TrackList
-                songs={topSongs()!}
+                songs={topSongs()!.slice(0, 10)}
                 sourceName={data()!.artist.name}
                 showAlbum
                 showCover
               />
+            </Section>
+          </Show>
+
+          <Show when={data()!.albums.length > 0}>
+            <Section title={t("artists.albums")}>
+              <AlbumGrid albums={data()!.albums} />
             </Section>
           </Show>
         </Show>
