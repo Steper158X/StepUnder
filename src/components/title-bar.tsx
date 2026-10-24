@@ -50,7 +50,7 @@ function WindowChrome() {
   return (
     <header
       data-tauri-drag-region="deep"
-      class="flex h-10 shrink-0 select-none items-center gap-2 border-b border-border/60 bg-background pr-1 pl-3"
+      class="glass-bar flex h-10 shrink-0 select-none items-center gap-2 border-b border-border/60 bg-background pr-1 pl-3"
     >
       <div class="flex items-center gap-2">
         <img

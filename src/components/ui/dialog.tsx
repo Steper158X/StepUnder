@@ -17,7 +17,7 @@ export function DialogContent(
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <KDialog.Content
           class={cn(
-            "relative w-full max-w-md animate-fade-in rounded-xl border bg-card p-5 shadow-2xl outline-none",
+            "glass-panel relative w-full max-w-md animate-fade-in rounded-xl border bg-card p-5 shadow-2xl outline-none",
             local.class,
           )}
           {...rest}

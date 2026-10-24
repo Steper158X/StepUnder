@@ -108,6 +108,266 @@
   }
 }
 
+/*
+ * Liquid glass display style (`html[data-style="glass"]`).
+ * Surfaces opt in with marker classes that do nothing in the standard style:
+ *   .glass-bar      edge chrome: title bar, sidebar, queue, docked player
+ *   .glass-panel    cards, dialogs, drawers, floating player
+ *   .glass-popover  menus, selects, toasts
+ *   .glass-inset    detaches a .glass-bar from the window edge
+ * Kept outside @layer so it wins over the bg-/border-/shadow- utilities.
+ */
+html[data-style="glass"] {
+  --glass-tint: oklch(1 0 0 / 55%);
+  --glass-tint-strong: oklch(1 0 0 / 78%);
+  --glass-line: oklch(1 0 0 / 60%);
+  --glass-rim: oklch(1 0 0 / 85%);
+  --glass-shade: oklch(0.2 0.02 286 / 14%);
+  --glass-blur: 45px;
+  --glass-glow-a: oklch(0.8 0.14 var(--brand-h) / 55%);
+  --glass-glow-b: oklch(0.82 0.12 calc(var(--brand-h) + 70) / 45%);
+  --glass-glow-c: oklch(0.8 0.12 calc(var(--brand-h) - 60) / 40%);
+
+  --accent: oklch(0.2 0.01 286 / 7%);
+  --secondary: oklch(0.2 0.01 286 / 6%);
+  --muted: oklch(0.2 0.01 286 / 6%);
+  --border: oklch(0.2 0.01 286 / 10%);
+}
+
+html.dark[data-style="glass"] {
+  --glass-tint: oklch(0.22 0.01 286 / 42%);
+  --glass-tint-strong: oklch(0.22 0.01 286 / 70%);
+  --glass-line: oklch(1 0 0 / 13%);
+  --glass-rim: oklch(1 0 0 / 22%);
+  --glass-shade: oklch(0 0 0 / 40%);
+  /* `--glass-level` (0–1) comes from the "Background brightness" setting. */
+  --glass-glow-a: oklch(
+    calc(0.22 + 0.2 * var(--glass-level, 0.3)) 0.1 var(--brand-h) /
+      calc(var(--glass-level, 0.3) * 100%)
+  );
+  --glass-glow-b: oklch(
+    calc(0.19 + 0.2 * var(--glass-level, 0.3)) 0.08
+      calc(var(--brand-h) + 70) / calc(var(--glass-level, 0.3) * 67%)
+  );
+  --glass-glow-c: oklch(
+    calc(0.18 + 0.2 * var(--glass-level, 0.3)) 0.07
+      calc(var(--brand-h) - 60) / calc(var(--glass-level, 0.3) * 67%)
+  );
+
+  --accent: oklch(1 0 0 / 10%);
+  --secondary: oklch(1 0 0 / 9%);
+  --muted: oklch(1 0 0 / 7%);
+  --border: oklch(1 0 0 / 12%);
+}
+
+/* Something colorful behind the glass for it to bend. */
+html[data-style="glass"] body {
+  background:
+    radial-gradient(55rem 38rem at 0% 0%, var(--glass-glow-a), transparent 65%),
+    radial-gradient(48rem 40rem at 100% 25%, var(--glass-glow-b), transparent 65%),
+    radial-gradient(60rem 42rem at 45% 110%, var(--glass-glow-c), transparent 65%),
+    var(--background);
+  background-attachment: fixed;
+}
+
+/*
+ * See-through window (`html[data-window-effect]`, Tauri only): Windows draws
+ * Acrylic/Mica behind the webview, so the page base becomes translucent with
+ * `--window-opacity` (0–1) of the theme background left over it.
+ */
+html[data-style="glass"][data-window-effect] {
+  background: transparent;
+}
+
+html[data-style="glass"][data-window-effect] body {
+  background:
+    radial-gradient(55rem 38rem at 0% 0%, var(--glass-glow-a), transparent 65%),
+    radial-gradient(48rem 40rem at 100% 25%, var(--glass-glow-b), transparent 65%),
+    radial-gradient(60rem 42rem at 45% 110%, var(--glass-glow-c), transparent 65%),
+    color-mix(
+      in oklab,
+      var(--background) calc(var(--window-opacity, 0.6) * 100%),
+      transparent
+    );
+}
+
+/*
+ * Light theme: a sheet of white paper laid over the artwork, its opacity set
+ * by `--glass-level-light` (0–1, the light "Background brightness").
+ * 0 shows the artwork as is; 1 covers it completely.
+ */
+html:not(.dark)[data-style="glass"] .glass-backdrop {
+  opacity: 1;
+}
+
+html:not(.dark)[data-style="glass"] .glass-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: oklch(1 0 0 / calc(var(--glass-level-light, 0.7) * 100%));
+}
+
+/*
+ * Fade the artwork in to whatever opacity the theme gives it. A keyframe
+ * with an explicit `to { opacity: 1 }` (like .animate-fade-in) would flash
+ * the full-strength cover before dropping back to that value.
+ */
+@keyframes glass-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.glass-backdrop {
+  animation: glass-backdrop-in 0.4s ease-out;
+}
+
+html.dark[data-style="glass"] .glass-backdrop {
+  opacity: calc(var(--glass-level, 0.3) * 0.5);
+}
+
+html[data-style="glass"] .glass-bar,
+html[data-style="glass"] .glass-panel,
+html[data-style="glass"] .glass-popover {
+  background-color: var(--glass-tint);
+  border-color: var(--glass-line);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+}
+
+/* Specular rim along the top edge, softer return along the bottom. */
+html[data-style="glass"] .glass-bar {
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-rim),
+    inset 0 -1px 0 0 color-mix(in oklab, var(--glass-rim) 30%, transparent);
+}
+
+html[data-style="glass"] .glass-panel {
+  box-shadow:
+    inset 0 1px 1px 0 var(--glass-rim),
+    inset 0 -1px 1px 0 color-mix(in oklab, var(--glass-rim) 35%, transparent),
+    0 12px 40px -8px var(--glass-shade);
+}
+
+html[data-style="glass"] .glass-popover {
+  background-color: var(--glass-tint-strong);
+  box-shadow:
+    inset 0 1px 1px 0 var(--glass-rim),
+    0 16px 48px -10px var(--glass-shade);
+}
+
+html[data-style="glass"] .glass-inset {
+  margin: 0.5rem;
+  /* Stop above a floating player (`--player-space` already has its gaps). */
+  margin-bottom: max(0.5rem, var(--player-space, 0px));
+  border-width: 1px;
+  border-radius: 1.25rem;
+}
+
+/*
+ * Album and artist artwork (cards, where `.glass-tile` is only the hover
+ * hook, and page headers): a glass sheen and rim that lifts on hover, plus a glass
+ * play button. The sheen is ::before; zoomable covers use ::after for
+ * `.cover-shine`.
+ */
+html[data-style="glass"] .glass-cover {
+  border-radius: 0.75rem;
+  box-shadow: 0 6px 20px -12px var(--glass-shade);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* Artist pictures stay round. */
+html[data-style="glass"] .glass-cover.glass-round {
+  border-radius: 9999px;
+}
+
+html[data-style="glass"] .glass-tile:hover .glass-cover,
+html[data-style="glass"] .glass-tile:focus-within .glass-cover,
+html[data-style="glass"] .glass-cover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px -14px var(--glass-shade);
+}
+
+/* A scrolling row clips vertically; leave room for the hover lift. */
+html[data-style="glass"] .glass-row {
+  padding-top: 0.25rem;
+  padding-bottom: 1rem;
+}
+
+html[data-style="glass"] .glass-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  /* Curved highlight top-left and light caught by the bottom edge as it
+     bends through the glass. */
+  background:
+    radial-gradient(
+      120% 70% at 18% 0%,
+      oklch(1 0 0 / 45%) 0%,
+      oklch(1 0 0 / 12%) 38%,
+      transparent 60%
+    ),
+    radial-gradient(
+      90% 40% at 70% 108%,
+      oklch(1 0 0 / 22%) 0%,
+      transparent 70%
+    );
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 28%),
+    inset 0 1.5px 0 0 oklch(1 0 0 / 65%),
+    inset 0 -1px 0 0 oklch(1 0 0 / 20%);
+  opacity: 0.85;
+  transition: opacity 0.25s ease;
+}
+
+html[data-style="glass"] .glass-tile:hover .glass-cover::before,
+html[data-style="glass"] .glass-cover:hover::before {
+  opacity: 1;
+}
+
+html[data-style="glass"] .glass-button {
+  background-color: color-mix(in oklab, var(--primary) 72%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  box-shadow:
+    inset 0 1px 1px 0 oklch(1 0 0 / 45%),
+    0 6px 16px -6px oklch(0 0 0 / 45%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style="glass"] .glass-tile:hover .glass-cover,
+  html[data-style="glass"] .glass-tile:focus-within .glass-cover,
+  html[data-style="glass"] .glass-cover:hover {
+    transform: none;
+  }
+}
+
+/* The title bar spans the window edge to edge; keep it lighter. */
+html[data-style="glass"] header.glass-bar {
+  background-color: color-mix(in oklab, var(--glass-tint) 60%, transparent);
+}
+
+@media (max-width: 47.99rem) {
+  /* The queue becomes a full-height overlay on small screens. */
+  html[data-style="glass"] aside.glass-inset:not(.md\:flex) {
+    margin: 0;
+    border-radius: 0;
+    background-color: var(--glass-tint-strong);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  html[data-style="glass"] {
+    --glass-tint: color-mix(in oklab, var(--card) 92%, transparent);
+    --glass-tint-strong: var(--popover);
+  }
+}
+
 /* Scrollbars */
 * {
   scrollbar-width: thin;

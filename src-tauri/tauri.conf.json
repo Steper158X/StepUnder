@@ -19,6 +19,7 @@
         "minHeight": 600,
         "center": true,
         "decorations": false,
+        "transparent": true,
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,SpareRendererForSitePerProcess,AudioServiceOutOfProcess --renderer-process-limit=1 --disable-background-networking --disable-component-update --disable-extensions --disable-default-apps --disable-sync --no-pings"
       }
     ],

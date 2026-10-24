@@ -50,7 +50,7 @@ export default function ArtistPage() {
               name={data()!.artist.name}
               coverArt={data()!.artist.coverArt}
               size={400}
-              class="size-32 text-3xl shadow ring-1 ring-black/5"
+              class="glass-cover glass-round size-32 text-3xl shadow ring-1 ring-black/5"
             />
             <div class="min-w-0">
               <p class="flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:justify-start">

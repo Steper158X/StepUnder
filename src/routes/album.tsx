@@ -72,7 +72,7 @@ export default function AlbumPage() {
               coverArtId={album()!.coverArt ?? album()!.id}
               size={400}
               alt={album()!.name}
-              class="size-40 shrink-0 rounded-xl shadow-lg @2xl:size-44"
+              class="glass-cover size-40 shrink-0 rounded-xl shadow-lg @2xl:size-44"
               iconClass="size-10"
               zoomable
             />

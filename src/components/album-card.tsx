@@ -32,8 +32,8 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
   }
 
   return (
-    <div class={cn("group w-40 shrink-0", props.class)}>
-      <div class="relative aspect-square overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-black/5">
+    <div class={cn("glass-tile group w-40 shrink-0", props.class)}>
+      <div class="glass-cover relative aspect-square overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-black/5">
         <A href={`/album/${props.album.id}`} class="block size-full">
           <Cover
             coverArtId={props.album.coverArt ?? props.album.id}
@@ -46,7 +46,7 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
         <button
           type="button"
           onClick={(event) => void playAlbum(event)}
-          class="absolute bottom-2 right-2 flex size-9 translate-y-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-lg transition-all duration-200 hover:scale-105 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
+          class="glass-button absolute bottom-2 right-2 z-[2] flex size-9 translate-y-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-lg transition-all duration-200 hover:scale-105 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
           aria-label={`${t("action.play")} ${props.album.name}`}
         >
           <Show
@@ -71,7 +71,7 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
 
 export function AlbumRow(props: { albums: Album[]; class?: string }) {
   return (
-    <div class={cn("flex gap-4 overflow-x-auto pb-2", props.class)}>
+    <div class={cn("glass-row flex gap-4 overflow-x-auto pb-2", props.class)}>
       <For each={props.albums}>{(album) => <AlbumCard album={album} />}</For>
     </div>
   );

@@ -38,7 +38,7 @@ export function ArtistAvatar(props: {
   return (
     <div
       class={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-secondary via-muted to-secondary/70 font-semibold text-muted-foreground",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-secondary via-muted to-secondary/70 font-semibold text-muted-foreground",
         props.class,
       )}
     >

@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
+import { isTauri } from "~/lib/platform";
 
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
@@ -27,6 +28,28 @@ export const ACCENT_HUES: Record<Accent, number> = {
 /** Player bar style: attached to the bottom edge, or a floating card. */
 export type PlayerLayout = "docked" | "floating";
 
+/** Surface style: solid panels, or translucent "liquid glass" panels. */
+export type UiStyle = "standard" | "glass";
+
+/** Liquid glass background brightness, 0–100, kept per theme. */
+export const DEFAULT_GLASS_BRIGHTNESS = 30;
+export const DEFAULT_GLASS_BRIGHTNESS_LIGHT = 70;
+
+/** Blur radius of liquid glass panels, in px. */
+export const DEFAULT_GLASS_BLUR = 45;
+export const MAX_GLASS_BLUR = 60;
+
+/**
+ * Windows material behind a liquid glass window. `acrylic` blurs whatever is
+ * behind the window; `mica` tints from the wallpaper only.
+ */
+export type WindowEffect = "none" | "acrylic" | "mica";
+
+const WINDOW_EFFECTS: readonly WindowEffect[] = ["none", "acrylic", "mica"];
+
+/** How much of the app background still covers the desktop, 0–100. */
+export const DEFAULT_WINDOW_OPACITY = 60;
+
 /** Playback engine: the built-in web player or the libmpv engine. */
 export type AudioPlayer = "web" | "mpv";
 
@@ -43,6 +66,21 @@ const [font, setFontSignal] = createSignal<Font>("system");
 const [accent, setAccentSignal] = createSignal<Accent>("purple");
 const [playerLayout, setPlayerLayoutSignal] =
   createSignal<PlayerLayout>("docked");
+const [uiStyle, setUiStyleSignal] = createSignal<UiStyle>("standard");
+const [glassBrightness, setGlassBrightnessSignal] = createSignal(
+  DEFAULT_GLASS_BRIGHTNESS,
+);
+const [glassBrightnessLight, setGlassBrightnessLightSignal] = createSignal(
+  DEFAULT_GLASS_BRIGHTNESS_LIGHT,
+);
+/** Whether the dark palette is showing right now (resolves "system"). */
+const [darkActive, setDarkActive] = createSignal(true);
+const [glassBlur, setGlassBlurSignal] = createSignal(DEFAULT_GLASS_BLUR);
+const [windowEffect, setWindowEffectSignal] =
+  createSignal<WindowEffect>("none");
+const [windowOpacity, setWindowOpacitySignal] = createSignal(
+  DEFAULT_WINDOW_OPACITY,
+);
 const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
 const [discordPresence, setDiscordPresenceSignal] = createSignal(false);
 const [autoUpdate, setAutoUpdateSignal] = createSignal(true);
@@ -62,6 +100,13 @@ export {
   font,
   accent,
   playerLayout,
+  uiStyle,
+  glassBrightness,
+  glassBrightnessLight,
+  darkActive,
+  glassBlur,
+  windowEffect,
+  windowOpacity,
   audioPlayer,
   discordPresence,
   audioDeviceId,
@@ -101,6 +146,53 @@ function applyAccent(value: Accent) {
   );
 }
 
+/** Glass styling in app.css keys off `html[data-style="glass"]`. */
+function applyUiStyle(value: UiStyle) {
+  document.documentElement.dataset.style = value;
+}
+
+/** Feeds `--glass-level` (0–1) in app.css. */
+/** Feeds `--glass-level` (dark) and `--glass-level-light` in app.css. */
+function applyGlassBrightness(dark: number, light: number) {
+  const root = document.documentElement.style;
+  root.setProperty("--glass-level", String(dark / 100));
+  root.setProperty("--glass-level-light", String(light / 100));
+}
+
+function applyGlassBlur(value: number) {
+  document.documentElement.style.setProperty("--glass-blur", `${value}px`);
+}
+
+function applyWindowOpacity(value: number) {
+  document.documentElement.style.setProperty(
+    "--window-opacity",
+    String(value / 100),
+  );
+}
+
+/**
+ * Turns the Windows material on only while liquid glass is selected; app.css
+ * clears the page background under `html[data-window-effect]` so it shows.
+ */
+function applyWindowEffect() {
+  const effect =
+    isTauri && uiStyle() === "glass" ? windowEffect() : ("none" as const);
+  const root = document.documentElement;
+  if (effect === "none") delete root.dataset.windowEffect;
+  else root.dataset.windowEffect = effect;
+  if (!isTauri) return;
+
+  void import("@tauri-apps/api/window")
+    .then(({ getCurrentWindow, Effect }) => {
+      const appWindow = getCurrentWindow();
+      if (effect === "none") return appWindow.clearEffects();
+      return appWindow.setEffects({
+        effects: [effect === "mica" ? Effect.Mica : Effect.Acrylic],
+      });
+    })
+    .catch((error) => console.error("Failed to set window effect", error));
+}
+
 const darkQuery =
   typeof window !== "undefined"
     ? window.matchMedia("(prefers-color-scheme: dark)")
@@ -116,6 +208,14 @@ function apply(value: Theme) {
   const dark = isDark(value);
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.style.colorScheme = dark ? "dark" : "light";
+  setDarkActive(dark);
+}
+
+/** A saved 0..max number, or the fallback when it is missing or garbled. */
+function clampSetting(value: unknown, max: number, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(0, value))
+    : fallback;
 }
 
 export async function initSettings(): Promise<void> {
@@ -132,6 +232,12 @@ export async function initSettings(): Promise<void> {
     savedDiscordPresence,
     savedAutoUpdate,
     savedPlayerLayout,
+    savedUiStyle,
+    savedGlassBrightness,
+    savedGlassBrightnessLight,
+    savedGlassBlur,
+    savedWindowEffect,
+    savedWindowOpacity,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -145,6 +251,12 @@ export async function initSettings(): Promise<void> {
     readSetting<boolean>("discordPresence", false),
     readSetting<boolean>("autoUpdate", true),
     readSetting<PlayerLayout>("playerLayout", "docked"),
+    readSetting<UiStyle>("uiStyle", "standard"),
+    readSetting<number>("glassBrightness", DEFAULT_GLASS_BRIGHTNESS),
+    readSetting<number>("glassBrightnessLight", DEFAULT_GLASS_BRIGHTNESS_LIGHT),
+    readSetting<number>("glassBlur", DEFAULT_GLASS_BLUR),
+    readSetting<WindowEffect>("windowEffect", "none"),
+    readSetting<number>("windowOpacity", DEFAULT_WINDOW_OPACITY),
   ]);
 
   const nextTheme: Theme =
@@ -171,11 +283,45 @@ export async function initSettings(): Promise<void> {
   setPlayerLayoutSignal(
     savedPlayerLayout === "floating" ? "floating" : "docked",
   );
+  const nextUiStyle: UiStyle = savedUiStyle === "glass" ? "glass" : "standard";
+  setUiStyleSignal(nextUiStyle);
+  const nextGlassBrightness = clampSetting(
+    savedGlassBrightness,
+    100,
+    DEFAULT_GLASS_BRIGHTNESS,
+  );
+  setGlassBrightnessSignal(nextGlassBrightness);
+  const nextGlassBrightnessLight = clampSetting(
+    savedGlassBrightnessLight,
+    100,
+    DEFAULT_GLASS_BRIGHTNESS_LIGHT,
+  );
+  setGlassBrightnessLightSignal(nextGlassBrightnessLight);
+  const nextGlassBlur = clampSetting(
+    savedGlassBlur,
+    MAX_GLASS_BLUR,
+    DEFAULT_GLASS_BLUR,
+  );
+  setGlassBlurSignal(nextGlassBlur);
+  setWindowEffectSignal(
+    WINDOW_EFFECTS.includes(savedWindowEffect) ? savedWindowEffect : "none",
+  );
+  const nextWindowOpacity = clampSetting(
+    savedWindowOpacity,
+    100,
+    DEFAULT_WINDOW_OPACITY,
+  );
+  setWindowOpacitySignal(nextWindowOpacity);
   setAudioDeviceIdSignal(savedDevice || DEFAULT_AUDIO_DEVICE);
   setMpvAudioDeviceSignal(savedMpvDevice || DEFAULT_MPV_AUDIO_DEVICE);
   apply(nextTheme);
   applyFont(nextFont);
   applyAccent(nextAccent);
+  applyUiStyle(nextUiStyle);
+  applyGlassBrightness(nextGlassBrightness, nextGlassBrightnessLight);
+  applyGlassBlur(nextGlassBlur);
+  applyWindowOpacity(nextWindowOpacity);
+  applyWindowEffect();
 
   darkQuery?.addEventListener("change", () => {
     if (theme() === "system") apply("system");
@@ -218,6 +364,44 @@ export function setAccent(value: Accent): void {
 export function setPlayerLayout(value: PlayerLayout): void {
   setPlayerLayoutSignal(value);
   void writeSetting("playerLayout", value);
+}
+
+export function setUiStyle(value: UiStyle): void {
+  setUiStyleSignal(value);
+  applyUiStyle(value);
+  applyWindowEffect();
+  void writeSetting("uiStyle", value);
+}
+
+/** Updates the look live; pass `save: false` while a slider is still dragging. */
+/** Sets the brightness of whichever theme is showing; each keeps its own. */
+export function setGlassBrightness(value: number, save = true): void {
+  if (darkActive()) {
+    setGlassBrightnessSignal(value);
+    if (save) void writeSetting("glassBrightness", value);
+  } else {
+    setGlassBrightnessLightSignal(value);
+    if (save) void writeSetting("glassBrightnessLight", value);
+  }
+  applyGlassBrightness(glassBrightness(), glassBrightnessLight());
+}
+
+export function setGlassBlur(value: number, save = true): void {
+  setGlassBlurSignal(value);
+  applyGlassBlur(value);
+  if (save) void writeSetting("glassBlur", value);
+}
+
+export function setWindowEffect(value: WindowEffect): void {
+  setWindowEffectSignal(value);
+  applyWindowEffect();
+  void writeSetting("windowEffect", value);
+}
+
+export function setWindowOpacity(value: number, save = true): void {
+  setWindowOpacitySignal(value);
+  applyWindowOpacity(value);
+  if (save) void writeSetting("windowOpacity", value);
 }
 
 export function setAudioPlayer(value: AudioPlayer): void {

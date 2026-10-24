@@ -122,8 +122,8 @@ export function PlayerBar(props: {
       class={cn(
         "shrink-0",
         props.floating
-          ? "absolute inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-10 animate-fade-in rounded-2xl border border-border/50 bg-card/55 shadow-2xl shadow-black/30 backdrop-blur-2xl backdrop-saturate-150 transition-[background-color,border-color] duration-300 focus-within:border-border/80 focus-within:bg-card/85 hover:border-border/80 hover:bg-card/85 md:inset-x-3 md:bottom-3"
-          : "border-t border-border/60 bg-card/50 pb-[env(safe-area-inset-bottom)] backdrop-blur",
+          ? "glass-panel absolute inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-10 animate-fade-in rounded-2xl border border-border/50 bg-card/55 shadow-2xl shadow-black/30 backdrop-blur-2xl backdrop-saturate-150 transition-[background-color,border-color] duration-300 focus-within:border-border/80 focus-within:bg-card/85 hover:border-border/80 hover:bg-card/85 md:inset-x-3 md:bottom-3"
+          : "glass-bar border-t border-border/60 bg-card/50 pb-[env(safe-area-inset-bottom)] backdrop-blur",
       )}
     >
       <div

@@ -6,7 +6,7 @@ export function Card(props: JSX.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       class={cn(
-        "rounded-xl border border-border/70 bg-card text-card-foreground shadow-sm",
+        "glass-panel rounded-xl border border-border/70 bg-card text-card-foreground shadow-sm",
         local.class,
       )}
       {...rest}

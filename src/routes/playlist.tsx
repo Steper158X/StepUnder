@@ -146,7 +146,7 @@ export default function PlaylistPage() {
                   cacheKey={playlists.coverKey(playlist()!.id)}
                   size={400}
                   alt={playlist()!.name}
-                  class="size-44 shrink-0 rounded-xl shadow-lg"
+                  class="glass-cover size-44 shrink-0 rounded-xl shadow-lg"
                   iconClass="size-10"
                   zoomable
                 />
@@ -154,7 +154,7 @@ export default function PlaylistPage() {
             >
               <button
                 type="button"
-                class="group relative size-44 shrink-0 overflow-hidden rounded-xl shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                class="glass-cover group relative size-44 shrink-0 overflow-hidden rounded-xl shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => playlists.openEdit(playlist()!)}
                 aria-label={t("playlist.edit")}
               >
@@ -166,7 +166,7 @@ export default function PlaylistPage() {
                   class="size-full"
                   iconClass="size-10"
                 />
-                <span class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                <span class="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-1.5 bg-black/55 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                   <Pencil class="size-5" />
                   {t("playlist.edit")}
                 </span>

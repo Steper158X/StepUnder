@@ -25,15 +25,15 @@ function GenreTile(props: { genre: Genre }) {
   return (
     <A
       href={genreHref(props.genre.value)}
-      class="group block rounded-lg p-2 transition-colors hover:bg-accent/50"
+      class="glass-tile group block rounded-lg p-2 transition-colors hover:bg-accent/50"
     >
       <div
-        class="flex aspect-square w-full items-end overflow-hidden rounded-xl p-[12%] shadow-sm transition-[filter] group-hover:brightness-110"
+        class="glass-cover relative flex aspect-square w-full items-end overflow-hidden rounded-xl p-[12%] shadow-sm transition-[filter] group-hover:brightness-110"
         style={{
           background: `linear-gradient(135deg, hsl(${hue()} 68% 46%), hsl(${(hue() + 30) % 360} 62% 38%))`,
         }}
       >
-        <p class="line-clamp-2 break-words text-xl font-bold leading-tight text-white drop-shadow-sm">
+        <p class="relative z-[2] line-clamp-2 break-words text-xl font-bold leading-tight text-white drop-shadow-sm">
           {props.genre.value}
         </p>
       </div>

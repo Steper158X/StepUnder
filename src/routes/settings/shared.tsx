@@ -32,11 +32,34 @@ export function Row(props: {
   );
 }
 
+/** A titled card of rows, for a group that sits below the page's main card. */
+export function SettingsSection(props: {
+  title: string;
+  icon?: JSX.Element;
+  children: JSX.Element;
+}) {
+  return (
+    <section class="mt-6">
+      <h2 class="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+        {props.icon}
+        {props.title}
+      </h2>
+      <Card>
+        <CardContent class="divide-y divide-border/60 py-1">
+          {props.children}
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 /** Layout for a settings category: back link to the list, title, then a card. */
 export function SettingsSubPage(props: {
   title: string;
   actions?: JSX.Element;
   children: JSX.Element;
+  /** Extra `SettingsSection`s below the main card. */
+  sections?: JSX.Element;
 }) {
   return (
     <Page class="max-w-3xl">
@@ -60,6 +83,7 @@ export function SettingsSubPage(props: {
           {props.children}
         </CardContent>
       </Card>
+      {props.sections}
     </Page>
   );
 }

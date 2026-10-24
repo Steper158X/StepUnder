@@ -17,14 +17,14 @@ export function ArtistTile(props: { artist: Artist }) {
   return (
     <A
       href={`/artist/${props.artist.id}`}
-      class="group flex w-36 flex-col items-center gap-2 text-center"
+      class="glass-tile group flex w-36 flex-col items-center gap-2 text-center"
     >
       <ArtistAvatar
         id={props.artist.id}
         name={props.artist.name}
         coverArt={props.artist.coverArt}
         size={240}
-        class="size-28 text-2xl shadow-sm ring-1 ring-black/5 transition-all group-hover:ring-2 group-hover:ring-primary/40"
+        class="glass-cover glass-round size-28 text-2xl shadow-sm ring-1 ring-black/5 transition-all group-hover:ring-2 group-hover:ring-primary/40"
       />
       <p class="w-full truncate text-sm font-medium" title={props.artist.name}>
         {props.artist.name}

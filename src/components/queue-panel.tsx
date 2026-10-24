@@ -15,7 +15,7 @@ export function QueuePanel() {
       class={cn(
         "flex shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-out",
         player.queueOpen()
-          ? "w-[22rem] border-l border-border/60 bg-card/25 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-40 max-md:max-w-[92vw] max-md:bg-card max-md:shadow-2xl"
+          ? "glass-bar glass-inset w-[22rem] border-l md:mb-[var(--player-space,0px)] border-border/60 bg-card/25 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-40 max-md:max-w-[92vw] max-md:bg-card max-md:shadow-2xl"
           : "w-0 border-l-0",
       )}
       inert={player.queueOpen() ? undefined : true}
@@ -51,7 +51,7 @@ export function QueuePanel() {
           </div>
         </div>
 
-        <div class="min-h-0 flex-1 overflow-y-auto p-2 pb-[var(--player-space,0.5rem)]">
+        <div class="min-h-0 flex-1 overflow-y-auto p-2">
           <Show
             when={player.state.queue.length > 0}
             fallback={

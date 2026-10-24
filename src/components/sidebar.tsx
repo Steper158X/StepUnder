@@ -118,7 +118,7 @@ function BrandMenu(props: { onNavigate?: () => void }) {
 
 function NavSections(props: { onNavigate?: () => void }) {
   return (
-    <nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-1 pb-[var(--player-space,0.25rem)]">
+    <nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-1">
       <For each={navItems}>
         {(item) => (
           <NavLink
@@ -139,7 +139,7 @@ export function MobileHeader() {
   const [open, setOpen] = createSignal(false);
 
   return (
-    <header class="sticky top-0 z-30 flex h-12 items-center gap-1.5 border-b border-border/60 bg-background/85 px-2 backdrop-blur md:hidden">
+    <header class="glass-bar sticky top-0 z-30 flex h-12 items-center gap-1.5 border-b border-border/60 bg-background/85 px-2 backdrop-blur md:hidden">
       <Dialog open={open()} onOpenChange={setOpen}>
         <Dialog.Trigger
           class="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -150,7 +150,7 @@ export function MobileHeader() {
 
         <Dialog.Portal>
           <Dialog.Overlay class="fixed inset-0 z-50 animate-fade-in bg-black/60 backdrop-blur-[2px]" />
-          <Dialog.Content class="fixed inset-y-0 left-0 z-50 flex w-[min(17rem,85vw)] animate-slide-in-left flex-col border-r border-border/60 bg-card shadow-2xl outline-none">
+          <Dialog.Content class="glass-panel fixed inset-y-0 left-0 z-50 flex w-[min(17rem,85vw)] animate-slide-in-left flex-col border-r border-border/60 bg-card shadow-2xl outline-none">
             <Dialog.Title class="sr-only">{t("app.name")}</Dialog.Title>
             <div class="flex h-14 items-center justify-between gap-1 border-b border-border/60 px-4">
               <Brand />
@@ -217,7 +217,7 @@ export function Sidebar() {
   });
 
   return (
-    <aside class="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-card/25 md:flex">
+    <aside class="glass-bar glass-inset mb-[var(--player-space,0px)] hidden w-56 shrink-0 flex-col border-r border-border/60 bg-card/25 md:flex">
       <div class="flex h-14 items-center justify-between gap-1 pl-4 pr-2">
         <Brand />
         <BrandMenu />

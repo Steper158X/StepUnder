@@ -44,7 +44,7 @@ export function Toaster() {
           return (
             <div
               class={cn(
-                "pointer-events-auto animate-slide-in-right rounded-lg border bg-popover/95 p-3 text-popover-foreground shadow-xl backdrop-blur",
+                "glass-popover pointer-events-auto animate-slide-in-right rounded-lg border bg-popover/95 p-3 text-popover-foreground shadow-xl backdrop-blur",
                 item.variant === "error" && "border-destructive/40",
                 item.variant === "success" && "border-primary/40",
               )}

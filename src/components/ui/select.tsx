@@ -86,7 +86,7 @@ export function Select(props: {
           </SelectIcon>
         </SelectTrigger>
         <SelectPortal>
-          <SelectContent class="z-[120] max-h-72 min-w-[var(--kb-popper-anchor-width)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-xl animate-fade-in">
+          <SelectContent class="glass-popover z-[120] max-h-72 min-w-[var(--kb-popper-anchor-width)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-xl animate-fade-in">
             <SelectListbox />
           </SelectContent>
         </SelectPortal>

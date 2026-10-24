@@ -21,14 +21,14 @@ function PlaylistCard(props: { playlist: Playlist }) {
   const card = () => (
     <A
       href={`/playlist/${props.playlist.id}`}
-      class="group block rounded-lg p-2 transition-colors hover:bg-accent/50"
+      class="glass-tile group block rounded-lg p-2 transition-colors hover:bg-accent/50"
     >
       <Cover
         coverArtId={props.playlist.coverArt ?? props.playlist.id}
         cacheKey={playlists.coverKey(props.playlist.id)}
         size={300}
         alt={props.playlist.name}
-        class="aspect-square w-full rounded-lg shadow-sm"
+        class="glass-cover aspect-square w-full rounded-lg shadow-sm"
         iconClass="size-8"
       />
       <p class="mt-2 truncate text-sm font-medium" title={props.playlist.name}>

@@ -1,13 +1,14 @@
 import { Navigate, type RouteSectionProps } from "@solidjs/router";
 import { Show, createEffect, createSignal, onCleanup } from "solid-js";
 import { useServers } from "~/state/servers";
-import { playerLayout } from "~/state/settings";
+import { playerLayout, uiStyle } from "~/state/settings";
+import { usePlayer } from "~/player/store";
 import { t } from "~/i18n";
 import { MobileHeader, Sidebar } from "~/components/sidebar";
 import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
-import { Spinner } from "~/components/common";
+import { Cover, Spinner } from "~/components/common";
 import logo from "~/assets/logo.svg";
 
 function BootScreen() {
@@ -22,6 +23,33 @@ function BootScreen() {
       <Spinner />
       <p class="text-xs text-muted-foreground">{t("common.loading")}</p>
     </div>
+  );
+}
+
+/** Liquid glass only: the playing track's artwork, blurred, behind every panel. */
+function GlassBackdrop() {
+  const player = usePlayer();
+  const coverArt = () =>
+    uiStyle() === "glass" ? player.current()?.coverArt : undefined;
+
+  return (
+    <Show when={coverArt()}>
+      {(id) => (
+        <div
+          aria-hidden="true"
+          class="glass-backdrop pointer-events-none fixed inset-0 -z-10 opacity-60"
+        >
+          {/* Blurred this heavily, a tiny thumbnail looks the same. */}
+          <Cover
+            coverArtId={id()}
+            size={64}
+            alt=""
+            class="size-full scale-125 rounded-none blur-[100px]"
+            iconClass="hidden"
+          />
+        </div>
+      )}
+    </Show>
   );
 }
 
@@ -68,6 +96,7 @@ export function AppLayout(props: RouteSectionProps) {
             floating() ? { "--player-space": `${barSpace()}px` } : undefined
           }
         >
+          <GlassBackdrop />
           <div class="relative isolate flex min-h-0 flex-1">
             <Sidebar />
             <main class="min-w-0 flex-1 overflow-y-auto">
