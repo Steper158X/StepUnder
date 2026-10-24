@@ -55,7 +55,7 @@
         "https://github.com/Steper158X/StepUnder/releases/latest/download/latest.json"
       ],
       "windows": {
-        "installMode": "passive"
+        "installMode": "quiet"
       }
     }
   }
