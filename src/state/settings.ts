@@ -24,6 +24,9 @@ export const ACCENT_HUES: Record<Accent, number> = {
   red: 25,
   pink: 350,
 };
+/** Player bar style: attached to the bottom edge, or a floating card. */
+export type PlayerLayout = "docked" | "floating";
+
 /** Playback engine: the built-in web player or the libmpv engine. */
 export type AudioPlayer = "web" | "mpv";
 
@@ -38,6 +41,8 @@ const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
 const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
 const [font, setFontSignal] = createSignal<Font>("system");
 const [accent, setAccentSignal] = createSignal<Accent>("purple");
+const [playerLayout, setPlayerLayoutSignal] =
+  createSignal<PlayerLayout>("docked");
 const [audioPlayer, setAudioPlayerSignal] = createSignal<AudioPlayer>("web");
 const [discordPresence, setDiscordPresenceSignal] = createSignal(false);
 const [autoUpdate, setAutoUpdateSignal] = createSignal(true);
@@ -56,6 +61,7 @@ export {
   streamFormat,
   font,
   accent,
+  playerLayout,
   audioPlayer,
   discordPresence,
   audioDeviceId,
@@ -125,6 +131,7 @@ export async function initSettings(): Promise<void> {
     savedMpvDevice,
     savedDiscordPresence,
     savedAutoUpdate,
+    savedPlayerLayout,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -137,6 +144,7 @@ export async function initSettings(): Promise<void> {
     readSetting<string>("mpvAudioDevice", DEFAULT_MPV_AUDIO_DEVICE),
     readSetting<boolean>("discordPresence", false),
     readSetting<boolean>("autoUpdate", true),
+    readSetting<PlayerLayout>("playerLayout", "docked"),
   ]);
 
   const nextTheme: Theme =
@@ -160,6 +168,9 @@ export async function initSettings(): Promise<void> {
   setAudioPlayerSignal(nextPlayer);
   setDiscordPresenceSignal(savedDiscordPresence === true);
   setAutoUpdateSignal(savedAutoUpdate !== false);
+  setPlayerLayoutSignal(
+    savedPlayerLayout === "floating" ? "floating" : "docked",
+  );
   setAudioDeviceIdSignal(savedDevice || DEFAULT_AUDIO_DEVICE);
   setMpvAudioDeviceSignal(savedMpvDevice || DEFAULT_MPV_AUDIO_DEVICE);
   apply(nextTheme);
@@ -202,6 +213,11 @@ export function setAccent(value: Accent): void {
   setAccentSignal(value);
   applyAccent(value);
   void writeSetting("accent", value);
+}
+
+export function setPlayerLayout(value: PlayerLayout): void {
+  setPlayerLayoutSignal(value);
+  void writeSetting("playerLayout", value);
 }
 
 export function setAudioPlayer(value: AudioPlayer): void {

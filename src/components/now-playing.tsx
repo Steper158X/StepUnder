@@ -267,7 +267,7 @@ function NowPlayingView(props: { track: Song }) {
         <div class="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/70" />
       </div>
 
-      <div class="relative flex h-full animate-now-playing-in flex-col px-3 py-3 md:px-5 md:py-4">
+      <div class="relative flex h-full animate-now-playing-in flex-col px-3 py-3 pb-[var(--player-space,0.75rem)] md:px-5 md:py-4 md:pb-[var(--player-space,1rem)]">
         <div class="flex shrink-0 justify-end">
           <button
             type="button"

@@ -1,5 +1,5 @@
 import { For, Show } from "solid-js";
-import { ListMusic, LoaderCircle, Play, Trash2, X } from "lucide-solid";
+import { ListMusic, LoaderCircle, Trash2, X } from "lucide-solid";
 import { usePlayer } from "~/player/store";
 import { t } from "~/i18n";
 import { formatTime } from "~/lib/format";
@@ -51,7 +51,7 @@ export function QueuePanel() {
           </div>
         </div>
 
-        <div class="min-h-0 flex-1 overflow-y-auto p-2">
+        <div class="min-h-0 flex-1 overflow-y-auto p-2 pb-[var(--player-space,0.5rem)]">
           <Show
             when={player.state.queue.length > 0}
             fallback={
@@ -146,20 +146,6 @@ export function QueuePanel() {
               </For>
             </div>
           </Show>
-        </div>
-
-        <div class="border-t border-border/60 p-3">
-          <Button
-            class="w-full"
-            disabled={!player.state.queue.length}
-            onClick={() => {
-              player.play();
-              player.setQueueOpen(false);
-            }}
-          >
-            <Play class="size-4 fill-current" />
-            {t("action.play")}
-          </Button>
         </div>
       </div>
     </aside>

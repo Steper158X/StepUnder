@@ -1,7 +1,8 @@
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { For, createSignal, onMount, onCleanup } from "solid-js";
 import {
   Disc3,
+  Ellipsis,
   Heart,
   House,
   ListMusic,
@@ -16,6 +17,12 @@ import {
 import { usePlayer } from "~/player/store";
 import { t, type MessageKey } from "~/i18n";
 import { Dialog } from "~/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import logo from "~/assets/logo.svg";
 
 const navItems = [
@@ -61,7 +68,7 @@ function NavLink(props: {
 
 function Brand() {
   return (
-    <div class="flex items-center gap-2.5">
+    <div class="flex min-w-0 flex-1 items-center gap-2.5">
       <img
         src={logo}
         alt=""
@@ -78,38 +85,52 @@ function Brand() {
   );
 }
 
+/** "⋯" menu beside the brand holding Profile and Settings. */
+function BrandMenu(props: { onNavigate?: () => void }) {
+  const navigate = useNavigate();
+  const go = (href: string) => {
+    props.onNavigate?.();
+    navigate(href);
+  };
+
+  return (
+    <DropdownMenu placement="bottom-end">
+      <DropdownMenuTrigger
+        class="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[expanded]:bg-accent data-[expanded]:text-foreground"
+        aria-label={t("action.more")}
+        title={t("action.more")}
+      >
+        <Ellipsis class="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onSelect={() => go("/profile")}>
+          <UserRound />
+          {t("nav.profile")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => go("/settings")}>
+          <Settings />
+          {t("nav.settings")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function NavSections(props: { onNavigate?: () => void }) {
   return (
-    <>
-      <nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-1">
-        <For each={navItems}>
-          {(item) => (
-            <NavLink
-              href={item.href}
-              label={t(item.labelKey)}
-              icon={item.icon}
-              end={item.end}
-              onNavigate={props.onNavigate}
-            />
-          )}
-        </For>
-      </nav>
-
-      <div class="space-y-0.5 border-t border-border/60 p-2">
-        <NavLink
-          href="/profile"
-          label={t("nav.profile")}
-          icon={UserRound}
-          onNavigate={props.onNavigate}
-        />
-        <NavLink
-          href="/settings"
-          label={t("nav.settings")}
-          icon={Settings}
-          onNavigate={props.onNavigate}
-        />
-      </div>
-    </>
+    <nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-1 pb-[var(--player-space,0.25rem)]">
+      <For each={navItems}>
+        {(item) => (
+          <NavLink
+            href={item.href}
+            label={t(item.labelKey)}
+            icon={item.icon}
+            end={item.end}
+            onNavigate={props.onNavigate}
+          />
+        )}
+      </For>
+    </nav>
   );
 }
 
@@ -131,8 +152,9 @@ export function MobileHeader() {
           <Dialog.Overlay class="fixed inset-0 z-50 animate-fade-in bg-black/60 backdrop-blur-[2px]" />
           <Dialog.Content class="fixed inset-y-0 left-0 z-50 flex w-[min(17rem,85vw)] animate-slide-in-left flex-col border-r border-border/60 bg-card shadow-2xl outline-none">
             <Dialog.Title class="sr-only">{t("app.name")}</Dialog.Title>
-            <div class="flex h-14 items-center justify-between gap-2 border-b border-border/60 px-4">
+            <div class="flex h-14 items-center justify-between gap-1 border-b border-border/60 px-4">
               <Brand />
+              <BrandMenu onNavigate={() => setOpen(false)} />
               <Dialog.CloseButton
                 class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={t("action.close")}
@@ -196,8 +218,9 @@ export function Sidebar() {
 
   return (
     <aside class="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-card/25 md:flex">
-      <div class="flex h-14 items-center px-4">
+      <div class="flex h-14 items-center justify-between gap-1 pl-4 pr-2">
         <Brand />
+        <BrandMenu />
       </div>
 
       <NavSections />

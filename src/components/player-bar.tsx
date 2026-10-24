@@ -53,7 +53,10 @@ function ControlButton(props: {
   );
 }
 
-export function PlayerBar() {
+export function PlayerBar(props: {
+  floating?: boolean;
+  ref?: (element: HTMLDivElement) => void;
+}) {
   const player = usePlayer();
   const servers = useServers();
   const [drag, setDrag] = createSignal<number | null>(null);
@@ -114,8 +117,21 @@ export function PlayerBar() {
   };
 
   return (
-    <div class="shrink-0 border-t border-border/60 bg-card/50 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 md:h-[92px] md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)] md:gap-4 md:px-4 md:py-0">
+    <div
+      ref={props.ref}
+      class={cn(
+        "shrink-0",
+        props.floating
+          ? "absolute inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-10 animate-fade-in rounded-2xl border border-border/50 bg-card/55 shadow-2xl shadow-black/30 backdrop-blur-2xl backdrop-saturate-150 transition-[background-color,border-color] duration-300 focus-within:border-border/80 focus-within:bg-card/85 hover:border-border/80 hover:bg-card/85 md:inset-x-3 md:bottom-3"
+          : "border-t border-border/60 bg-card/50 pb-[env(safe-area-inset-bottom)] backdrop-blur",
+      )}
+    >
+      <div
+        class={cn(
+          "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)] md:gap-4 md:px-4 md:py-0",
+          props.floating ? "md:h-[80px]" : "md:h-[92px]",
+        )}
+      >
         <div class="flex min-w-0 items-center gap-2.5 md:gap-3">
           <button
             type="button"

@@ -1,16 +1,19 @@
 import { For, Show } from "solid-js";
 import { locale, setLocale, t, type MessageKey, type Locale } from "~/i18n";
-import { Check } from "lucide-solid";
+import { Check, PanelBottom, RectangleHorizontal } from "lucide-solid";
 import {
   ACCENT_HUES,
   accent,
   font,
+  playerLayout,
   setAccent,
   setFont,
+  setPlayerLayout,
   setTheme,
   theme,
   type Accent,
   type Font,
+  type PlayerLayout,
   type Theme,
 } from "~/state/settings";
 import { Select } from "~/components/ui/select";
@@ -31,6 +34,19 @@ const accentOptions: Array<{ value: Accent; key: MessageKey }> = [
   { value: "orange", key: "settings.accent.orange" },
   { value: "red", key: "settings.accent.red" },
   { value: "pink", key: "settings.accent.pink" },
+];
+
+const playerLayoutOptions: Array<{
+  value: PlayerLayout;
+  key: MessageKey;
+  icon: typeof PanelBottom;
+}> = [
+  { value: "docked", key: "settings.playerLayout.docked", icon: PanelBottom },
+  {
+    value: "floating",
+    key: "settings.playerLayout.floating",
+    icon: RectangleHorizontal,
+  },
 ];
 
 const localeOptions: Array<{ value: Locale; label: string }> = [
@@ -107,6 +123,31 @@ export default function AppearanceSettingsPage() {
             }))}
             onChange={(value) => setFont(value as Font)}
           />
+        </div>
+      </Row>
+
+      <Row
+        label={t("settings.playerLayout")}
+        description={t("settings.playerLayoutHint")}
+      >
+        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
+          <For each={playerLayoutOptions}>
+            {(option) => (
+              <button
+                type="button"
+                onClick={() => setPlayerLayout(option.value)}
+                class={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  playerLayout() === option.value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <option.icon class="size-3.5" />
+                {t(option.key)}
+              </button>
+            )}
+          </For>
         </div>
       </Row>
 
