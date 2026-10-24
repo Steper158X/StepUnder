@@ -30,6 +30,7 @@ import ProfilePage from "~/routes/profile";
 import SettingsPage from "~/routes/settings";
 import AppearanceSettingsPage from "~/routes/settings/appearance";
 import PlaybackSettingsPage from "~/routes/settings/playback";
+import LyricsSettingsPage from "~/routes/settings/lyrics";
 import ServersSettingsPage from "~/routes/settings/servers";
 import AboutSettingsPage from "~/routes/settings/about";
 import NotFoundPage from "~/routes/not-found";
@@ -83,6 +84,10 @@ export default function App() {
                 <Route
                   path="/settings/playback"
                   component={PlaybackSettingsPage}
+                />
+                <Route
+                  path="/settings/lyrics"
+                  component={LyricsSettingsPage}
                 />
                 <Route
                   path="/settings/servers"

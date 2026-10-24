@@ -105,6 +105,8 @@ export interface LyricLine {
   /** Start time in seconds (only present for synced lyrics). */
   start?: number;
   value: string;
+  /** How to read `value` (romaji, pinyin, …), from the file or generated. */
+  phonetic?: string;
 }
 
 export interface Lyrics {

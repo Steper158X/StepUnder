@@ -16,9 +16,13 @@ import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
 import { Cover, Spinner } from "~/components/common";
 import { cn } from "~/lib/utils";
+import { addPhonetics } from "~/lib/phonetic";
+import { phoneticLyrics } from "~/state/settings";
 
 /** Lyrics are immutable per song, so keep them around while the app runs. */
 const lyricsCache = new Map<string, Lyrics | null>();
+/** Same lyrics with generated reading lines filled in. */
+const phoneticCache = new Map<string, Lyrics>();
 
 function trackMeta(track: Song) {
   return [track.artist, track.album].filter(Boolean).join(" · ");
@@ -67,6 +71,32 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
     })();
   });
 
+  // Reading lines are built in the background; the plain lyrics show first.
+  const [phonetic, setPhonetic] = createSignal<Lyrics | undefined>();
+  createEffect(() => {
+    const data = lyrics();
+    const songId = props.song.id;
+    setPhonetic(undefined);
+    if (!data || !phoneticLyrics() || !props.active) return;
+    const cached = phoneticCache.get(songId);
+    if (cached) {
+      setPhonetic(cached);
+      return;
+    }
+    let cancelled = false;
+    onCleanup(() => {
+      cancelled = true;
+    });
+    void addPhonetics(data).then((result) => {
+      phoneticCache.set(songId, result);
+      if (!cancelled) setPhonetic(result);
+    });
+  });
+
+  /** What the panel shows: lyrics with their reading lines when enabled. */
+  const display = () =>
+    phoneticLyrics() ? (phonetic() ?? lyrics()) : lyrics();
+
   const activeIndex = createMemo(() => {
     const data = lyrics();
     if (!data?.synced) return -1;
@@ -98,7 +128,8 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
   // Snap the current line to the center when the panel opens or lyrics load.
   createEffect(() => {
     if (!props.active) return;
-    lyrics();
+    // Reading lines change line heights, so re-center when they appear.
+    display();
     centerActiveLine("auto");
   });
 
@@ -133,7 +164,7 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
       }
     >
       <Show
-        when={lyrics()}
+        when={display()}
         fallback={
           <div class="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
             {t("player.lyricsEmpty")}
@@ -171,6 +202,11 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
                       )}
                     >
                       {line.value}
+                      <Show when={phoneticLyrics() && line.phonetic}>
+                        <span class="mt-1 block text-sm leading-snug font-normal opacity-70 md:text-base">
+                          {line.phonetic}
+                        </span>
+                      </Show>
                     </button>
                   );
                 }}

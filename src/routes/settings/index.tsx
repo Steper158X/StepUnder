@@ -1,6 +1,13 @@
 import { A } from "@solidjs/router";
 import { For } from "solid-js";
-import { ChevronRight, Info, Music, Palette, Server } from "lucide-solid";
+import {
+  ChevronRight,
+  Info,
+  MicVocal,
+  Music,
+  Palette,
+  Server,
+} from "lucide-solid";
 import { t, type MessageKey } from "~/i18n";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { Card } from "~/components/ui/card";
@@ -22,6 +29,12 @@ const categories: Array<{
     icon: Music,
     title: "settings.playback",
     description: "settings.playbackDesc",
+  },
+  {
+    href: "/settings/lyrics",
+    icon: MicVocal,
+    title: "settings.lyrics",
+    description: "settings.lyricsDesc",
   },
   {
     href: "/settings/servers",

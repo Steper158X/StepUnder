@@ -369,6 +369,11 @@ const en = {
   "settings.appearanceDesc":
     "Theme, display style, font, language and player layout",
   "settings.playbackDesc": "Audio player, output device and stream quality",
+  "settings.lyrics": "Lyrics",
+  "settings.lyricsDesc": "How lyrics are shown in the player",
+  "settings.phoneticLyrics": "Phonetic lyrics",
+  "settings.phoneticLyricsHint":
+    "Show how to read Japanese, Korean and Chinese lines in a small second line. Uses readings from the lyrics file when it has them.",
   "settings.serversDesc": "Switch or manage your music servers",
   "settings.aboutDesc": "Version and app updates",
   "settings.openGithub": "Open on GitHub",
@@ -801,6 +806,11 @@ const th: Record<MessageKey, string> = {
     "รหัสผ่านที่บันทึกไว้จะอยู่ในระบบจัดเก็บข้อมูลลับของเครื่อง ไม่ได้อยู่ในไฟล์ของแอป",
   "settings.appearanceDesc": "ธีม รูปแบบการแสดงผล แบบอักษร ภาษา และแถบเล่นเพลง",
   "settings.playbackDesc": "เครื่องเล่นเสียง อุปกรณ์เสียง และคุณภาพสตรีม",
+  "settings.lyrics": "เนื้อเพลง",
+  "settings.lyricsDesc": "การแสดงเนื้อเพลงในหน้าเล่นเพลง",
+  "settings.phoneticLyrics": "คำอ่านเนื้อเพลง",
+  "settings.phoneticLyricsHint":
+    "แสดงคำอ่านของเนื้อเพลงภาษาญี่ปุ่น เกาหลี และจีน เป็นบรรทัดเล็กด้านล่าง ถ้าไฟล์เนื้อเพลงมีคำอ่านอยู่แล้วจะใช้ของไฟล์ก่อน",
   "settings.serversDesc": "สลับหรือจัดการเซิร์ฟเวอร์เพลง",
   "settings.aboutDesc": "เวอร์ชันและการอัปเดตแอป",
   "settings.openGithub": "เปิดใน GitHub",

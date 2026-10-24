@@ -1,11 +1,13 @@
 import { md5 } from "js-md5";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { isTauri } from "./platform";
+import { isLatinText, needsReading } from "./phonetic";
 import type {
   Album,
   AlbumListType,
   Artist,
   Genre,
+  LyricLine,
   Lyrics,
   Playlist,
   SearchResult,
@@ -80,23 +82,86 @@ function toArray<T>(value: T | T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
-/** Normalizes OpenSubsonic `structuredLyrics` into plain/synced lines. */
-function parseStructuredLyrics(raw: any): Lyrics | null {
-  const entries = toArray<any>(raw?.structuredLyrics);
-  for (const entry of entries) {
-    if (!entry) continue;
-    const lines = toArray<any>(entry.line)
-      .map((line) => ({
-        start:
-          typeof line?.start === "number" ? line.start / 1000 : undefined,
-        value: String(line?.value ?? "").trim(),
-      }))
-      .filter((line) => line.value.length > 0);
-    if (lines.length) {
-      return { synced: Boolean(entry.synced), lines };
+/** `lang` tags of lyrics entries that hold a romanized reading. */
+const READING_LANG = /latn|roma|pinyin|phon/i;
+
+/**
+ * A Latin line right after a CJK/Hangul line at the same timestamp is the
+ * reading of that line (dual-line LRC files), so fold it into `phonetic`.
+ */
+function mergeSameTimeReadings(lines: LyricLine[]): LyricLine[] {
+  const merged: LyricLine[] = [];
+  for (const line of lines) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      line.start !== undefined &&
+      previous.start === line.start &&
+      !previous.phonetic &&
+      needsReading(previous.value) &&
+      isLatinText(line.value)
+    ) {
+      previous.phonetic = line.value;
+    } else {
+      merged.push(line);
     }
   }
-  return null;
+  return merged;
+}
+
+/** Puts a reading entry's lines under the matching lines of the original. */
+function attachReadings(lines: LyricLine[], readings: LyricLine[]): void {
+  const sameCount = readings.length === lines.length;
+  const byStart = new Map<number, string>();
+  for (const reading of readings) {
+    if (reading.start !== undefined) byStart.set(reading.start, reading.value);
+  }
+  lines.forEach((line, index) => {
+    if (line.phonetic || !needsReading(line.value)) return;
+    const reading =
+      (line.start !== undefined ? byStart.get(line.start) : undefined) ??
+      (sameCount ? readings[index].value : undefined);
+    if (reading && reading !== line.value) line.phonetic = reading;
+  });
+}
+
+/**
+ * Normalizes OpenSubsonic `structuredLyrics` into plain/synced lines. The
+ * first entry is the lyrics; a later all-Latin entry tagged as a reading
+ * (`ja-Latn`, …) fills `phonetic`. Untagged Latin entries are skipped, since
+ * those are usually translations.
+ */
+function parseStructuredLyrics(raw: any): Lyrics | null {
+  const entries = toArray<any>(raw?.structuredLyrics)
+    .filter(Boolean)
+    .map((entry) => ({
+      lang: String(entry.lang ?? ""),
+      synced: Boolean(entry.synced),
+      lines: toArray<any>(entry.line)
+        .map((line) => ({
+          start:
+            typeof line?.start === "number" ? line.start / 1000 : undefined,
+          value: String(line?.value ?? "").trim(),
+        }))
+        .filter((line) => line.value.length > 0),
+    }))
+    .filter((entry) => entry.lines.length > 0);
+
+  const main = entries[0];
+  if (!main) return null;
+  const lines = main.synced ? mergeSameTimeReadings(main.lines) : main.lines;
+
+  if (lines.some((line) => needsReading(line.value))) {
+    const reading = entries
+      .slice(1)
+      .find(
+        (entry) =>
+          READING_LANG.test(entry.lang) &&
+          entry.lines.every((line) => !needsReading(line.value)),
+      );
+    if (reading) attachReadings(lines, reading.lines);
+  }
+  return { synced: main.synced, lines };
 }
 
 export interface StreamOptions {

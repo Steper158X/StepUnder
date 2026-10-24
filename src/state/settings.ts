@@ -91,6 +91,8 @@ const [audioDeviceId, setAudioDeviceIdSignal] = createSignal<string>(
 const [mpvAudioDevice, setMpvAudioDeviceSignal] = createSignal<string>(
   DEFAULT_MPV_AUDIO_DEVICE,
 );
+/** Show a small reading line (romaji, pinyin, …) under each lyric line. */
+const [phoneticLyrics, setPhoneticLyricsSignal] = createSignal(false);
 
 export {
   theme,
@@ -112,6 +114,7 @@ export {
   audioDeviceId,
   mpvAudioDevice,
   autoUpdate,
+  phoneticLyrics,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -238,6 +241,7 @@ export async function initSettings(): Promise<void> {
     savedGlassBlur,
     savedWindowEffect,
     savedWindowOpacity,
+    savedPhoneticLyrics,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -257,6 +261,7 @@ export async function initSettings(): Promise<void> {
     readSetting<number>("glassBlur", DEFAULT_GLASS_BLUR),
     readSetting<WindowEffect>("windowEffect", "none"),
     readSetting<number>("windowOpacity", DEFAULT_WINDOW_OPACITY),
+    readSetting<boolean>("phoneticLyrics", false),
   ]);
 
   const nextTheme: Theme =
@@ -280,6 +285,7 @@ export async function initSettings(): Promise<void> {
   setAudioPlayerSignal(nextPlayer);
   setDiscordPresenceSignal(savedDiscordPresence === true);
   setAutoUpdateSignal(savedAutoUpdate !== false);
+  setPhoneticLyricsSignal(savedPhoneticLyrics === true);
   setPlayerLayoutSignal(
     savedPlayerLayout === "floating" ? "floating" : "docked",
   );
@@ -417,6 +423,11 @@ export function setDiscordPresence(value: boolean): void {
 export function setAutoUpdate(value: boolean): void {
   setAutoUpdateSignal(value);
   void writeSetting("autoUpdate", value);
+}
+
+export function setPhoneticLyrics(value: boolean): void {
+  setPhoneticLyricsSignal(value);
+  void writeSetting("phoneticLyrics", value);
 }
 
 export function setAudioDeviceId(value: string): void {
