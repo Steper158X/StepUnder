@@ -340,7 +340,7 @@ export function PlayerBar(props: {
           </div>
           <ControlButton
             label={t("player.lyrics")}
-            active={player.lyricsOpen()}
+            active={player.lyricsOpen() && player.nowPlayingOpen()}
             disabled={!track()}
             onClick={player.toggleLyrics}
           >

@@ -8,7 +8,7 @@ import {
   setPhoneticLyrics,
   type LyricsBlur,
 } from "~/state/settings";
-import { CheckboxField } from "~/components/ui/checkbox";
+import { Switch } from "~/components/ui/switch";
 import { Select } from "~/components/ui/select";
 import { Row, SettingsSubPage } from "./shared";
 
@@ -21,10 +21,10 @@ export default function LyricsSettingsPage() {
         label={t("settings.phoneticLyrics")}
         description={t("settings.phoneticLyricsHint")}
       >
-        <CheckboxField
+        <Switch
           checked={phoneticLyrics()}
           onChange={setPhoneticLyrics}
-          label=""
+          label={t("settings.phoneticLyrics")}
         />
       </Row>
 
@@ -49,11 +49,11 @@ export default function LyricsSettingsPage() {
         label={t("settings.lyricsBlurSmooth")}
         description={t("settings.lyricsBlurSmoothHint")}
       >
-        <CheckboxField
+        <Switch
           checked={lyricsBlurSmooth()}
           onChange={setLyricsBlurSmooth}
           disabled={lyricsBlur() === "off"}
-          label=""
+          label={t("settings.lyricsBlurSmooth")}
         />
       </Row>
     </SettingsSubPage>

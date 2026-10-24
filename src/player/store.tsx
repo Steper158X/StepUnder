@@ -181,7 +181,9 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   }
 
   function toggleLyrics() {
-    if (lyricsOpen()) {
+    // Lyrics are only closed from the full screen player; elsewhere the
+    // button brings them back into view.
+    if (lyricsOpen() && nowPlayingOpen()) {
       setLyricsOpen(false);
       return;
     }

@@ -46,7 +46,7 @@ import { isTauri } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import { Button } from "~/components/ui/button";
 import { Select } from "~/components/ui/select";
-import { CheckboxField } from "~/components/ui/checkbox";
+import { Switch } from "~/components/ui/switch";
 import { cn } from "~/lib/utils";
 import { Row, SettingsSubPage } from "./shared";
 
@@ -307,7 +307,11 @@ export default function PlaybackSettingsPage() {
       </Row>
 
       <Row label={t("settings.scrobble")} description={t("settings.scrobbleHint")}>
-        <CheckboxField checked={scrobble()} onChange={setScrobble} label="" />
+        <Switch
+          checked={scrobble()}
+          onChange={setScrobble}
+          label={t("settings.scrobble")}
+        />
       </Row>
 
       <Show when={isTauri}>
@@ -315,10 +319,10 @@ export default function PlaybackSettingsPage() {
           label={t("settings.discordPresence")}
           description={t("settings.discordPresenceHint")}
         >
-          <CheckboxField
+          <Switch
             checked={discordPresence()}
             onChange={setDiscordPresence}
-            label=""
+            label={t("settings.discordPresence")}
           />
         </Row>
       </Show>

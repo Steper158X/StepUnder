@@ -16,7 +16,7 @@ import {
 } from "~/lib/updater";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/select";
-import { CheckboxField } from "~/components/ui/checkbox";
+import { Switch } from "~/components/ui/switch";
 import { cn } from "~/lib/utils";
 import { Row, SettingsSubPage } from "./shared";
 
@@ -123,10 +123,10 @@ export default function AboutSettingsPage() {
         label={t("settings.autoUpdate")}
         description={t("settings.autoUpdateHint")}
       >
-        <CheckboxField
+        <Switch
           checked={autoUpdate()}
           onChange={setAutoUpdate}
-          label=""
+          label={t("settings.autoUpdate")}
           disabled={!isTauri}
         />
       </Row>
