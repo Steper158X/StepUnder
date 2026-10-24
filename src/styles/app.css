@@ -534,6 +534,17 @@ html[data-style="glass"] header.glass-bar {
   animation: lyric-line-in 0.34s ease-out;
 }
 
+/* Lines around the sung one are blurred (--lyric-blur is set per line);
+   they sharpen while the lyrics are hovered or a line has focus. */
+.lyric-line {
+  filter: blur(var(--lyric-blur, 0px));
+}
+
+.lyrics-scroller:hover .lyric-line,
+.lyric-line:focus-visible {
+  filter: none;
+}
+
 /* Range fallback styling (native inputs, if used) */
 input[type="range"] {
   accent-color: var(--primary);

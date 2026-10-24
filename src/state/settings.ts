@@ -55,6 +55,21 @@ export type AudioPlayer = "web" | "mpv";
 
 const AUDIO_PLAYERS: readonly AudioPlayer[] = ["web", "mpv"];
 
+/**
+ * Blur of synced lyric lines around the one being sung; it grows with the
+ * distance from that line.
+ */
+export type LyricsBlur = "off" | "soft" | "strong";
+
+const LYRICS_BLURS: readonly LyricsBlur[] = ["off", "soft", "strong"];
+
+/** Blur of the furthest lines, in px. */
+export const LYRICS_BLUR_MAX: Record<LyricsBlur, number> = {
+  off: 0,
+  soft: 3,
+  strong: 6,
+};
+
 /** mpv treats `auto` as "pick the system default device". */
 export const DEFAULT_MPV_AUDIO_DEVICE = "auto";
 
@@ -93,6 +108,9 @@ const [mpvAudioDevice, setMpvAudioDeviceSignal] = createSignal<string>(
 );
 /** Show a small reading line (romaji, pinyin, …) under each lyric line. */
 const [phoneticLyrics, setPhoneticLyricsSignal] = createSignal(false);
+const [lyricsBlur, setLyricsBlurSignal] = createSignal<LyricsBlur>("soft");
+/** Blur more the further a line is from the sung one, instead of evenly. */
+const [lyricsBlurSmooth, setLyricsBlurSmoothSignal] = createSignal(true);
 
 export {
   theme,
@@ -115,6 +133,8 @@ export {
   mpvAudioDevice,
   autoUpdate,
   phoneticLyrics,
+  lyricsBlur,
+  lyricsBlurSmooth,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -242,6 +262,8 @@ export async function initSettings(): Promise<void> {
     savedWindowEffect,
     savedWindowOpacity,
     savedPhoneticLyrics,
+    savedLyricsBlur,
+    savedLyricsBlurSmooth,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -262,6 +284,8 @@ export async function initSettings(): Promise<void> {
     readSetting<WindowEffect>("windowEffect", "none"),
     readSetting<number>("windowOpacity", DEFAULT_WINDOW_OPACITY),
     readSetting<boolean>("phoneticLyrics", false),
+    readSetting<LyricsBlur>("lyricsBlur", "soft"),
+    readSetting<boolean>("lyricsBlurSmooth", true),
   ]);
 
   const nextTheme: Theme =
@@ -286,6 +310,10 @@ export async function initSettings(): Promise<void> {
   setDiscordPresenceSignal(savedDiscordPresence === true);
   setAutoUpdateSignal(savedAutoUpdate !== false);
   setPhoneticLyricsSignal(savedPhoneticLyrics === true);
+  setLyricsBlurSignal(
+    LYRICS_BLURS.includes(savedLyricsBlur) ? savedLyricsBlur : "soft",
+  );
+  setLyricsBlurSmoothSignal(savedLyricsBlurSmooth !== false);
   setPlayerLayoutSignal(
     savedPlayerLayout === "floating" ? "floating" : "docked",
   );
@@ -428,6 +456,16 @@ export function setAutoUpdate(value: boolean): void {
 export function setPhoneticLyrics(value: boolean): void {
   setPhoneticLyricsSignal(value);
   void writeSetting("phoneticLyrics", value);
+}
+
+export function setLyricsBlur(value: LyricsBlur): void {
+  setLyricsBlurSignal(value);
+  void writeSetting("lyricsBlur", value);
+}
+
+export function setLyricsBlurSmooth(value: boolean): void {
+  setLyricsBlurSmoothSignal(value);
+  void writeSetting("lyricsBlurSmooth", value);
 }
 
 export function setAudioDeviceId(value: string): void {

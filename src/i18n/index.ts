@@ -374,6 +374,15 @@ const en = {
   "settings.phoneticLyrics": "Phonetic lyrics",
   "settings.phoneticLyricsHint":
     "Show how to read Japanese, Korean and Chinese lines in a small second line. Uses readings from the lyrics file when it has them.",
+  "settings.lyricsBlur": "Blur other lines",
+  "settings.lyricsBlurHint":
+    "In synced lyrics, blur the lines before and after the one being sung. Lines sharpen while you hover the lyrics.",
+  "settings.lyricsBlur.off": "Off",
+  "settings.lyricsBlur.soft": "Soft",
+  "settings.lyricsBlur.strong": "Strong",
+  "settings.lyricsBlurSmooth": "Smooth blur",
+  "settings.lyricsBlurSmoothHint":
+    "The further a line is from the one being sung, the more it blurs. Turn off to blur every other line the same.",
   "settings.serversDesc": "Switch or manage your music servers",
   "settings.aboutDesc": "Version and app updates",
   "settings.openGithub": "Open on GitHub",
@@ -811,6 +820,15 @@ const th: Record<MessageKey, string> = {
   "settings.phoneticLyrics": "คำอ่านเนื้อเพลง",
   "settings.phoneticLyricsHint":
     "แสดงคำอ่านของเนื้อเพลงภาษาญี่ปุ่น เกาหลี และจีน เป็นบรรทัดเล็กด้านล่าง ถ้าไฟล์เนื้อเพลงมีคำอ่านอยู่แล้วจะใช้ของไฟล์ก่อน",
+  "settings.lyricsBlur": "เบลอบรรทัดอื่น",
+  "settings.lyricsBlurHint":
+    "ในเนื้อเพลงที่ซิงก์เวลา จะเบลอบรรทัดก่อนและหลังบรรทัดที่กำลังร้อง เมื่อเอาเมาส์ไปวางบนเนื้อเพลงจะกลับมาชัด",
+  "settings.lyricsBlur.off": "ปิด",
+  "settings.lyricsBlur.soft": "เบา",
+  "settings.lyricsBlur.strong": "มาก",
+  "settings.lyricsBlurSmooth": "เบลอแบบไล่ระดับ",
+  "settings.lyricsBlurSmoothHint":
+    "บรรทัดยิ่งห่างจากบรรทัดที่กำลังร้องยิ่งเบลอมาก ถ้าปิด บรรทัดอื่นจะเบลอเท่ากันหมด",
   "settings.serversDesc": "สลับหรือจัดการเซิร์ฟเวอร์เพลง",
   "settings.aboutDesc": "เวอร์ชันและการอัปเดตแอป",
   "settings.openGithub": "เปิดใน GitHub",

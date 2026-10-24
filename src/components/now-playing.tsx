@@ -17,7 +17,12 @@ import { t } from "~/i18n";
 import { Cover, Spinner } from "~/components/common";
 import { cn } from "~/lib/utils";
 import { addPhonetics } from "~/lib/phonetic";
-import { phoneticLyrics } from "~/state/settings";
+import {
+  LYRICS_BLUR_MAX,
+  lyricsBlur,
+  lyricsBlurSmooth,
+  phoneticLyrics,
+} from "~/state/settings";
 
 /** Lyrics are immutable per song, so keep them around while the app runs. */
 const lyricsCache = new Map<string, Lyrics | null>();
@@ -27,6 +32,9 @@ const phoneticCache = new Map<string, Lyrics>();
 function trackMeta(track: Song) {
   return [track.artist, track.album].filter(Boolean).join(" · ");
 }
+
+/** Lines further than this from the sung line all get the same blur. */
+const MAX_BLUR_LINES = 6;
 
 /** Shared size so the artwork keeps its scale in the lyrics view. */
 const coverClass =
@@ -174,7 +182,7 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
         {(data: Accessor<Lyrics>) => (
           <div
             ref={observeScroller}
-            class="relative min-h-0 flex-1 overflow-y-auto pr-2"
+            class="lyrics-scroller relative min-h-0 flex-1 overflow-y-auto pr-2"
           >
             <div class="h-1/2" />
             <div class="flex flex-col gap-4">
@@ -182,6 +190,19 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
                 {(line, index) => {
                   const clickable = () =>
                     data().synced && line.start !== undefined;
+                  // Smooth blur grows with the distance from the sung line
+                  // and tops out MAX_BLUR_LINES away; otherwise every other
+                  // line gets the same half-strength blur.
+                  const blur = () => {
+                    const active = activeIndex();
+                    if (!data().synced || active < 0) return 0;
+                    const distance = Math.abs(index() - active);
+                    if (distance === 0) return 0;
+                    const max = LYRICS_BLUR_MAX[lyricsBlur()];
+                    if (!lyricsBlurSmooth()) return max / 2;
+                    return (max * Math.min(distance, MAX_BLUR_LINES)) /
+                      MAX_BLUR_LINES;
+                  };
                   return (
                     <button
                       type="button"
@@ -190,8 +211,9 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
                       onClick={() => {
                         if (line.start !== undefined) player.seek(line.start);
                       }}
+                      style={{ "--lyric-blur": `${blur()}px` }}
                       class={cn(
-                        "block w-full border-l-2 pl-4 text-left text-2xl leading-relaxed transition-[color,border-color,opacity,background-color] duration-300 md:text-3xl",
+                        "lyric-line block w-full border-l-2 pl-4 text-left text-2xl leading-relaxed transition-[color,border-color,opacity,background-color,filter] duration-300 md:text-3xl",
                         !data().synced
                           ? "border-transparent text-foreground"
                           : index() === activeIndex()
