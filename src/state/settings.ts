@@ -111,6 +111,10 @@ const [phoneticLyrics, setPhoneticLyricsSignal] = createSignal(false);
 const [lyricsBlur, setLyricsBlurSignal] = createSignal<LyricsBlur>("soft");
 /** Blur more the further a line is from the sung one, instead of evenly. */
 const [lyricsBlurSmooth, setLyricsBlurSmoothSignal] = createSignal(true);
+/** Keep a lyrics panel in the right column, sharing it with the queue. */
+const [sideLyrics, setSideLyricsSignal] = createSignal(false);
+/** Accent bar on the left of the lyric line being sung. */
+const [lyricsLineMarker, setLyricsLineMarkerSignal] = createSignal(false);
 
 export {
   theme,
@@ -135,6 +139,8 @@ export {
   phoneticLyrics,
   lyricsBlur,
   lyricsBlurSmooth,
+  sideLyrics,
+  lyricsLineMarker,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -264,6 +270,8 @@ export async function initSettings(): Promise<void> {
     savedPhoneticLyrics,
     savedLyricsBlur,
     savedLyricsBlurSmooth,
+    savedSideLyrics,
+    savedLyricsLineMarker,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -286,6 +294,8 @@ export async function initSettings(): Promise<void> {
     readSetting<boolean>("phoneticLyrics", false),
     readSetting<LyricsBlur>("lyricsBlur", "soft"),
     readSetting<boolean>("lyricsBlurSmooth", true),
+    readSetting<boolean>("sideLyrics", false),
+    readSetting<boolean>("lyricsLineMarker", false),
   ]);
 
   const nextTheme: Theme =
@@ -314,6 +324,8 @@ export async function initSettings(): Promise<void> {
     LYRICS_BLURS.includes(savedLyricsBlur) ? savedLyricsBlur : "soft",
   );
   setLyricsBlurSmoothSignal(savedLyricsBlurSmooth !== false);
+  setSideLyricsSignal(savedSideLyrics === true);
+  setLyricsLineMarkerSignal(savedLyricsLineMarker === true);
   setPlayerLayoutSignal(
     savedPlayerLayout === "floating" ? "floating" : "docked",
   );
@@ -466,6 +478,16 @@ export function setLyricsBlur(value: LyricsBlur): void {
 export function setLyricsBlurSmooth(value: boolean): void {
   setLyricsBlurSmoothSignal(value);
   void writeSetting("lyricsBlurSmooth", value);
+}
+
+export function setSideLyrics(value: boolean): void {
+  setSideLyricsSignal(value);
+  void writeSetting("sideLyrics", value);
+}
+
+export function setLyricsLineMarker(value: boolean): void {
+  setLyricsLineMarkerSignal(value);
+  void writeSetting("lyricsLineMarker", value);
 }
 
 export function setAudioDeviceId(value: string): void {

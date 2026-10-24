@@ -2,10 +2,14 @@ import { t } from "~/i18n";
 import {
   lyricsBlur,
   lyricsBlurSmooth,
+  lyricsLineMarker,
   phoneticLyrics,
+  setLyricsLineMarker,
   setLyricsBlur,
   setLyricsBlurSmooth,
   setPhoneticLyrics,
+  setSideLyrics,
+  sideLyrics,
   type LyricsBlur,
 } from "~/state/settings";
 import { Switch } from "~/components/ui/switch";
@@ -18,6 +22,17 @@ export default function LyricsSettingsPage() {
   return (
     <SettingsSubPage title={t("settings.lyrics")}>
       <Row
+        label={t("settings.sideLyrics")}
+        description={t("settings.sideLyricsHint")}
+      >
+        <Switch
+          checked={sideLyrics()}
+          onChange={setSideLyrics}
+          label={t("settings.sideLyrics")}
+        />
+      </Row>
+
+      <Row
         label={t("settings.phoneticLyrics")}
         description={t("settings.phoneticLyricsHint")}
       >
@@ -25,6 +40,17 @@ export default function LyricsSettingsPage() {
           checked={phoneticLyrics()}
           onChange={setPhoneticLyrics}
           label={t("settings.phoneticLyrics")}
+        />
+      </Row>
+
+      <Row
+        label={t("settings.lyricsLineMarker")}
+        description={t("settings.lyricsLineMarkerHint")}
+      >
+        <Switch
+          checked={lyricsLineMarker()}
+          onChange={setLyricsLineMarker}
+          label={t("settings.lyricsLineMarker")}
         />
       </Row>
 

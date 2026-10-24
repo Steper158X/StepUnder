@@ -380,6 +380,12 @@ const en = {
   "settings.lyricsBlur.off": "Off",
   "settings.lyricsBlur.soft": "Soft",
   "settings.lyricsBlur.strong": "Strong",
+  "settings.sideLyrics": "Lyrics beside the queue",
+  "settings.sideLyricsHint":
+    "Keep the lyrics of the playing song on the right. They take the full height, or the top half while the queue is open.",
+  "settings.lyricsLineMarker": "Current line marker",
+  "settings.lyricsLineMarkerHint":
+    "Show a colored bar on the left of the line being sung.",
   "settings.lyricsBlurSmooth": "Smooth blur",
   "settings.lyricsBlurSmoothHint":
     "The further a line is from the one being sung, the more it blurs. Turn off to blur every other line the same.",
@@ -826,6 +832,12 @@ const th: Record<MessageKey, string> = {
   "settings.lyricsBlur.off": "ปิด",
   "settings.lyricsBlur.soft": "เบา",
   "settings.lyricsBlur.strong": "มาก",
+  "settings.sideLyrics": "แสดงเนื้อเพลงข้างคิว",
+  "settings.sideLyricsHint":
+    "แสดงเนื้อเพลงของเพลงที่กำลังเล่นไว้ด้านขวา ใช้ความสูงเต็ม หรือครึ่งบนเมื่อเปิดคิว",
+  "settings.lyricsLineMarker": "ขีดหน้าบรรทัดที่กำลังร้อง",
+  "settings.lyricsLineMarkerHint":
+    "แสดงขีดสีด้านซ้ายของบรรทัดเนื้อเพลงที่กำลังร้องอยู่",
   "settings.lyricsBlurSmooth": "เบลอแบบไล่ระดับ",
   "settings.lyricsBlurSmoothHint":
     "บรรทัดยิ่งห่างจากบรรทัดที่กำลังร้องยิ่งเบลอมาก ถ้าปิด บรรทัดอื่นจะเบลอเท่ากันหมด",

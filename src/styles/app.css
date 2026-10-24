@@ -540,6 +540,46 @@ html[data-style="glass"] header.glass-bar {
   filter: blur(var(--lyric-blur, 0px));
 }
 
+/* Right column with side lyrics: lyrics take the full height, or the top
+   half while the queue is open. Opening shrinks the lyrics first and then
+   slides the queue in; closing slides the queue out and then grows the
+   lyrics back. Only grid rows, opacity and transform animate, so it stays
+   cheap and needs no JS. */
+.side-column {
+  display: grid;
+  grid-template-rows: 1fr 0fr;
+  transition: grid-template-rows 320ms cubic-bezier(0.32, 0.72, 0, 1) 160ms;
+}
+
+.side-column[data-queue="open"] {
+  grid-template-rows: 1fr 1fr;
+  transition-delay: 0ms;
+}
+
+.side-queue {
+  opacity: 0;
+  transform: translateY(1.5rem);
+  transition:
+    opacity 200ms ease-in,
+    transform 200ms ease-in;
+}
+
+.side-column[data-queue="open"] .side-queue {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 280ms ease-out 240ms,
+    transform 320ms cubic-bezier(0.32, 0.72, 0, 1) 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-column,
+  .side-queue,
+  .side-column[data-queue="open"] .side-queue {
+    transition: none;
+  }
+}
+
 .lyrics-scroller:hover .lyric-line,
 .lyric-line:focus-visible {
   filter: none;

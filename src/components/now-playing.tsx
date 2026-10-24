@@ -21,6 +21,7 @@ import {
   LYRICS_BLUR_MAX,
   lyricsBlur,
   lyricsBlurSmooth,
+  lyricsLineMarker,
   phoneticLyrics,
 } from "~/state/settings";
 
@@ -40,7 +41,12 @@ const MAX_BLUR_LINES = 6;
 const coverClass =
   "aspect-square w-[clamp(10rem,46vh,26rem)] max-w-full rounded-2xl shadow-2xl ring-1 ring-foreground/10";
 
-function LyricsPanel(props: { song: Song; active: boolean }) {
+/** Lyrics of `song`, following playback; `compact` sizes it for the side column. */
+export function LyricsPanel(props: {
+  song: Song;
+  active: boolean;
+  compact?: boolean;
+}) {
   const player = usePlayer();
   const servers = useServers();
   // undefined = loading, null = no lyrics available
@@ -185,7 +191,9 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
             class="lyrics-scroller relative min-h-0 flex-1 overflow-y-auto pr-2"
           >
             <div class="h-1/2" />
-            <div class="flex flex-col gap-4">
+            <div
+              class={cn("flex flex-col", props.compact ? "gap-3" : "gap-4")}
+            >
               <For each={data().lines}>
                 {(line, index) => {
                   const clickable = () =>
@@ -213,7 +221,11 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
                       }}
                       style={{ "--lyric-blur": `${blur()}px` }}
                       class={cn(
-                        "lyric-line block w-full border-l-2 pl-4 text-left text-2xl leading-relaxed transition-[color,border-color,opacity,background-color,filter] duration-300 md:text-3xl",
+                        "lyric-line block w-full text-left leading-relaxed transition-[color,border-color,opacity,background-color,filter] duration-300",
+                        props.compact ? "text-xl" : "text-2xl md:text-3xl",
+                        // Without the marker the text keeps the full width.
+                        lyricsLineMarker() &&
+                          (props.compact ? "border-l-2 pl-3" : "border-l-2 pl-4"),
                         !data().synced
                           ? "border-transparent text-foreground"
                           : index() === activeIndex()
@@ -225,7 +237,12 @@ function LyricsPanel(props: { song: Song; active: boolean }) {
                     >
                       {line.value}
                       <Show when={phoneticLyrics() && line.phonetic}>
-                        <span class="mt-1 block text-sm leading-snug font-normal opacity-70 md:text-base">
+                        <span
+                          class={cn(
+                            "mt-1 block leading-snug font-normal opacity-70",
+                            props.compact ? "text-sm" : "text-sm md:text-base",
+                          )}
+                        >
                           {line.phonetic}
                         </span>
                       </Show>
