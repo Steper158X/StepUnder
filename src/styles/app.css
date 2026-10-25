@@ -540,6 +540,25 @@ html[data-style="glass"] header.glass-bar {
   filter: blur(var(--lyric-blur, 0px));
 }
 
+/* Fade lines out at the top and bottom so blurred text dissolves instead of
+   being cut off by the scroller's hard edge. */
+.lyrics-scroller {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 14%,
+    black 86%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 14%,
+    black 86%,
+    transparent
+  );
+}
+
 /* Right column with side lyrics: lyrics take the full height, or the top
    half while the queue is open. Opening shrinks the lyrics first and then
    slides the queue in; closing slides the queue out and then grows the

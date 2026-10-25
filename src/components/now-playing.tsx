@@ -188,11 +188,11 @@ export function LyricsPanel(props: {
         {(data: Accessor<Lyrics>) => (
           <div
             ref={observeScroller}
-            // The scroller clips the blur, so in the side column it spans the
-            // whole card and the gutter lives inside it.
+            // The scroller clips the blur, so the gutter lives inside it to
+            // leave the blurred glyphs room on both sides.
             class={cn(
               "lyrics-scroller relative min-h-0 flex-1 overflow-y-auto",
-              props.compact ? "px-4" : "pr-2",
+              props.compact ? "px-4" : "px-6",
             )}
           >
             <div class="h-1/2" />
