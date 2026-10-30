@@ -63,7 +63,7 @@ export function Toaster() {
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium">{item.title}</p>
                   <Show when={item.description}>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p class="mt-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">
                       {item.description}
                     </p>
                   </Show>

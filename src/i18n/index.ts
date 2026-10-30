@@ -50,6 +50,7 @@ const en = {
   "action.goToAlbum": "Go to album",
   "action.startRadio": "Start track radio",
   "action.songInfo": "Song info",
+  "action.share": "Share",
 
   "info.title": "Title",
   "info.artist": "Artist",
@@ -127,6 +128,8 @@ const en = {
     "Could not reach the server. Check the URL and your connection.",
   "error.invalidRequest": "The server rejected the request.",
   "error.unsupported": "This server does not support that feature.",
+  "error.sharingDisabled":
+    "Sharing is turned off on this server. Set ND_ENABLESHARING=true in Navidrome.",
   "error.invalidUrl": "Please enter a valid http(s) URL.",
   "error.emptyUrl": "Please enter a server URL.",
   "error.required": "This field is required.",
@@ -448,6 +451,8 @@ const en = {
   "toast.starred": "Added to favorites",
   "toast.unstarred": "Removed from favorites",
   "toast.queueCleared": "Queue cleared",
+  "toast.shareCopied": "Share link copied",
+  "toast.shareCreated": "Share link created",
 
   "radio.source": "{name} Radio",
   "radio.empty": "Navidrome found no similar tracks",
@@ -507,6 +512,7 @@ const th: Record<MessageKey, string> = {
   "action.goToAlbum": "ไปที่อัลบั้ม",
   "action.startRadio": "เริ่มวิทยุจากเพลงนี้",
   "action.songInfo": "ข้อมูลเพลง",
+  "action.share": "แชร์",
 
   "info.title": "ชื่อเพลง",
   "info.artist": "ศิลปิน",
@@ -583,6 +589,8 @@ const th: Record<MessageKey, string> = {
   "error.unreachable": "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบ URL และการเชื่อมต่อ",
   "error.invalidRequest": "เซิร์ฟเวอร์ปฏิเสธคำขอ",
   "error.unsupported": "เซิร์ฟเวอร์นี้ไม่รองรับฟีเจอร์นี้",
+  "error.sharingDisabled":
+    "เซิร์ฟเวอร์ปิดการแชร์ไว้ ตั้งค่า ND_ENABLESHARING=true ใน Navidrome",
   "error.invalidUrl": "กรุณากรอก URL ที่ขึ้นต้นด้วย http หรือ https",
   "error.emptyUrl": "กรุณากรอก URL ของเซิร์ฟเวอร์",
   "error.required": "จำเป็นต้องกรอกช่องนี้",
@@ -900,6 +908,8 @@ const th: Record<MessageKey, string> = {
   "toast.starred": "เพิ่มในรายการชื่นชอบแล้ว",
   "toast.unstarred": "นำออกจากรายการชื่นชอบแล้ว",
   "toast.queueCleared": "ล้างคิวเพลงแล้ว",
+  "toast.shareCopied": "คัดลอกลิงก์แชร์แล้ว",
+  "toast.shareCreated": "สร้างลิงก์แชร์แล้ว",
 
   "radio.source": "วิทยุ: {name}",
   "radio.empty": "Navidrome ไม่พบเพลงที่คล้ายกัน",

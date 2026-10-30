@@ -586,6 +586,39 @@ export class SubsonicClient {
     await this.request("scrobble", { id, submission });
   }
 
+  // --------------------------------------------------------------- sharing
+  private readonly shareUrls = new Map<string, string>();
+
+  /**
+   * Public link for the given song/album/playlist ids. Navidrome only answers
+   * when `EnableSharing` is on (otherwise HTTP 501). Links are reused for the
+   * session so sharing the same song twice does not pile up shares.
+   */
+  async createShare(ids: string[], description?: string): Promise<string> {
+    const key = ids.join(",");
+    const cached = this.shareUrls.get(key);
+    if (cached) return cached;
+    let body: Json;
+    try {
+      body = await this.request("createShare", { id: ids, description });
+    } catch (error) {
+      if (error instanceof SubsonicError && error.code === 501) {
+        throw new SubsonicError(-5, "Sharing is disabled on this server");
+      }
+      throw error;
+    }
+    const share = toArray<any>(body.shares?.share)[0];
+    const url =
+      typeof share?.url === "string" && share.url
+        ? share.url
+        : share?.id
+          ? `${this.baseUrl}/share/${encodeURIComponent(share.id)}`
+          : "";
+    if (!url) throw new SubsonicError(-2, "The server returned an invalid response");
+    this.shareUrls.set(key, url);
+    return url;
+  }
+
   // ---------------------------------------------------------------- lyrics
   async getLyricsBySongId(songId: string): Promise<Lyrics | null> {
     try {
@@ -657,6 +690,7 @@ export function subsonicErrorKey(error: unknown): string {
     if (error.code === 70) return "error.notFound";
     if (error.code === -3) return "error.unreachable";
     if (error.code === -4) return "error.unsupported";
+    if (error.code === -5) return "error.sharingDisabled";
     if (error.code === 10) return "error.invalidRequest";
   }
   return "error.generic";

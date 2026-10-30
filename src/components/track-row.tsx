@@ -10,6 +10,7 @@ import {
   Play,
   Plus,
   Radio,
+  Share2,
   X,
 } from "lucide-solid";
 import type { Song } from "~/lib/types";
@@ -18,7 +19,7 @@ import { useServers } from "~/state/servers";
 import { usePlaylists } from "~/state/playlists";
 import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
-import { cn } from "~/lib/utils";
+import { cn, copyText } from "~/lib/utils";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { toast } from "~/components/toaster";
 import { Cover, PlayingBars } from "~/components/common";
@@ -103,6 +104,7 @@ export function TrackRow(props: {
   dragging?: boolean;
 }) {
   const player = usePlayer();
+  const servers = useServers();
   const playlists = usePlaylists();
   const navigate = useNavigate();
   const isCurrent = () => player.isCurrent(props.song.id);
@@ -111,6 +113,25 @@ export function TrackRow(props: {
 
   function play() {
     player.playSong(props.song, props.context, props.sourceName);
+  }
+
+  async function share() {
+    const client = servers.client();
+    if (!client) return;
+    try {
+      const description = [props.song.title, props.song.artist]
+        .filter(Boolean)
+        .join(" - ");
+      const url = await client.createShare([props.song.id], description);
+      const copied = await copyText(url);
+      toast(
+        t(copied ? "toast.shareCopied" : "toast.shareCreated"),
+        url,
+        "success",
+      );
+    } catch (error) {
+      toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
+    }
   }
 
   const subtitle = () => {
@@ -310,6 +331,10 @@ export function TrackRow(props: {
           <ContextMenuItem onSelect={() => playlists.openAddTo([props.song])}>
             <ListMusic class="size-4" />
             {t("playlist.addTo.action")}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => void share()}>
+            <Share2 class="size-4" />
+            {t("action.share")}
           </ContextMenuItem>
           <Show when={props.onRemove}>
             <ContextMenuItem
