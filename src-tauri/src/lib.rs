@@ -1,6 +1,7 @@
 #[cfg(windows)]
 mod audio_session;
 mod discord;
+mod downloads;
 mod mpv;
 
 use keyring::Entry;
@@ -93,8 +94,10 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(mpv::MpvManager::default())
         .manage(discord::DiscordManager::default())
+        .manage(downloads::DownloadManager::default())
         // A webview reload (F5, dev-server reload) tears down the page but not
         // libmpv, so stop the engine before the new document starts.
         .on_page_load(|webview, payload| {
@@ -134,7 +137,17 @@ pub fn run() {
             mpv::mpv_audio_devices,
             mpv::mpv_set_audio_device,
             discord::discord_update_presence,
-            discord::discord_clear_presence
+            discord::discord_clear_presence,
+            downloads::download_enqueue,
+            downloads::download_cancel,
+            downloads::download_set_concurrency,
+            downloads::download_delete,
+            downloads::download_exists,
+            downloads::download_disk_space,
+            downloads::default_download_dir,
+            downloads::allow_asset_dir,
+            downloads::pick_download_dir,
+            downloads::reveal_download
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

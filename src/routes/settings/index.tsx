@@ -2,6 +2,7 @@ import { A } from "@solidjs/router";
 import { For } from "solid-js";
 import {
   ChevronRight,
+  Download,
   Info,
   MicVocal,
   Music,
@@ -29,6 +30,12 @@ const categories: Array<{
     icon: Music,
     title: "settings.playback",
     description: "settings.playbackDesc",
+  },
+  {
+    href: "/settings/downloads",
+    icon: Download,
+    title: "settings.downloads",
+    description: "settings.downloadsDesc",
   },
   {
     href: "/settings/lyrics",

@@ -2,7 +2,7 @@ import { For, Show, createResource } from "solid-js";
 import type { Song } from "~/lib/types";
 import { useServers } from "~/state/servers";
 import { locale, t, type MessageKey } from "~/i18n";
-import { formatTime } from "~/lib/format";
+import { formatBytes, formatTime } from "~/lib/format";
 import { Cover } from "~/components/common";
 import {
   Dialog,
@@ -35,12 +35,6 @@ function formatDateTime(value?: string): string {
     dateStyle: "medium",
     timeStyle: "short",
   });
-}
-
-function formatSize(bytes?: number): string {
-  if (!bytes) return "";
-  const mb = bytes / (1024 * 1024);
-  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
 }
 
 function text(value: unknown): string {
@@ -116,7 +110,7 @@ function knownRows(song: RawSong): InfoRow[] {
     ),
     row("info.bitDepth", song.bitDepth ? `${song.bitDepth}-bit` : ""),
     row("info.channels", text(song.channelCount)),
-    row("info.size", formatSize(song.size)),
+    row("info.size", formatBytes(song.size)),
     row("info.bpm", song.bpm ? String(song.bpm) : ""),
     row("info.playCount", text(song.playCount ?? 0)),
     row("info.lastPlayed", formatDateTime(song.played)),

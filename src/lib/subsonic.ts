@@ -676,6 +676,26 @@ export class SubsonicClient {
       { json: false },
     );
   }
+
+  /**
+   * URL of a file to save to disk: the original file for `raw`, otherwise a
+   * transcode through `stream` with a length estimate so progress works.
+   */
+  downloadUrl(songId: string, options: StreamOptions = {}): string {
+    if (!options.format || options.format === "raw") {
+      return this.buildUrl("download", { id: songId }, { json: false });
+    }
+    return this.buildUrl(
+      "stream",
+      {
+        id: songId,
+        format: options.format,
+        maxBitRate: options.maxBitRate && options.maxBitRate > 0 ? options.maxBitRate : undefined,
+        estimateContentLength: true,
+      },
+      { json: false },
+    );
+  }
 }
 
 export function isSubsonicError(error: unknown): error is SubsonicError {

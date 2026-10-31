@@ -19,6 +19,8 @@ import {
 } from "lucide-solid";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
+import { useDownloads } from "~/state/downloads";
+import { downloadOnStar } from "~/state/settings";
 import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
 import { subsonicErrorKey } from "~/lib/subsonic";
@@ -59,6 +61,7 @@ export function PlayerBar(props: {
 }) {
   const player = usePlayer();
   const servers = useServers();
+  const downloads = useDownloads();
   const [drag, setDrag] = createSignal<number | null>(null);
   const [starBusy, setStarBusy] = createSignal(false);
 
@@ -81,6 +84,7 @@ export function PlayerBar(props: {
       else await client.unstar(current.id);
       player.patchSongStar(current.id, next);
       toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      if (next && downloadOnStar()) downloads.download([current]);
     } catch (error) {
       toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
     } finally {

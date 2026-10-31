@@ -20,10 +20,13 @@ import {
   discordPresence,
   maxBitRate,
   mpvAudioDevice,
+  preferLocal,
   scrobble,
   setAudioPlayer,
   streamFormat,
 } from "~/state/settings";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { downloadKey, forgetDownloads, localPath } from "~/state/downloads";
 import { applyAudioOutput, claimAudioSessions } from "~/lib/audio-output";
 import {
   mpvEnsure,
@@ -204,6 +207,9 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   // mpv renames its mixer entry for every file it loads, even when playback
   // never pauses between tracks, so each load needs its own claim.
   let mpvClaimPending = false;
+  // Song id when the current track plays from a downloaded file, so a missing
+  // file can fall back to streaming.
+  let localSongId: string | null = null;
 
   function usingMpv() {
     return isTauri && audioPlayer() === "mpv";
@@ -295,9 +301,24 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     syncMediaSessionPosition(snapshot.position, snapshot.duration);
   }
 
+  /**
+   * The downloaded copy failed to load (moved or deleted outside the app):
+   * forget it and stream the track instead. Returns false when not local.
+   */
+  function fallBackToStream(): boolean {
+    const songId = localSongId;
+    const serverId = servers.activeId();
+    if (!songId || !serverId || current()?.id !== songId) return false;
+    localSongId = null;
+    forgetDownloads([downloadKey(serverId, songId)]);
+    loadAndPlay(state.index, { autoplay: true, position: state.position });
+    return true;
+  }
+
   function handleMpvEnd(payload: { eof: boolean; error?: string | null }) {
     if (!usingMpv()) return;
     if (payload.error) {
+      if (fallBackToStream()) return;
       mpvLoaded = false;
       setState({
         playing: false,
@@ -323,7 +344,11 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   ) {
     const client = servers.client();
     const track = state.queue[index];
-    if (!client || !track) return;
+    if (!track) return;
+    const serverId = servers.activeId();
+    const local =
+      isTauri && preferLocal() && serverId ? localPath(serverId, track.id) : null;
+    if (!client && !local) return;
 
     scrobbledCurrent = false;
     const resumeAt = options.position ?? 0;
@@ -337,10 +362,17 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       duration: track.duration ?? 0,
     });
 
-    const url = client.streamUrl(track.id, {
-      maxBitRate: maxBitRate(),
-      format: streamFormat(),
-    });
+    // mpv opens local paths directly; the web player reads them through
+    // Tauri's asset protocol.
+    localSongId = local ? track.id : null;
+    const url = local
+      ? usingMpv()
+        ? local
+        : convertFileSrc(local)
+      : client!.streamUrl(track.id, {
+          maxBitRate: maxBitRate(),
+          format: streamFormat(),
+        });
     updateMediaSession(track);
     reportNowPlaying(track);
 
@@ -890,6 +922,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
   audio.addEventListener("error", () => {
     if (!audio.src) return;
+    if (fallBackToStream()) return;
     setState({
       playing: false,
       loading: false,

@@ -1,6 +1,15 @@
 import { A, useNavigate } from "@solidjs/router";
-import { Show, createSignal, onCleanup, type JSX } from "solid-js";
 import {
+  Match,
+  Show,
+  Switch,
+  createSignal,
+  onCleanup,
+  type JSX,
+} from "solid-js";
+import {
+  Download,
+  FolderOpen,
   GripVertical,
   Heart,
   Info,
@@ -11,12 +20,15 @@ import {
   Plus,
   Radio,
   Share2,
+  Trash2,
   X,
 } from "lucide-solid";
 import type { Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
 import { usePlaylists } from "~/state/playlists";
+import { revealDownload, useDownloads } from "~/state/downloads";
+import { downloadOnStar } from "~/state/settings";
 import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
 import { cn, copyText } from "~/lib/utils";
@@ -24,6 +36,7 @@ import { subsonicErrorKey } from "~/lib/subsonic";
 import { toast } from "~/components/toaster";
 import { Cover, PlayingBars } from "~/components/common";
 import { SongInfoDialog } from "~/components/song-info-dialog";
+import { DownloadIndicator } from "~/components/download-status";
 import { Button } from "~/components/ui/button";
 import {
   ContextMenu,
@@ -41,6 +54,7 @@ function TrackLikeButton(props: {
 }) {
   const servers = useServers();
   const player = usePlayer();
+  const downloads = useDownloads();
   const [busy, setBusy] = createSignal(false);
 
   const starred = () => player.isStarred(props.song);
@@ -55,6 +69,7 @@ function TrackLikeButton(props: {
       else await client.unstar(props.song.id);
       player.patchSongStar(props.song.id, next);
       toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      if (next && downloadOnStar()) downloads.download([props.song]);
     } catch (error) {
       toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
     } finally {
@@ -106,7 +121,9 @@ export function TrackRow(props: {
   const player = usePlayer();
   const servers = useServers();
   const playlists = usePlaylists();
+  const downloads = useDownloads();
   const navigate = useNavigate();
+  const downloadState = () => downloads.status(props.song)?.state ?? null;
   const isCurrent = () => player.isCurrent(props.song.id);
   const isPlaying = () => isCurrent() && player.state.playing;
   const [infoOpen, setInfoOpen] = createSignal(false);
@@ -179,7 +196,7 @@ export function TrackRow(props: {
           data-allow-context-menu
           data-track-index={props.index}
           class={cn(
-            "group relative grid items-center gap-2 rounded-md px-1.5 py-2 transition-colors hover:bg-accent/60 sm:gap-3 sm:px-2 sm:py-1.5",
+            "group relative grid cursor-pointer items-center gap-2 rounded-md px-1.5 py-2 transition-colors hover:bg-accent/60 sm:gap-3 sm:px-2 sm:py-1.5",
             props.showCover
               ? "grid-cols-[2rem_minmax(0,1fr)_auto]"
               : "grid-cols-[1.75rem_minmax(0,1fr)_auto]",
@@ -191,11 +208,10 @@ export function TrackRow(props: {
               "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary",
           )}
           onClick={() => {
-            // Touch devices have no hover state, so play on a single tap while
-            // keeping the familiar double-click behaviour on desktop.
-            if (window.matchMedia("(hover: none)").matches) play();
+            // A click on the track already playing must not restart it.
+            if (!isCurrent()) play();
+            else if (!player.state.playing) player.play();
           }}
-          onDblClick={play}
         >
           <div class="flex items-center justify-center">
             <Show
@@ -239,10 +255,12 @@ export function TrackRow(props: {
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation();
-                  player.toggle();
+                  // Only the playing track's cover pauses; others start playing.
+                  if (isCurrent()) player.toggle();
+                  else play();
                 }}
                 class="relative size-8 overflow-hidden rounded"
-                aria-label={t("action.play")}
+                aria-label={t(isPlaying() ? "action.pause" : "action.play")}
               >
                 <Cover
                   coverArtId={props.song.coverArt}
@@ -275,6 +293,7 @@ export function TrackRow(props: {
           </div>
 
           <div class="flex items-center gap-1">
+            <DownloadIndicator song={props.song} />
             <TrackLikeButton song={props.song} revealOnHover />
             <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
               {formatTime(props.song.duration)}
@@ -302,7 +321,6 @@ export function TrackRow(props: {
                 aria-label={t("playlist.dragToReorder")}
                 onPointerDown={(event) => props.onDragStart?.(event)}
                 onClick={(event) => event.stopPropagation()}
-                onDblClick={(event) => event.stopPropagation()}
               >
                 <GripVertical class="size-3.5 max-md:size-4" />
               </span>
@@ -336,6 +354,49 @@ export function TrackRow(props: {
             <Share2 class="size-4" />
             {t("action.share")}
           </ContextMenuItem>
+          <Show when={downloads.available}>
+            <Switch>
+              <Match when={downloadState() === "done"}>
+                <ContextMenuItem
+                  onSelect={() => {
+                    const status = downloads.status(props.song);
+                    if (status?.state === "done") {
+                      void revealDownload(status.entry.path);
+                    }
+                  }}
+                >
+                  <FolderOpen class="size-4" />
+                  {t("download.showInFolder")}
+                </ContextMenuItem>
+                <ContextMenuItem
+                  class="text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive"
+                  onSelect={() => downloads.remove([props.song])}
+                >
+                  <Trash2 class="size-4" />
+                  {t("download.remove")}
+                </ContextMenuItem>
+              </Match>
+              <Match
+                when={
+                  downloadState() === "queued" ||
+                  downloadState() === "downloading"
+                }
+              >
+                <ContextMenuItem onSelect={() => downloads.cancel([props.song])}>
+                  <X class="size-4" />
+                  {t("download.cancel")}
+                </ContextMenuItem>
+              </Match>
+              <Match when={true}>
+                <ContextMenuItem
+                  onSelect={() => downloads.download([props.song])}
+                >
+                  <Download class="size-4" />
+                  {t("download.download")}
+                </ContextMenuItem>
+              </Match>
+            </Switch>
+          </Show>
           <Show when={props.onRemove}>
             <ContextMenuItem
               class="text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive"

@@ -29,6 +29,7 @@ import { Cover, EmptyState, ErrorState } from "~/components/common";
 import { Page } from "~/components/layout-bits";
 import { TrackList } from "~/components/track-row";
 import { Button } from "~/components/ui/button";
+import { DownloadAllButton } from "~/components/download-status";
 import { Skeleton } from "~/components/ui/select";
 import {
   DropdownMenu,
@@ -226,6 +227,7 @@ export default function PlaylistPage() {
                   <Shuffle class="size-4" />
                   {t("album.shufflePlay")}
                 </Button>
+                <DownloadAllButton songs={songs()} />
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     as={Button}

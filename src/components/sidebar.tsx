@@ -2,6 +2,7 @@ import { A, useNavigate } from "@solidjs/router";
 import { For, createSignal, onMount, onCleanup } from "solid-js";
 import {
   Disc3,
+  Download,
   Ellipsis,
   Heart,
   House,
@@ -40,6 +41,11 @@ const navItems = [
     href: "/playlists",
     labelKey: "nav.playlists" as MessageKey,
     icon: ListMusic,
+  },
+  {
+    href: "/downloads",
+    labelKey: "nav.downloads" as MessageKey,
+    icon: Download,
   },
 ];
 

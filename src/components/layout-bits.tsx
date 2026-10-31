@@ -8,6 +8,8 @@ export function Section(props: {
   title: string;
   href?: string;
   moreLabel?: string;
+  /** Extra control at the end of the heading row. */
+  action?: JSX.Element;
   children: JSX.Element;
   class?: string;
 }) {
@@ -24,6 +26,7 @@ export function Section(props: {
             <ChevronRight class="size-3.5" />
           </A>
         </Show>
+        {props.action}
       </div>
       {props.children}
     </section>

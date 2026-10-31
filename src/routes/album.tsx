@@ -11,6 +11,7 @@ import { Cover, ErrorState } from "~/components/common";
 import { Page } from "~/components/layout-bits";
 import { TrackList } from "~/components/track-row";
 import { Button } from "~/components/ui/button";
+import { DownloadAllButton } from "~/components/download-status";
 import { Skeleton } from "~/components/ui/select";
 import { genreHref } from "~/routes/genres";
 
@@ -132,6 +133,7 @@ export default function AlbumPage() {
                 >
                   <ListPlus class="size-4" />
                 </Button>
+                <DownloadAllButton songs={songs()} />
               </div>
             </div>
           </div>

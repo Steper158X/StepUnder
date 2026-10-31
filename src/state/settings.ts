@@ -70,6 +70,18 @@ export const LYRICS_BLUR_MAX: Record<LyricsBlur, number> = {
   strong: 6,
 };
 
+/** Folder layout for downloaded files, inside the download folder. */
+export type DownloadLayout = "artist-album" | "album" | "flat";
+
+const DOWNLOAD_LAYOUTS: readonly DownloadLayout[] = [
+  "artist-album",
+  "album",
+  "flat",
+];
+
+export const DEFAULT_DOWNLOAD_CONCURRENCY = 3;
+export const MAX_DOWNLOAD_CONCURRENCY = 5;
+
 /** mpv treats `auto` as "pick the system default device". */
 export const DEFAULT_MPV_AUDIO_DEVICE = "auto";
 
@@ -115,6 +127,20 @@ const [lyricsBlurSmooth, setLyricsBlurSmoothSignal] = createSignal(true);
 const [sideLyrics, setSideLyricsSignal] = createSignal(false);
 /** Accent bar on the left of the lyric line being sung. */
 const [lyricsLineMarker, setLyricsLineMarkerSignal] = createSignal(false);
+/** Where downloads go; empty means the default `Music/StepUnder` folder. */
+const [downloadDir, setDownloadDirSignal] = createSignal("");
+/** Play a downloaded copy instead of streaming when one exists. */
+const [preferLocal, setPreferLocalSignal] = createSignal(true);
+const [downloadFormat, setDownloadFormatSignal] =
+  createSignal<StreamFormat>("raw");
+const [downloadBitRate, setDownloadBitRateSignal] = createSignal(0);
+const [downloadLayout, setDownloadLayoutSignal] =
+  createSignal<DownloadLayout>("artist-album");
+const [downloadConcurrency, setDownloadConcurrencySignal] = createSignal(
+  DEFAULT_DOWNLOAD_CONCURRENCY,
+);
+/** Download a song as soon as it is added to favorites. */
+const [downloadOnStar, setDownloadOnStarSignal] = createSignal(false);
 
 export {
   theme,
@@ -141,6 +167,13 @@ export {
   lyricsBlurSmooth,
   sideLyrics,
   lyricsLineMarker,
+  downloadDir,
+  preferLocal,
+  downloadFormat,
+  downloadBitRate,
+  downloadLayout,
+  downloadConcurrency,
+  downloadOnStar,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -272,6 +305,13 @@ export async function initSettings(): Promise<void> {
     savedLyricsBlurSmooth,
     savedSideLyrics,
     savedLyricsLineMarker,
+    savedDownloadDir,
+    savedPreferLocal,
+    savedDownloadFormat,
+    savedDownloadBitRate,
+    savedDownloadLayout,
+    savedDownloadConcurrency,
+    savedDownloadOnStar,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -296,6 +336,13 @@ export async function initSettings(): Promise<void> {
     readSetting<boolean>("lyricsBlurSmooth", true),
     readSetting<boolean>("sideLyrics", false),
     readSetting<boolean>("lyricsLineMarker", false),
+    readSetting<string>("downloadDir", ""),
+    readSetting<boolean>("preferLocal", true),
+    readSetting<StreamFormat>("downloadFormat", "raw"),
+    readSetting<number>("downloadBitRate", 0),
+    readSetting<DownloadLayout>("downloadLayout", "artist-album"),
+    readSetting<number>("downloadConcurrency", DEFAULT_DOWNLOAD_CONCURRENCY),
+    readSetting<boolean>("downloadOnStar", false),
   ]);
 
   const nextTheme: Theme =
@@ -326,6 +373,30 @@ export async function initSettings(): Promise<void> {
   setLyricsBlurSmoothSignal(savedLyricsBlurSmooth !== false);
   setSideLyricsSignal(savedSideLyrics === true);
   setLyricsLineMarkerSignal(savedLyricsLineMarker === true);
+  setDownloadDirSignal(
+    typeof savedDownloadDir === "string" ? savedDownloadDir : "",
+  );
+  setPreferLocalSignal(savedPreferLocal !== false);
+  setDownloadFormatSignal(savedDownloadFormat ?? "raw");
+  setDownloadBitRateSignal(
+    typeof savedDownloadBitRate === "number" ? savedDownloadBitRate : 0,
+  );
+  setDownloadLayoutSignal(
+    DOWNLOAD_LAYOUTS.includes(savedDownloadLayout)
+      ? savedDownloadLayout
+      : "artist-album",
+  );
+  setDownloadConcurrencySignal(
+    Math.max(
+      1,
+      clampSetting(
+        savedDownloadConcurrency,
+        MAX_DOWNLOAD_CONCURRENCY,
+        DEFAULT_DOWNLOAD_CONCURRENCY,
+      ),
+    ),
+  );
+  setDownloadOnStarSignal(savedDownloadOnStar === true);
   setPlayerLayoutSignal(
     savedPlayerLayout === "floating" ? "floating" : "docked",
   );
@@ -500,4 +571,40 @@ export function setMpvAudioDevice(value: string): void {
   const next = value || DEFAULT_MPV_AUDIO_DEVICE;
   setMpvAudioDeviceSignal(next);
   void writeSetting("mpvAudioDevice", next);
+}
+
+export function setDownloadDir(value: string): void {
+  setDownloadDirSignal(value);
+  void writeSetting("downloadDir", value);
+}
+
+export function setPreferLocal(value: boolean): void {
+  setPreferLocalSignal(value);
+  void writeSetting("preferLocal", value);
+}
+
+export function setDownloadFormat(value: StreamFormat): void {
+  setDownloadFormatSignal(value);
+  void writeSetting("downloadFormat", value);
+}
+
+export function setDownloadBitRate(value: number): void {
+  setDownloadBitRateSignal(value);
+  void writeSetting("downloadBitRate", value);
+}
+
+export function setDownloadLayout(value: DownloadLayout): void {
+  setDownloadLayoutSignal(value);
+  void writeSetting("downloadLayout", value);
+}
+
+export function setDownloadConcurrency(value: number): void {
+  const next = Math.min(MAX_DOWNLOAD_CONCURRENCY, Math.max(1, value));
+  setDownloadConcurrencySignal(next);
+  void writeSetting("downloadConcurrency", next);
+}
+
+export function setDownloadOnStar(value: boolean): void {
+  setDownloadOnStarSignal(value);
+  void writeSetting("downloadOnStar", value);
 }

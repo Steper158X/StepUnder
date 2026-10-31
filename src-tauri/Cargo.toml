@@ -18,7 +18,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# protocol-asset lets the web player read downloaded files.
+tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -32,6 +33,11 @@ tauri-plugin-process = "2"
 libloading = "0.8"
 # Rich Presence over Discord's local IPC socket (no Discord SDK required).
 discord-rich-presence = "1.1"
+# Downloads: folder picker, and async file writes for the download engine.
+tauri-plugin-dialog = "2"
+tokio = { version = "1", features = ["fs", "io-util", "sync"] }
+# Free space on the drive that holds the download folder.
+fs4 = "1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["windows-native"] }

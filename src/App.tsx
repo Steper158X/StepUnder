@@ -5,6 +5,7 @@ import { PlayerProvider } from "~/player/store";
 import { PlaylistsProvider } from "~/state/playlists";
 import { initI18n } from "~/i18n";
 import { initSettings } from "~/state/settings";
+import { initDownloads } from "~/state/downloads";
 import {
   checkForUpdatesOnStartup,
   loadAppVersion,
@@ -27,11 +28,13 @@ import SearchPage from "~/routes/search";
 import GenresPage from "~/routes/genres";
 import GenrePage from "~/routes/genre";
 import ProfilePage from "~/routes/profile";
+import DownloadsPage from "~/routes/downloads";
 import SettingsPage from "~/routes/settings";
 import AppearanceSettingsPage from "~/routes/settings/appearance";
 import PlaybackSettingsPage from "~/routes/settings/playback";
 import LyricsSettingsPage from "~/routes/settings/lyrics";
 import ServersSettingsPage from "~/routes/settings/servers";
+import DownloadSettingsPage from "~/routes/settings/downloads";
 import AboutSettingsPage from "~/routes/settings/about";
 import NotFoundPage from "~/routes/not-found";
 
@@ -39,6 +42,7 @@ function Root(props: RouteSectionProps) {
   onMount(() => {
     void initI18n();
     void initSettings().then(() => {
+      void initDownloads();
       void loadAppVersion();
       void checkForUpdatesOnStartup();
     });
@@ -76,6 +80,7 @@ export default function App() {
                 <Route path="/genres" component={GenresPage} />
                 <Route path="/genre/:name" component={GenrePage} />
                 <Route path="/profile" component={ProfilePage} />
+                <Route path="/downloads" component={DownloadsPage} />
                 <Route path="/settings" component={SettingsPage} />
                 <Route
                   path="/settings/appearance"
@@ -92,6 +97,10 @@ export default function App() {
                 <Route
                   path="/settings/servers"
                   component={ServersSettingsPage}
+                />
+                <Route
+                  path="/settings/downloads"
+                  component={DownloadSettingsPage}
                 />
                 <Route path="/settings/about" component={AboutSettingsPage} />
               </Route>
