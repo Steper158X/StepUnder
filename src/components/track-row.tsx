@@ -31,11 +31,12 @@ import { revealDownload, useDownloads } from "~/state/downloads";
 import { downloadOnStar } from "~/state/settings";
 import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
-import { cn, copyText } from "~/lib/utils";
+import { cn } from "~/lib/utils";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { toast } from "~/components/toaster";
 import { Cover, PlayingBars } from "~/components/common";
 import { SongInfoDialog } from "~/components/song-info-dialog";
+import { ShareDialog } from "~/components/share-dialog";
 import { DownloadIndicator } from "~/components/download-status";
 import { Button } from "~/components/ui/button";
 import {
@@ -119,7 +120,6 @@ export function TrackRow(props: {
   dragging?: boolean;
 }) {
   const player = usePlayer();
-  const servers = useServers();
   const playlists = usePlaylists();
   const downloads = useDownloads();
   const navigate = useNavigate();
@@ -127,28 +127,10 @@ export function TrackRow(props: {
   const isCurrent = () => player.isCurrent(props.song.id);
   const isPlaying = () => isCurrent() && player.state.playing;
   const [infoOpen, setInfoOpen] = createSignal(false);
+  const [shareOpen, setShareOpen] = createSignal(false);
 
   function play() {
     player.playSong(props.song, props.context, props.sourceName);
-  }
-
-  async function share() {
-    const client = servers.client();
-    if (!client) return;
-    try {
-      const description = [props.song.title, props.song.artist]
-        .filter(Boolean)
-        .join(" - ");
-      const url = await client.createShare([props.song.id], description);
-      const copied = await copyText(url);
-      toast(
-        t(copied ? "toast.shareCopied" : "toast.shareCreated"),
-        url,
-        "success",
-      );
-    } catch (error) {
-      toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
-    }
   }
 
   const subtitle = () => {
@@ -350,7 +332,7 @@ export function TrackRow(props: {
             <ListMusic class="size-4" />
             {t("playlist.addTo.action")}
           </ContextMenuItem>
-          <ContextMenuItem onSelect={() => void share()}>
+          <ContextMenuItem onSelect={() => setShareOpen(true)}>
             <Share2 class="size-4" />
             {t("action.share")}
           </ContextMenuItem>
@@ -425,6 +407,11 @@ export function TrackRow(props: {
         song={props.song}
         open={infoOpen()}
         onOpenChange={setInfoOpen}
+      />
+      <ShareDialog
+        song={props.song}
+        open={shareOpen()}
+        onOpenChange={setShareOpen}
       />
     </>
   );

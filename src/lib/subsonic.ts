@@ -164,6 +164,14 @@ function parseStructuredLyrics(raw: any): Lyrics | null {
   return { synced: main.synced, lines };
 }
 
+export interface ShareOptions {
+  description?: string;
+  /** Unset uses the server's default expiration. */
+  expires?: Date | null;
+  /** Navidrome only. */
+  downloadable?: boolean;
+}
+
 export interface StreamOptions {
   maxBitRate?: number;
   format?: string;
@@ -500,16 +508,20 @@ export class SubsonicClient {
   /** Calls Navidrome's own REST API, logging in (again) when needed. */
   private async nativeRequest(
     path: string,
-    init: { method: string; body?: BodyInit },
-  ): Promise<void> {
+    init: { method: string; body?: BodyInit; json?: Json },
+  ): Promise<Response> {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const token = this.nativeToken ?? (await this.nativeLogin());
+      const headers: Record<string, string> = {
+        "x-nd-authorization": `Bearer ${token}`,
+      };
+      if (init.json) headers["Content-Type"] = "application/json";
       let response: Response;
       try {
         response = (await httpFetch(`${this.baseUrl}/api/${path}`, {
           method: init.method,
-          headers: { "x-nd-authorization": `Bearer ${token}` },
-          body: init.body,
+          headers,
+          body: init.json ? JSON.stringify(init.json) : init.body,
         })) as unknown as Response;
       } catch (error: any) {
         throw new SubsonicError(-3, error?.message ?? "Network request failed");
@@ -518,7 +530,7 @@ export class SubsonicClient {
         this.nativeToken = null;
         continue;
       }
-      if (response.ok) return;
+      if (response.ok) return response;
       if (response.status === 404 || response.status === 405) {
         throw new SubsonicError(-4, "Not supported by this server");
       }
@@ -587,20 +599,39 @@ export class SubsonicClient {
   }
 
   // --------------------------------------------------------------- sharing
-  private readonly shareUrls = new Map<string, string>();
-
   /**
-   * Public link for the given song/album/playlist ids. Navidrome only answers
-   * when `EnableSharing` is on (otherwise HTTP 501). Links are reused for the
-   * session so sharing the same song twice does not pile up shares.
+   * Public link for the given song/album/playlist ids. Goes through
+   * Navidrome's own API first, which also takes `downloadable`, and falls back
+   * to Subsonic `createShare` on other servers. Navidrome only answers when
+   * `EnableSharing` is on (otherwise HTTP 404 / 501).
    */
-  async createShare(ids: string[], description?: string): Promise<string> {
-    const key = ids.join(",");
-    const cached = this.shareUrls.get(key);
-    if (cached) return cached;
+  async createShare(ids: string[], options: ShareOptions = {}): Promise<string> {
+    try {
+      const response = await this.nativeRequest("share", {
+        method: "POST",
+        json: {
+          resourceIds: ids.join(","),
+          description: options.description ?? "",
+          downloadable: options.downloadable ?? false,
+          ...(options.expires ? { expiresAt: options.expires.toISOString() } : {}),
+        },
+      });
+      const created = (await response.json().catch(() => null)) as Json | null;
+      if (created?.id) return await this.shareUrl(String(created.id));
+    } catch (error) {
+      // Not Navidrome (or its native login is unavailable): use Subsonic.
+      if (!(error instanceof SubsonicError && (error.code === -4 || error.code === 40))) {
+        throw error;
+      }
+    }
+
     let body: Json;
     try {
-      body = await this.request("createShare", { id: ids, description });
+      body = await this.request("createShare", {
+        id: ids,
+        description: options.description,
+        expires: options.expires?.getTime(),
+      });
     } catch (error) {
       if (error instanceof SubsonicError && error.code === 501) {
         throw new SubsonicError(-5, "Sharing is disabled on this server");
@@ -615,8 +646,21 @@ export class SubsonicClient {
           ? `${this.baseUrl}/share/${encodeURIComponent(share.id)}`
           : "";
     if (!url) throw new SubsonicError(-2, "The server returned an invalid response");
-    this.shareUrls.set(key, url);
     return url;
+  }
+
+  /** The public URL the server reports for a share (honours `ShareURL`). */
+  private async shareUrl(id: string): Promise<string> {
+    try {
+      const body = await this.request("getShares");
+      const share = toArray<any>(body.shares?.share).find(
+        (item) => String(item?.id) === id,
+      );
+      if (typeof share?.url === "string" && share.url) return share.url;
+    } catch {
+      // Fall through to the default path.
+    }
+    return `${this.baseUrl}/share/${encodeURIComponent(id)}`;
   }
 
   // ---------------------------------------------------------------- lyrics
