@@ -44,6 +44,7 @@ uploads. Everything stays between you and your server.
 |                            |                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------ |
 | 🎵 **Your own server**     | Navidrome and any Subsonic / OpenSubsonic server — switch between several at will.  |
+| ⬇️ **Downloads**           | Save songs, albums, and playlists to your computer and play them offline.           |
 | 📻 **Track radio**         | Start an endless radio of similar songs from any track.                              |
 | 📝 **Full playlist editor** | Create, edit, reorder with drag & drop, set custom covers, public or private.      |
 | 🎚️ **Two audio engines**   | Built-in web player or the bundled **MPV** engine for wider format support.         |
@@ -87,6 +88,22 @@ uploads. Everything stays between you and your server.
 - **Search** — find songs, albums, and artists as you type.
 - **Profile** — your listening stats from the server: total plays, top albums,
   top artists, most-played songs, and recent history.
+- **Share** — right-click a song to create a share link and copy it
+  (requires sharing turned on in Navidrome with `ND_ENABLESHARING=true`).
+
+### ⬇️ Downloads
+
+- **Download anything** — right-click a song, or download a whole album or
+  playlist at once.
+- **Play offline** — downloaded songs play from the file on your computer
+  instead of streaming.
+- **Downloads page** — everything saved on this computer, plus what is still
+  downloading, with retry, cancel, and remove.
+- **Download favorites** — optionally download a song as soon as you star it.
+- **Your choice of file** — keep the original file, or have the server convert
+  it to a smaller format and bitrate.
+- **Folder & storage** — pick the download folder and its layout, see how much
+  space downloads use and how much is free on the drive.
 
 ### 🎶 Playlists
 
@@ -107,6 +124,8 @@ uploads. Everything stays between you and your server.
   restored per server.
 - **Now Playing** — a full-screen view with large artwork and a cover viewer.
 - **Lyrics** — lyrics from your server, auto-scrolling when synced lyrics exist.
+  Optionally blur the lines around the one being sung, show phonetic readings
+  for Japanese, Korean, and Chinese, or keep lyrics beside the queue.
 - **Song info** — title, album, genre, format, bit rate, sample rate, bit depth,
   channels, file size, play count, path, and more.
 - **Two playback engines** — built-in web player, or MPV for broader format
@@ -130,6 +149,10 @@ uploads. Everything stays between you and your server.
 
 - **Languages** — Thai and English, switchable at any time.
 - **Themes** — dark, light, or follow the system.
+- **Liquid Glass** — translucent glass panels with adjustable blur; on Windows
+  the window itself can be see-through (Acrylic or Mica).
+- **Player layout** — keep the player bar at the bottom or let it float above
+  the content.
 - **Accent colors** — purple, blue, teal, green, orange, red, or pink.
 - **Fonts** — system font or Sarabun for beautiful Thai text.
 
