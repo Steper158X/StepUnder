@@ -88,7 +88,8 @@ uploads. Everything stays between you and your server.
 - **Search** — find songs, albums, and artists as you type.
 - **Profile** — your listening stats from the server: total plays, top albums,
   top artists, most-played songs, and recent history.
-- **Share** — right-click a song to create a share link and copy it
+- **Share** — right-click a song to create a public link, with an optional
+  expiration, description, and download permission
   (requires sharing turned on in Navidrome with `ND_ENABLESHARING=true`).
 
 ### ⬇️ Downloads
