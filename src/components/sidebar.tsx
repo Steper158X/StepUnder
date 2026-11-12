@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import logo from "~/assets/logo.svg";
+import { Logo } from "~/components/logo";
 
 const navItems = [
   { href: "/search", labelKey: "nav.search" as MessageKey, icon: Search },
@@ -75,12 +75,7 @@ function NavLink(props: {
 function Brand() {
   return (
     <div class="flex min-w-0 flex-1 items-center gap-2.5">
-      <img
-        src={logo}
-        alt=""
-        class="size-8 shrink-0 rounded-lg shadow-sm"
-        draggable={false}
-      />
+      <Logo class="size-8 shrink-0 rounded-lg shadow-sm" />
       <div class="min-w-0 leading-tight">
         <p class="truncate text-sm font-semibold">{t("app.name")}</p>
         <p class="truncate text-[10px] text-muted-foreground">
@@ -173,12 +168,7 @@ export function MobileHeader() {
         </Dialog.Portal>
       </Dialog>
 
-      <img
-        src={logo}
-        alt=""
-        class="size-7 shrink-0 rounded-md shadow-sm"
-        draggable={false}
-      />
+      <Logo class="size-7 shrink-0 rounded-md shadow-sm" />
       <div class="min-w-0 leading-tight">
         <p class="truncate text-sm font-semibold">{t("app.name")}</p>
         <p class="truncate text-[10px] text-muted-foreground">

@@ -1,12 +1,5 @@
 import { For, Show, createEffect, createSignal, on } from "solid-js";
-import {
-  CalendarDays,
-  Check,
-  Copy,
-  ExternalLink,
-  Share2,
-  X,
-} from "lucide-solid";
+import { Check, Copy, ExternalLink, Share2 } from "lucide-solid";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Song } from "~/lib/types";
 import { t, type MessageKey } from "~/i18n";
@@ -17,6 +10,7 @@ import { useServers } from "~/state/servers";
 import { Cover, Spinner } from "~/components/common";
 import { Button } from "~/components/ui/button";
 import { Switch } from "~/components/ui/switch";
+import { DateTimePicker } from "~/components/ui/date-time-picker";
 import { FieldError, FieldHint, Input, Label } from "~/components/ui/input";
 import {
   Dialog,
@@ -36,45 +30,26 @@ const PRESETS: Array<{ label: MessageKey; ms: number | null }> = [
   { label: "share.preset.year", ms: 365 * DAY },
 ];
 
-/** `Date` → the local "YYYY-MM-DDTHH:mm" a datetime-local input expects. */
-function toLocalInput(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
 export function ShareDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   song: Song;
 }) {
   const servers = useServers();
-  const [expires, setExpires] = createSignal("");
+  const [expires, setExpires] = createSignal<Date | null>(null);
   const [description, setDescription] = createSignal("");
   const [downloadable, setDownloadable] = createSignal(false);
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [url, setUrl] = createSignal<string | null>(null);
   const [copied, setCopied] = createSignal(false);
-  let expiresInput: HTMLInputElement | undefined;
-
-  function openPicker() {
-    expiresInput?.focus();
-    try {
-      expiresInput?.showPicker();
-    } catch {
-      // Older WebViews lack showPicker(); the focused input still takes typing.
-    }
-  }
 
   createEffect(
     on(
       () => props.open,
       (open) => {
         if (!open) return;
-        setExpires("");
+        setExpires(null);
         setDescription(
           [props.song.title, props.song.artist].filter(Boolean).join(" - "),
         );
@@ -95,7 +70,7 @@ export function ShareDialog(props: {
     event.preventDefault();
     const client = servers.client();
     if (!client || busy()) return;
-    const expiresAt = expires() ? new Date(expires()) : null;
+    const expiresAt = expires();
     if (expiresAt && expiresAt.getTime() <= Date.now()) {
       setError(t("share.expirationPast"));
       return;
@@ -154,49 +129,24 @@ export function ShareDialog(props: {
               <div class="space-y-1.5">
                 <Label for="share-expires">{t("share.expiration")}</Label>
                 <FieldHint>{t("share.expirationHint")}</FieldHint>
-                <div class="relative">
-                  {/* The native picker icon sits right after the text, so hide
-                      it and draw our own at the far right instead. */}
-                  <Input
-                    ref={expiresInput}
-                    id="share-expires"
-                    type="datetime-local"
-                    value={expires()}
-                    min={toLocalInput(new Date())}
-                    onInput={(event) => setExpires(event.currentTarget.value)}
-                    disabled={busy()}
-                    class={cn(
-                      "[color-scheme:light_dark] [&::-webkit-calendar-picker-indicator]:hidden",
-                      expires() ? "pr-16" : "pr-9",
-                    )}
-                  />
-                  <button
-                    type="button"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                    onClick={openPicker}
-                    disabled={busy()}
-                    aria-label={t("share.expiration")}
-                  >
-                    <CalendarDays class="size-4" />
-                  </button>
-                  <Show when={expires()}>
-                    <button
-                      type="button"
-                      class="absolute right-9 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground"
-                      onClick={() => setExpires("")}
-                      aria-label={t("action.clear")}
-                    >
-                      <X class="size-3.5" />
-                    </button>
-                  </Show>
-                </div>
+                <DateTimePicker
+                  id="share-expires"
+                  value={expires()}
+                  onChange={(value) => {
+                    setExpires(value);
+                    setError(null);
+                  }}
+                  min={new Date()}
+                  placeholder={t("share.expirationPlaceholder")}
+                  disabled={busy()}
+                />
                 <div class="flex flex-wrap gap-1.5 pt-1">
                   <For each={PRESETS}>
                     {(preset) => {
                       const value = () =>
                         preset.ms === null
-                          ? ""
-                          : toLocalInput(new Date(Date.now() + preset.ms));
+                          ? null
+                          : new Date(Date.now() + preset.ms);
                       return (
                         <button
                           type="button"

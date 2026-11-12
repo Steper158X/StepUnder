@@ -396,6 +396,15 @@ html[data-style="glass"] header.glass-bar {
   background: transparent;
 }
 
+/* Unlayered like the rules above, so it wins over them. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Playing indicator */
 @keyframes eq-bar {
   0%,

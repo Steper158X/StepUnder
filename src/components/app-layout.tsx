@@ -9,17 +9,12 @@ import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
 import { Cover, Spinner } from "~/components/common";
-import logo from "~/assets/logo.svg";
+import { Logo } from "~/components/logo";
 
 function BootScreen() {
   return (
     <div class="flex h-full flex-col items-center justify-center gap-4">
-      <img
-        src={logo}
-        alt=""
-        class="size-12 rounded-2xl shadow-lg"
-        draggable={false}
-      />
+      <Logo class="size-12 rounded-2xl shadow-lg" />
       <Spinner />
       <p class="text-xs text-muted-foreground">{t("common.loading")}</p>
     </div>
