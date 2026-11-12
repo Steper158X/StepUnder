@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
-import { isTauri } from "~/lib/platform";
+import { isTauri, isWindows } from "~/lib/platform";
 
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
@@ -238,7 +238,9 @@ function applyWindowOpacity(value: number) {
  */
 function applyWindowEffect() {
   const effect =
-    isTauri && uiStyle() === "glass" ? windowEffect() : ("none" as const);
+    isTauri && isWindows && uiStyle() === "glass"
+      ? windowEffect()
+      : ("none" as const);
   const root = document.documentElement;
   if (effect === "none") delete root.dataset.windowEffect;
   else root.dataset.windowEffect = effect;

@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Steper158X/StepUnder/releases/latest"><img alt="เวอร์ชันล่าสุด" src="https://img.shields.io/github/v/release/Steper158X/StepUnder?style=flat-square&color=8b5cf6" /></a>
-  <img alt="แพลตฟอร์ม" src="https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square" />
+  <img alt="แพลตฟอร์ม" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-0078d4?style=flat-square" />
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" /></a>
 </p>
 
@@ -170,6 +170,33 @@ StepUnder เชื่อมต่อกับเซิร์ฟเวอร์�
 3. กรอก URL ของเซิร์ฟเวอร์ ชื่อผู้ใช้ และรหัสผ่าน — แล้วเริ่มฟังเพลงได้เลย
 
 หลังจากนั้น StepUnder จะอัปเดตตัวเองให้อัตโนมัติ
+
+### Linux (Ubuntu, Pop!_OS)
+
+รองรับ Ubuntu 22.04 / Pop!_OS 22.04 ขึ้นไป (x86_64)
+
+- **.deb** (แนะนำ): ดาวน์โหลด `StepUnder_<version>_amd64.deb` แล้วรัน
+
+  ```bash
+  sudo apt install ./StepUnder_*_amd64.deb
+  ```
+
+- **AppImage**: ดาวน์โหลด `StepUnder_<version>_amd64.AppImage` สั่ง
+  `chmod +x StepUnder_*.AppImage` แล้วเปิดใช้งาน AppImage อัปเดตตัวเองได้จาก
+  **ตั้งค่า → อัปเดต**
+
+ตัวเล่น MPV ใช้ libmpv ของระบบ: `sudo apt install libmpv2` (Ubuntu/Pop!_OS 24.04)
+หรือ `libmpv1` (22.04) ส่วนตัวเล่นเว็บในตัวไม่ต้องติดตั้งอะไรเพิ่ม รหัสผ่านจะเก็บไว้ใน
+GNOME Keyring เอฟเฟกต์หน้าต่าง Mica/Acrylic ใช้ได้เฉพาะ Windows หากหน้าต่างเปิดมาว่างเปล่า
+ลองเปิดด้วย `WEBKIT_DISABLE_COMPOSITING_MODE=1`
+
+### Build จากซอร์สบน Linux
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev pkg-config patchelf build-essential
+```
+
+จากนั้น `bun install` และ `bun run tauri build` (หรือ `bun run tauri dev`)
 
 ## สัญญาอนุญาต
 

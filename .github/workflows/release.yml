@@ -1,8 +1,8 @@
 name: Release
 
-# Push a tag like v0.2.0 to build, sign and publish a release. tauri-action
-# uploads latest.json next to the installer, which is the feed the in-app
-# updater reads (see plugins.updater in src-tauri/tauri.conf.json).
+# Push a tag like v0.2.0 to build, sign and publish a release for Windows and
+# Linux. The publish job writes latest.json, the feed the in-app updater reads
+# (see plugins.updater in src-tauri/tauri.conf.json), once both builds exist.
 on:
   push:
     tags:
@@ -16,11 +16,80 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    runs-on: windows-latest
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Verify version matches tag
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          tag="${GITHUB_REF_NAME#v}"
+          if [[ "$version" != "$tag" ]]; then
+            echo "::error::src-tauri/tauri.conf.json is $version but the tag is $tag. Run 'bun run version:set $tag' first."
+            exit 1
+          fi
+
+      - name: Verify signing key is configured
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SIGNING_KEY" ]]; then
+            echo "::error::Add the updater private key as the TAURI_SIGNING_PRIVATE_KEY repository secret."
+            exit 1
+          fi
+
+      # Notes for a release live in .github/release-notes/<tag>.md. They become
+      # the release body and the notes the in-app updater shows.
+      - name: Create draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          notes=".github/release-notes/$GITHUB_REF_NAME.md"
+          if [[ ! -f "$notes" ]]; then
+            notes="$RUNNER_TEMP/notes.md"
+            printf '%s\n' "Download the installer below, or let an existing StepUnder install" \
+              "update itself from **Settings → Updates**." > "$notes"
+          fi
+          # A re-run reuses the draft an earlier attempt created.
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" | head -n1)
+          if [[ -z "$id" ]]; then
+            gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+              --title "StepUnder $GITHUB_REF_NAME" --notes-file "$notes"
+            id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" | head -n1)
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            bundles: nsis
+          # 22.04 keeps glibc old enough for Ubuntu 22.04+ and Pop!_OS 22.04+.
+          - os: ubuntu-22.04
+            bundles: deb,appimage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev libdbus-1-dev pkg-config patchelf file \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -34,95 +103,48 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          key: ${{ matrix.os }}
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify version matches tag
-        shell: bash
-        run: |
-          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          tag="${GITHUB_REF_NAME#v}"
-          if [[ "$version" != "$tag" ]]; then
-            echo "::error::src-tauri/tauri.conf.json is $version but the tag is $tag. Run 'bun run version:set $tag' first."
-            exit 1
-          fi
-
-      - name: Verify signing key is configured
-        shell: bash
-        env:
-          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: |
-          if [[ -z "$SIGNING_KEY" ]]; then
-            echo "::error::Add the updater private key as the TAURI_SIGNING_PRIVATE_KEY repository secret."
-            exit 1
-          fi
-
+      # Windows bundles libmpv-2.dll; Linux uses the system libmpv instead.
       - name: Fetch libmpv
+        if: runner.os == 'Windows'
         run: bun run mpv:fetch
         env:
           # Raises the GitHub API rate limit when resolving the mpv release.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Notes for a release live in .github/release-notes/<tag>.md. They become
-      # the release body and the notes the in-app updater shows.
-      - name: Read release notes
-        id: notes
-        shell: bash
-        run: |
-          file=".github/release-notes/$GITHUB_REF_NAME.md"
-          {
-            echo "body<<RELEASE_NOTES_EOF"
-            if [[ -f "$file" ]]; then
-              cat "$file"
-            else
-              echo "Download the installer below, or let an existing StepUnder install"
-              echo "update itself from **Settings → Updates**."
-            fi
-            echo "RELEASE_NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Build and publish
+      - name: Build and upload
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "StepUnder ${{ github.ref_name }}"
-          releaseBody: ${{ steps.notes.outputs.body }}
-          # Stay a draft until latest.json is uploaded; otherwise
-          # releases/latest points here before the feed exists and installed
-          # apps fail with "Could not fetch a valid release JSON".
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.prepare.outputs.release_id }}
           tauriScript: bun run tauri
-          # NSIS keeps the updater feed unambiguous: one installer, one signature.
-          updaterJsonPreferNsis: true
-          args: --bundles nsis
+          # The publish job writes one feed for every platform.
+          uploadUpdaterJson: false
+          args: --bundles ${{ matrix.bundles }}
 
-      - name: Publish release
-        shell: bash
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Write updater feed and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          feed="$RUNNER_TEMP/feed"
-          mkdir -p "$feed"
-          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$feed" --clobber \
-            || { echo "::error::latest.json was not uploaded; leaving the release as a draft."; exit 1; }
-          # A re-run can find a stale feed from an earlier attempt on this tag.
-          # Pass the path as an argument: RUNNER_TEMP is a Windows path, and its
-          # backslashes would be eaten as escapes inside a JS string literal.
-          version=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).version.replace(/^v/, '')" "$feed/latest.json")
-          if [[ "$version" != "${GITHUB_REF_NAME#v}" ]]; then
-            echo "::error::latest.json is for $version, not $GITHUB_REF_NAME; leaving the release as a draft."
-            exit 1
-          fi
-          # Draft assets live under releases/download/untagged-*/ until the
-          # release is published; point the feed at the tag so its URLs survive.
-          if grep -q '/download/untagged-' "$feed/latest.json"; then
-            sed -i -E "s#/download/untagged-[^/]+/#/download/$GITHUB_REF_NAME/#g" "$feed/latest.json"
-            gh release upload "$GITHUB_REF_NAME" "$feed/latest.json" --clobber
-          fi
+          sigs="$RUNNER_TEMP/sigs"
+          mkdir -p "$sigs"
+          gh release download "$GITHUB_REF_NAME" --pattern '*.sig' --dir "$sigs" --clobber \
+            || { echo "::error::No signatures were uploaded; leaving the release as a draft."; exit 1; }
+          node scripts/make-updater-feed.mjs "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" \
+            "$sigs" "$RUNNER_TEMP/latest.json" ".github/release-notes/$GITHUB_REF_NAME.md"
+          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/latest.json" --clobber
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest

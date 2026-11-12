@@ -136,8 +136,14 @@ impl Api {
                 Err(error) => failures.push(format!("{}: {error}", path.display())),
             }
         }
+        #[cfg(windows)]
+        let hint = "Reinstall the app (it should bundle libmpv-2.dll), place the DLL next to the app, or set STEPUNDER_LIBMPV.";
+        #[cfg(target_os = "macos")]
+        let hint = "Install it with `brew install mpv`, or set STEPUNDER_LIBMPV.";
+        #[cfg(all(unix, not(target_os = "macos")))]
+        let hint = "Install it with `sudo apt install libmpv2` (Ubuntu 24.04 / Pop!_OS 24.04) or `sudo apt install libmpv1` (22.04), or set STEPUNDER_LIBMPV.";
         Err(format!(
-            "libmpv was not found. Reinstall the app (it should bundle libmpv-2.dll), place the DLL next to the app, or set STEPUNDER_LIBMPV. Tried: {}",
+            "libmpv was not found. {hint} Tried: {}",
             failures.join("; ")
         ))
     }

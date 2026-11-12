@@ -75,6 +75,14 @@ fn claim_audio_sessions() {}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebKitGTK's DMA-BUF renderer shows a blank/white window on many NVIDIA
+    // and some Wayland setups (common on Pop!_OS). Turn it off unless the user
+    // chose otherwise. Runs before any thread is spawned, so set_var is sound.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
+    }
+
     let builder = tauri::Builder::default();
 
     // Must be the first plugin registered. A second launch exits immediately

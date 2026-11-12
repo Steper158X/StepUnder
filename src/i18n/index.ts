@@ -335,6 +335,8 @@ const en = {
     "Speaker or headphones MPV plays through.",
   "settings.mpvMissing":
     "libmpv was not found. Put libmpv-2.dll next to the app or install mpv, then restart.",
+  "settings.mpvMissingLinux":
+    "libmpv was not found. Install it with `sudo apt install libmpv2` (or libmpv1 on Ubuntu 22.04), then restart.",
   "settings.mpvChecking": "Looking for libmpv…",
   "settings.mpvMissingTitle": "MPV is not available",
   "settings.audioDevice": "Audio device",
@@ -867,6 +869,8 @@ const th: Record<MessageKey, string> = {
     "เลือกลำโพงหรือหูฟังที่ MPV ใช้เล่นเพลง",
   "settings.mpvMissing":
     "ไม่พบ libmpv กรุณาวางไฟล์ libmpv-2.dll ไว้ข้างโปรแกรม หรือติดตั้ง mpv แล้วรีสตาร์ท",
+  "settings.mpvMissingLinux":
+    "ไม่พบ libmpv ติดตั้งด้วยคำสั่ง `sudo apt install libmpv2` (หรือ libmpv1 บน Ubuntu 22.04) แล้วรีสตาร์ท",
   "settings.mpvChecking": "กำลังค้นหา libmpv…",
   "settings.mpvMissingTitle": "ไม่สามารถใช้ MPV ได้",
   "settings.audioDevice": "อุปกรณ์เสียง",

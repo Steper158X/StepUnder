@@ -41,7 +41,7 @@ import {
   type UiStyle,
   type WindowEffect,
 } from "~/state/settings";
-import { isTauri } from "~/lib/platform";
+import { isTauri, isWindows } from "~/lib/platform";
 import { Select } from "~/components/ui/select";
 import { Slider } from "~/components/ui/slider";
 import { cn } from "~/lib/utils";
@@ -174,7 +174,7 @@ export default function AppearanceSettingsPage() {
               onChange={setGlassBlur}
             />
 
-            <Show when={isTauri}>
+            <Show when={isTauri && isWindows}>
               <Row
                 label={t("settings.windowEffect")}
                 description={t("settings.windowEffectHint")}

@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Steper158X/StepUnder/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Steper158X/StepUnder?style=flat-square&color=8b5cf6" /></a>
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square" />
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-0078d4?style=flat-square" />
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" /></a>
 </p>
 
@@ -182,6 +182,35 @@ uploads. Everything stays between you and your server.
 3. Enter your server URL, username, and password — and start listening.
 
 After that, StepUnder keeps itself up to date automatically.
+
+### Linux (Ubuntu, Pop!_OS)
+
+Builds target Ubuntu 22.04 / Pop!_OS 22.04 and newer (x86_64).
+
+- **.deb** (recommended): download `StepUnder_<version>_amd64.deb`, then
+
+  ```bash
+  sudo apt install ./StepUnder_*_amd64.deb
+  ```
+
+- **AppImage**: download `StepUnder_<version>_amd64.AppImage`, make it
+  executable (`chmod +x StepUnder_*.AppImage`) and run it. The AppImage
+  updates itself from **Settings → Updates**.
+
+The MPV audio player uses the system libmpv: `sudo apt install libmpv2`
+(Ubuntu/Pop!_OS 24.04) or `libmpv1` (22.04). The built-in web player needs no
+extra packages. Saved passwords go to GNOME Keyring. Mica/Acrylic window
+effects are Windows-only. If the window opens blank, StepUnder already sets
+`WEBKIT_DISABLE_DMABUF_RENDERER=1`; try also launching it with
+`WEBKIT_DISABLE_COMPOSITING_MODE=1`.
+
+### Building from source on Linux
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev pkg-config patchelf build-essential
+```
+
+Then `bun install` and `bun run tauri build` (or `bun run tauri dev`).
 
 ## License
 

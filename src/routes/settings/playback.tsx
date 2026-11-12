@@ -42,7 +42,7 @@ import {
   type MpvAudioDevice,
   type MpvStatus,
 } from "~/lib/mpv";
-import { isTauri } from "~/lib/platform";
+import { isLinux, isTauri } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import { Button } from "~/components/ui/button";
 import { Select } from "~/components/ui/select";
@@ -212,7 +212,7 @@ export default function PlaybackSettingsPage() {
     }
     if (checkingPlayer()) return;
     if (!isTauri) {
-      toast(t("settings.mpvMissingTitle"), t("settings.mpvMissing"), "error");
+      toast(t("settings.mpvMissingTitle"), t(isLinux ? "settings.mpvMissingLinux" : "settings.mpvMissing"), "error");
       return;
     }
     setCheckingPlayer(true);
@@ -222,7 +222,7 @@ export default function PlaybackSettingsPage() {
       if (!status.available) {
         toast(
           t("settings.mpvMissingTitle"),
-          status.error ?? t("settings.mpvMissing"),
+          status.error ?? t(isLinux ? "settings.mpvMissingLinux" : "settings.mpvMissing"),
           "error",
         );
         return;
