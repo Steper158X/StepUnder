@@ -1,5 +1,6 @@
 #[cfg(windows)]
 mod audio_session;
+mod cover_cache;
 mod discord;
 mod downloads;
 mod mpv;
@@ -110,6 +111,10 @@ pub fn run() {
         .manage(mpv::MpvManager::default())
         .manage(discord::DiscordManager::default())
         .manage(downloads::DownloadManager::default())
+        .manage(cover_cache::CoverCache::default())
+        // The page sends the saved cache settings at startup
+        // (`cover_cache_configure`), which also trims the cache.
+        .register_asynchronous_uri_scheme_protocol(cover_cache::SCHEME, cover_cache::handle)
         // A webview reload (F5, dev-server reload) tears down the page but not
         // libmpv, so stop the engine before the new document starts.
         .on_page_load(|webview, payload| {
@@ -159,7 +164,11 @@ pub fn run() {
             downloads::default_download_dir,
             downloads::allow_asset_dir,
             downloads::pick_download_dir,
-            downloads::reveal_download
+            downloads::reveal_download,
+            cover_cache::cover_cache_stats,
+            cover_cache::cover_cache_clear,
+            cover_cache::cover_cache_configure,
+            cover_cache::cover_cache_dir
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

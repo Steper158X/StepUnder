@@ -32,7 +32,7 @@ export function ArtistAvatar(props: {
     const client = servers.client();
     const id = props.coverArt ?? (props.id ? `ar-${props.id}` : undefined);
     if (!client || !id || failed()) return null;
-    return client.coverUrl(id, props.size ?? 300);
+    return client.coverSrc(id, props.size ?? 300);
   });
 
   return (
@@ -83,23 +83,21 @@ export function Cover(props: {
     ),
   );
 
-  // Every URL carries a fresh auth salt, so re-running the memo is enough to
-  // bypass the webview's image cache.
+  // Cover URLs are stable so they stay cached; `cacheKey` changes the URL
+  // (and makes the desktop cover cache refetch) after a new upload.
   const url = createMemo(() => {
     const client = servers.client();
     const id = props.coverArtId;
-    void props.cacheKey;
     if (!client || !id || failed()) return null;
-    return client.coverUrl(id, props.size ?? 300);
+    return client.coverSrc(id, props.size ?? 300, props.cacheKey);
   });
 
   // Full-resolution artwork for the lightbox (independent of the thumbnail size).
   const fullUrl = createMemo(() => {
     const client = servers.client();
     const id = props.coverArtId;
-    void props.cacheKey;
     if (!client || !id || failed()) return null;
-    return client.coverUrl(id, Math.max(props.size ?? 300, 1200));
+    return client.coverSrc(id, Math.max(props.size ?? 300, 1200), props.cacheKey);
   });
 
   const image = () => (

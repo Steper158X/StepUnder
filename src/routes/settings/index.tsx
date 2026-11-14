@@ -3,6 +3,7 @@ import { For } from "solid-js";
 import {
   ChevronRight,
   Download,
+  HardDrive,
   Info,
   MicVocal,
   Music,
@@ -36,6 +37,12 @@ const categories: Array<{
     icon: Download,
     title: "settings.downloads",
     description: "settings.downloadsDesc",
+  },
+  {
+    href: "/settings/cache",
+    icon: HardDrive,
+    title: "settings.cache",
+    description: "settings.cacheDesc",
   },
   {
     href: "/settings/lyrics",

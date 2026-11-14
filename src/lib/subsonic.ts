@@ -1,4 +1,5 @@
 import { md5 } from "js-md5";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { isTauri } from "./platform";
 import { isLatinText, needsReading } from "./phonetic";
@@ -185,6 +186,11 @@ export class SubsonicClient {
   readonly baseUrl: string;
   readonly username: string;
   private readonly password: string;
+  /**
+   * One salt for every cover URL of this client, so the same cover always
+   * gets the same URL and the webview's image cache can actually hit.
+   */
+  private readonly coverSalt = randomSalt();
 
   constructor(config: { url: string; username: string; password: string }) {
     this.baseUrl = normalizeServerUrl(config.url);
@@ -195,13 +201,13 @@ export class SubsonicClient {
   private buildUrl(
     endpoint: string,
     params: Params = {},
-    options: { auth?: boolean; json?: boolean } = {},
+    options: { auth?: boolean; json?: boolean; salt?: string } = {},
   ) {
     const { auth = true, json = true } = options;
     const url = new URL(`${this.baseUrl}/rest/${endpoint}`);
 
     if (auth) {
-      const salt = randomSalt();
+      const salt = options.salt ?? randomSalt();
       url.searchParams.set("u", this.username);
       url.searchParams.set("t", md5(this.password + salt));
       url.searchParams.set("s", salt);
@@ -706,20 +712,38 @@ export class SubsonicClient {
   }
 
   // ------------------------------------------------------------------ media
-  coverUrl(coverArtId: string, size = 300): string {
+  /**
+   * The server's cover URL, stable for a given id/size/version. `version`
+   * (a playlist's cover counter) changes the URL after a new upload.
+   * Use this where something outside the webview loads the image (Discord,
+   * OS media controls); `<img>` tags should use `coverSrc`.
+   */
+  coverUrl(coverArtId: string, size = 300, version?: number): string {
     return this.buildUrl(
       "getCoverArt",
-      { id: coverArtId, size },
-      { json: false },
+      { id: coverArtId, size, _v: version || undefined },
+      { json: false, salt: this.coverSalt },
     );
   }
 
   /**
-   * Cover bytes fetched through the CORS-free HTTP client, so they can be
-   * drawn to a canvas and read back (an <img> from the server would taint it).
+   * Cover URL for the webview. In the desktop app it goes through the
+   * on-disk cover cache (`cover://`), so covers load instantly on later
+   * visits and app launches; in a browser it is the plain server URL.
+   */
+  coverSrc(coverArtId: string, size = 300, version?: number): string {
+    const url = this.coverUrl(coverArtId, size, version);
+    return isTauri ? convertFileSrc(url, "cover") : url;
+  }
+
+  /**
+   * Cover bytes readable by canvas code: the cover cache sends CORS headers,
+   * and the browser build falls back to the plain server URL.
    */
   async coverBlob(coverArtId: string, size = 64): Promise<Blob> {
-    const response = (await httpFetch(this.coverUrl(coverArtId, size))) as Response;
+    const response = isTauri
+      ? await globalThis.fetch(this.coverSrc(coverArtId, size))
+      : ((await httpFetch(this.coverUrl(coverArtId, size))) as Response);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.blob();
   }

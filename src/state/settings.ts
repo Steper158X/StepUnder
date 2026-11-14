@@ -85,6 +85,11 @@ export const MAX_DOWNLOAD_CONCURRENCY = 5;
 /** mpv treats `auto` as "pick the system default device". */
 export const DEFAULT_MPV_AUDIO_DEVICE = "auto";
 
+export const COVER_CACHE_SIZES_MB = [128, 256, 512, 1024, 2048, 5120];
+export const DEFAULT_COVER_CACHE_MAX_MB = 512;
+export const COVER_CACHE_DAYS = [1, 7, 14, 30, 90, 0];
+export const DEFAULT_COVER_CACHE_MAX_DAYS = 14;
+
 const [theme, setThemeSignal] = createSignal<Theme>("dark");
 const [scrobble, setScrobbleSignal] = createSignal(true);
 const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
@@ -141,6 +146,15 @@ const [downloadConcurrency, setDownloadConcurrencySignal] = createSignal(
 );
 /** Download a song as soon as it is added to favorites. */
 const [downloadOnStar, setDownloadOnStarSignal] = createSignal(false);
+/** Keep downloaded cover art on disk (desktop app only). */
+const [coverCacheEnabled, setCoverCacheEnabledSignal] = createSignal(true);
+const [coverCacheMaxMb, setCoverCacheMaxMbSignal] = createSignal(
+  DEFAULT_COVER_CACHE_MAX_MB,
+);
+/** Refetch cached covers older than this many days; 0 never refetches. */
+const [coverCacheMaxDays, setCoverCacheMaxDaysSignal] = createSignal(
+  DEFAULT_COVER_CACHE_MAX_DAYS,
+);
 
 export {
   theme,
@@ -174,6 +188,9 @@ export {
   downloadLayout,
   downloadConcurrency,
   downloadOnStar,
+  coverCacheEnabled,
+  coverCacheMaxMb,
+  coverCacheMaxDays,
 };
 
 const FONT_STACKS: Record<Font, string> = {
@@ -314,6 +331,9 @@ export async function initSettings(): Promise<void> {
     savedDownloadLayout,
     savedDownloadConcurrency,
     savedDownloadOnStar,
+    savedCoverCacheEnabled,
+    savedCoverCacheMaxMb,
+    savedCoverCacheMaxDays,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -345,6 +365,9 @@ export async function initSettings(): Promise<void> {
     readSetting<DownloadLayout>("downloadLayout", "artist-album"),
     readSetting<number>("downloadConcurrency", DEFAULT_DOWNLOAD_CONCURRENCY),
     readSetting<boolean>("downloadOnStar", false),
+    readSetting<boolean>("coverCacheEnabled", true),
+    readSetting<number>("coverCacheMaxMb", DEFAULT_COVER_CACHE_MAX_MB),
+    readSetting<number>("coverCacheMaxDays", DEFAULT_COVER_CACHE_MAX_DAYS),
   ]);
 
   const nextTheme: Theme =
@@ -399,6 +422,17 @@ export async function initSettings(): Promise<void> {
     ),
   );
   setDownloadOnStarSignal(savedDownloadOnStar === true);
+  setCoverCacheEnabledSignal(savedCoverCacheEnabled !== false);
+  setCoverCacheMaxMbSignal(
+    COVER_CACHE_SIZES_MB.includes(savedCoverCacheMaxMb)
+      ? savedCoverCacheMaxMb
+      : DEFAULT_COVER_CACHE_MAX_MB,
+  );
+  setCoverCacheMaxDaysSignal(
+    COVER_CACHE_DAYS.includes(savedCoverCacheMaxDays)
+      ? savedCoverCacheMaxDays
+      : DEFAULT_COVER_CACHE_MAX_DAYS,
+  );
   setPlayerLayoutSignal(
     savedPlayerLayout === "floating" ? "floating" : "docked",
   );
@@ -609,4 +643,21 @@ export function setDownloadConcurrency(value: number): void {
 export function setDownloadOnStar(value: boolean): void {
   setDownloadOnStarSignal(value);
   void writeSetting("downloadOnStar", value);
+}
+
+export function setCoverCacheEnabled(value: boolean): void {
+  setCoverCacheEnabledSignal(value);
+  void writeSetting("coverCacheEnabled", value);
+}
+
+export function setCoverCacheMaxMb(value: number): void {
+  if (!COVER_CACHE_SIZES_MB.includes(value)) return;
+  setCoverCacheMaxMbSignal(value);
+  void writeSetting("coverCacheMaxMb", value);
+}
+
+export function setCoverCacheMaxDays(value: number): void {
+  if (!COVER_CACHE_DAYS.includes(value)) return;
+  setCoverCacheMaxDaysSignal(value);
+  void writeSetting("coverCacheMaxDays", value);
 }

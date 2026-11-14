@@ -6,6 +6,7 @@ import { PlaylistsProvider } from "~/state/playlists";
 import { initI18n } from "~/i18n";
 import { initSettings } from "~/state/settings";
 import { initDownloads } from "~/state/downloads";
+import { initCoverCache } from "~/state/cover-cache";
 import {
   checkForUpdatesOnStartup,
   loadAppVersion,
@@ -36,12 +37,14 @@ import LyricsSettingsPage from "~/routes/settings/lyrics";
 import ServersSettingsPage from "~/routes/settings/servers";
 import DownloadSettingsPage from "~/routes/settings/downloads";
 import AboutSettingsPage from "~/routes/settings/about";
+import CacheSettingsPage from "~/routes/settings/cache";
 import NotFoundPage from "~/routes/not-found";
 
 function Root(props: RouteSectionProps) {
   onMount(() => {
     void initI18n();
     void initSettings().then(() => {
+      initCoverCache();
       void initDownloads();
       void loadAppVersion();
       void checkForUpdatesOnStartup();
@@ -101,6 +104,10 @@ export default function App() {
                 <Route
                   path="/settings/downloads"
                   component={DownloadSettingsPage}
+                />
+                <Route
+                  path="/settings/cache"
+                  component={CacheSettingsPage}
                 />
                 <Route path="/settings/about" component={AboutSettingsPage} />
               </Route>
