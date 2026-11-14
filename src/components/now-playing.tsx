@@ -27,8 +27,12 @@ import {
 
 /** Lyrics are immutable per song, so keep them around while the app runs. */
 const lyricsCache = new Map<string, Lyrics | null>();
-/** Same lyrics with generated reading lines filled in. */
-const phoneticCache = new Map<string, Lyrics>();
+/**
+ * Same lyrics with generated reading lines filled in, keyed by the source
+ * lyrics object (not the song id) so a result can never be attached to a
+ * different song's lyrics when the song changes mid-conversion.
+ */
+const phoneticCache = new WeakMap<Lyrics, Lyrics>();
 
 function trackMeta(track: Song) {
   return [track.artist, track.album].filter(Boolean).join(" · ");
@@ -86,15 +90,16 @@ export function LyricsPanel(props: {
   });
 
   // Reading lines are built in the background; the plain lyrics show first.
-  const [phonetic, setPhonetic] = createSignal<Lyrics | undefined>();
+  const [phonetic, setPhonetic] = createSignal<
+    { source: Lyrics; result: Lyrics } | undefined
+  >();
   createEffect(() => {
     const data = lyrics();
-    const songId = props.song.id;
     setPhonetic(undefined);
     if (!data || !phoneticLyrics() || !props.active) return;
-    const cached = phoneticCache.get(songId);
+    const cached = phoneticCache.get(data);
     if (cached) {
-      setPhonetic(cached);
+      setPhonetic({ source: data, result: cached });
       return;
     }
     let cancelled = false;
@@ -102,14 +107,19 @@ export function LyricsPanel(props: {
       cancelled = true;
     });
     void addPhonetics(data).then((result) => {
-      phoneticCache.set(songId, result);
-      if (!cancelled) setPhonetic(result);
+      phoneticCache.set(data, result);
+      if (!cancelled) setPhonetic({ source: data, result });
     });
   });
 
   /** What the panel shows: lyrics with their reading lines when enabled. */
-  const display = () =>
-    phoneticLyrics() ? (phonetic() ?? lyrics()) : lyrics();
+  const display = () => {
+    const data = lyrics();
+    if (!phoneticLyrics() || !data) return data;
+    const built = phonetic();
+    // Only use reading lines built from the lyrics currently shown.
+    return built?.source === data ? built.result : data;
+  };
 
   const activeIndex = createMemo(() => {
     const data = lyrics();
