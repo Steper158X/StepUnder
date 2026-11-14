@@ -58,6 +58,8 @@ export interface Album {
   starred?: string;
   /** Subsonic: the user's 1–5 rating; absent or 0 when unrated. */
   userRating?: number;
+  /** OpenSubsonic: every genre tag, when the server reports more than one. */
+  genres?: { name: string }[];
   created?: string;
   playCount?: number;
   played?: string;

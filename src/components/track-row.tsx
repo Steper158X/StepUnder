@@ -107,6 +107,8 @@ function TrackLikeButton(props: {
 export function TrackRow(props: {
   song: Song;
   index: number;
+  /** Number shown in the first column; defaults to `index + 1`. */
+  number?: number;
   context: Song[];
   sourceName?: string;
   showCover?: boolean;
@@ -205,7 +207,7 @@ export function TrackRow(props: {
                   fallback={
                     <>
                       <span class="text-xs tabular-nums text-muted-foreground group-hover:hidden">
-                        {props.index + 1}
+                        {props.number ?? props.index + 1}
                       </span>
                       <button
                         type="button"
@@ -429,6 +431,10 @@ export function TrackList(props: {
   /** Enables the drag handle; called with the old and new index. */
   onMove?: (from: number, to: number) => void;
   onRemove?: (index: number) => void;
+  /** Queue to play from; defaults to `songs` (pass the whole album when listing one disc). */
+  context?: Song[];
+  /** Show each song's own track number instead of its position. */
+  trackNumbers?: boolean;
 }) {
   let container: HTMLDivElement | undefined;
   // `over` is the insertion slot, 0..songs.length.
@@ -525,7 +531,8 @@ export function TrackList(props: {
         <TrackRow
           song={song}
           index={index}
-          context={props.songs}
+          number={props.trackNumbers ? song.track || index + 1 : undefined}
+          context={props.context ?? props.songs}
           sourceName={props.sourceName}
           showCover={props.showCover}
           showAlbum={props.showAlbum}

@@ -714,6 +714,16 @@ export class SubsonicClient {
     );
   }
 
+  /**
+   * Cover bytes fetched through the CORS-free HTTP client, so they can be
+   * drawn to a canvas and read back (an <img> from the server would taint it).
+   */
+  async coverBlob(coverArtId: string, size = 64): Promise<Blob> {
+    const response = (await httpFetch(this.coverUrl(coverArtId, size))) as Response;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.blob();
+  }
+
   streamUrl(songId: string, options: StreamOptions = {}): string {
     return this.buildUrl(
       "stream",

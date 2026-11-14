@@ -188,6 +188,11 @@ const en = {
   "album.shufflePlay": "Shuffle",
   "album.songCount": "{count} songs",
   "album.notFound": "Album not found",
+  "album.label": "Album",
+  "album.disc": "Disc {n}",
+  "album.discCount": "{count} discs",
+  "album.playCount": "{count} plays",
+  "action.goToArtist": "Go to artist",
 
   "playlists.title": "Playlists",
   "playlists.empty": "No playlists on this server",
@@ -730,6 +735,11 @@ const th: Record<MessageKey, string> = {
   "album.shufflePlay": "สุ่มเล่น",
   "album.songCount": "{count} เพลง",
   "album.notFound": "ไม่พบอัลบั้ม",
+  "album.label": "อัลบั้ม",
+  "album.disc": "แผ่นที่ {n}",
+  "album.discCount": "{count} แผ่น",
+  "album.playCount": "เล่นแล้ว {count} ครั้ง",
+  "action.goToArtist": "ไปที่ศิลปิน",
 
   "playlists.title": "เพลย์ลิสต์",
   "playlists.empty": "เซิร์ฟเวอร์นี้ยังไม่มีเพลย์ลิสต์",
