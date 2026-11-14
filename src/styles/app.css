@@ -525,6 +525,17 @@ html[data-platform="linux"] .player-progress {
   display: none;
 }
 
+/* Phones swipe these rows, so the scrollbar is just clutter there. */
+@media (max-width: 767.98px) {
+  .phone-no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .phone-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Playing indicator */
 @keyframes eq-bar {
   0%,

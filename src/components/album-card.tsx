@@ -139,7 +139,7 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
 
 export function AlbumRow(props: { albums: Album[]; class?: string }) {
   return (
-    <div class={cn("glass-row flex gap-4 overflow-x-auto pb-2", props.class)}>
+    <div class={cn("glass-row phone-no-scrollbar flex gap-4 overflow-x-auto pb-2 max-md:pb-0", props.class)}>
       <For each={props.albums}>{(album) => <AlbumCard album={album} />}</For>
     </div>
   );
