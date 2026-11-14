@@ -14,14 +14,17 @@ export default function SetupPage() {
   const navigate = useNavigate();
 
   return (
-    <div class="relative flex min-h-full items-center justify-center overflow-y-auto p-6">
+    <div class="relative flex min-h-full items-center justify-center overflow-y-auto p-6 max-sm:items-start max-sm:px-5 max-sm:pt-4 max-sm:pb-6">
       <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,oklch(0.541_0.247_var(--brand-h)/0.18),transparent_70%)]" />
-      <LanguageSwitcher showIcon class="absolute right-4 top-4 z-10" />
-      <div class="relative w-full max-w-lg py-6">
-        <div class="mb-6 flex flex-col items-center text-center">
-          <Logo class="mb-3 size-12 rounded-2xl shadow-lg" />
-          <h1 class="text-2xl font-bold tracking-tight">{t("setup.title")}</h1>
-          <p class="mt-1.5 max-w-sm text-sm text-muted-foreground">
+      <LanguageSwitcher
+        showIcon
+        class="absolute right-4 top-4 z-10 max-sm:right-3 max-sm:top-3"
+      />
+      <div class="relative w-full max-w-lg py-6 max-sm:pt-14 max-sm:pb-0">
+        <div class="mb-6 flex flex-col items-center text-center max-sm:mb-8">
+          <Logo class="mb-3 size-12 rounded-2xl shadow-lg max-sm:mb-4 max-sm:size-16" />
+          <h1 class="text-2xl font-bold tracking-tight max-sm:text-[1.65rem]">{t("setup.title")}</h1>
+          <p class="mt-1.5 max-w-sm text-sm text-muted-foreground max-sm:mt-2 max-sm:text-[0.95rem]">
             {t("setup.subtitle")}
           </p>
         </div>
@@ -34,10 +37,11 @@ export default function SetupPage() {
             </div>
           }
         >
-          <Card class="shadow-xl">
-            <CardContent class="p-5 pt-5">
+          {/* On phones the form fills the screen instead of floating in a card. */}
+          <Card class="shadow-xl max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none">
+            <CardContent class="p-5 pt-5 max-sm:p-0">
               <Show when={servers.servers().length === 0}>
-                <p class="mb-4 text-xs text-muted-foreground">
+                <p class="mb-4 text-xs text-muted-foreground max-sm:mb-5 max-sm:text-sm">
                   {t("setup.firstRunHint")}
                 </p>
               </Show>

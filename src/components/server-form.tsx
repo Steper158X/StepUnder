@@ -12,6 +12,12 @@ import {
   Label,
 } from "~/components/ui/input";
 import { CheckboxField } from "~/components/ui/checkbox";
+import { isMobile } from "~/lib/platform";
+
+/** Phone-sized fields: taller touch targets and 16px text. */
+const touchInput = "max-sm:h-12 max-sm:text-base";
+/** Phone-sized buttons: full width and easy to hit with a thumb. */
+const touchButton = "max-sm:h-12 max-sm:w-full max-sm:text-base";
 
 export interface ServerFormProps {
   initial?: ServerConfig;
@@ -109,7 +115,10 @@ export function ServerForm(props: ServerFormProps) {
         <Label for="server-name">{t("field.serverName")}</Label>
         <Input
           id="server-name"
-          autofocus
+          // Opening the keyboard on load would cover half a phone screen.
+          autofocus={!isMobile}
+          class={touchInput}
+          enterkeyhint="next"
           value={name()}
           placeholder={t("field.serverNamePlaceholder")}
           onInput={(event) => setName(event.currentTarget.value)}
@@ -122,6 +131,11 @@ export function ServerForm(props: ServerFormProps) {
         <Label for="server-url">{t("field.url")}</Label>
         <Input
           id="server-url"
+          type="url"
+          inputmode="url"
+          autocapitalize="none"
+          enterkeyhint="next"
+          class={touchInput}
           value={url()}
           placeholder={t("field.urlPlaceholder")}
           onInput={(event) => setUrl(event.currentTarget.value)}
@@ -136,6 +150,9 @@ export function ServerForm(props: ServerFormProps) {
           <Label for="server-username">{t("field.username")}</Label>
           <Input
             id="server-username"
+            autocapitalize="none"
+            enterkeyhint="next"
+            class={touchInput}
             value={username()}
             placeholder={t("field.usernamePlaceholder")}
             onInput={(event) => setUsername(event.currentTarget.value)}
@@ -154,19 +171,20 @@ export function ServerForm(props: ServerFormProps) {
               placeholder={t("field.passwordPlaceholder")}
               onInput={(event) => setPassword(event.currentTarget.value)}
               autocomplete="current-password"
-              class="pr-9"
+              enterkeyhint="go"
+              class={`pr-9 ${touchInput} max-sm:pr-12`}
             />
             <button
               type="button"
-              class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+              class="absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground max-sm:size-10"
               onClick={() => setShowPassword((value) => !value)}
               aria-label={t("field.password")}
             >
               <Show
                 when={showPassword()}
-                fallback={<Eye class="size-3.5" />}
+                fallback={<Eye class="size-3.5 max-sm:size-5" />}
               >
-                <EyeOff class="size-3.5" />
+                <EyeOff class="size-3.5 max-sm:size-5" />
               </Show>
             </button>
           </div>
@@ -177,21 +195,27 @@ export function ServerForm(props: ServerFormProps) {
         checked={savePassword()}
         onChange={setSavePassword}
         label={t("field.savePassword")}
-        description={t("field.savePasswordHint")}
+        description={isMobile ? undefined : t("field.savePasswordHint")}
       />
 
       <Show when={error()}>
         <FieldError>{error()}</FieldError>
       </Show>
 
-      <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
+      {/* Phones stack the buttons full width, primary action on top. */}
+      <div class="flex flex-wrap items-center justify-end gap-2 pt-1 max-sm:flex-col-reverse max-sm:items-stretch max-sm:gap-3 max-sm:pt-2">
         <Show when={props.onCancel && props.showCancel !== false}>
-          <Button variant="ghost" onClick={() => props.onCancel?.()}>
+          <Button
+            variant="ghost"
+            class={touchButton}
+            onClick={() => props.onCancel?.()}
+          >
             {t("action.cancel")}
           </Button>
         </Show>
         <Button
           variant="outline"
+          class={touchButton}
           disabled={testing() || busy()}
           onClick={() => void handleTest()}
         >
@@ -200,7 +224,11 @@ export function ServerForm(props: ServerFormProps) {
           </Show>
           {t("action.testConnection")}
         </Button>
-        <Button type="submit" disabled={busy() || testing()}>
+        <Button
+          type="submit"
+          class={touchButton}
+          disabled={busy() || testing()}
+        >
           <Show when={busy()}>
             <LoaderCircle class="size-4 animate-spin" />
           </Show>
