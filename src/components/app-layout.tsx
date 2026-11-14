@@ -8,6 +8,7 @@ import { MobileNav, Sidebar } from "~/components/sidebar";
 import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
+import { OutputSheet } from "~/components/output-sheet";
 import { BlurredArtwork, Spinner } from "~/components/common";
 import { Logo } from "~/components/logo";
 
@@ -107,6 +108,7 @@ export function AppLayout(props: RouteSectionProps) {
               </main>
               <QueuePanel />
               <NowPlaying />
+              <OutputSheet />
             </div>
             <PlayerBar floating={floating()} ref={setBar} />
           </div>

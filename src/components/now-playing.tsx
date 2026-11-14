@@ -36,6 +36,7 @@ import { isNarrow } from "~/lib/platform";
 import { Slider } from "~/components/ui/slider";
 import { toggleAutoMix, useCurrentStar } from "~/components/player-bar";
 import { addPhonetics } from "~/lib/phonetic";
+import { OutputButton } from "~/components/output-sheet";
 import {
   LYRICS_BLUR_MAX,
   lyricsBlur,
@@ -471,23 +472,11 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
       </div>
 
       <div class="relative flex h-full flex-col px-6 pt-[env(safe-area-inset-top)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        {/* Header: the chevron puts the player back down. */}
+        {/* Header: only the chevron, which puts the player back down. */}
         <div class="-mx-2 flex h-14 shrink-0 items-center gap-2">
           <SheetButton label={t("action.close")} onClick={close}>
             <ChevronDown class="size-6" />
           </SheetButton>
-          <div class="min-w-0 flex-1 text-center leading-tight">
-            <p class="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              {t("player.nowPlaying")}
-            </p>
-            <Show when={player.state.sourceName}>
-              <p class="truncate text-xs font-semibold">
-                {player.state.sourceName}
-              </p>
-            </Show>
-          </div>
-          {/* Keeps the title centered opposite the chevron. */}
-          <div class="size-11 shrink-0" aria-hidden="true" />
         </div>
 
         {/* Artwork, or the lyrics in its place. */}
@@ -594,7 +583,7 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
           </SheetButton>
         </div>
 
-        {/* Lyrics, auto mix and queue. */}
+        {/* Lyrics, auto mix, audio output (Android) and queue. */}
         <div class="mt-4 flex shrink-0 items-center justify-between">
           <SheetButton
             label={t("player.lyrics")}
@@ -613,6 +602,7 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
               class={cn("size-5", player.radioLoading() && "animate-pulse")}
             />
           </SheetButton>
+          <OutputButton />
           <SheetButton
             label={t("player.queue")}
             active={player.queueOpen()}

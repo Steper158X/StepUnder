@@ -116,3 +116,73 @@ export function onAndroidMediaAction(
     }
   };
 }
+
+// ------------------------------------------------------------ audio outputs
+
+/** One audio output the phone can play through. */
+export interface AudioOutput {
+  id: number;
+  kind: "speaker" | "bluetooth" | "wired" | "usb";
+  /** Device name; empty for the phone's own speaker. */
+  name: string;
+  /** Media is playing through this one now (a best guess before Android 13). */
+  active: boolean;
+}
+
+interface OutputsBridge {
+  list(): string;
+  showSwitcher(): string;
+}
+
+declare global {
+  interface Window {
+    StepUnderOutputs?: OutputsBridge;
+    __stepunderOutputsChanged?: () => void;
+  }
+}
+
+function outputsBridge(): OutputsBridge | undefined {
+  return typeof window !== "undefined" ? window.StepUnderOutputs : undefined;
+}
+
+/** True inside the Android app, which can list and switch outputs. */
+export function hasAudioOutputs(): boolean {
+  return !!outputsBridge();
+}
+
+export function listAudioOutputs(): AudioOutput[] {
+  const native = outputsBridge();
+  if (!native) return [];
+  try {
+    return JSON.parse(native.list()) as AudioOutput[];
+  } catch (error) {
+    console.warn("Could not list audio outputs", error);
+    return [];
+  }
+}
+
+/**
+ * Opens Android's Output Switcher, the only way to move the WebView's audio
+ * between the phone speaker and Bluetooth. "settings" means only Bluetooth
+ * settings could be opened instead.
+ */
+export function showAudioOutputSwitcher(): "switcher" | "settings" | "none" {
+  const native = outputsBridge();
+  if (!native) return "none";
+  try {
+    return native.showSwitcher() as "switcher" | "settings" | "none";
+  } catch {
+    return "none";
+  }
+}
+
+/** Runs when a headset or speaker connects or disconnects. */
+export function onAudioOutputsChanged(handler: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  window.__stepunderOutputsChanged = handler;
+  return () => {
+    if (window.__stepunderOutputsChanged === handler) {
+      delete window.__stepunderOutputsChanged;
+    }
+  };
+}

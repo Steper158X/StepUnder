@@ -3,6 +3,7 @@ package com.stepz.stepunder
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
+import com.stepz.stepunder.media.AudioOutputs
 import com.stepz.stepunder.media.MediaBridge
 
 class MainActivity : TauriActivity() {
@@ -15,6 +16,8 @@ class MainActivity : TauriActivity() {
     super.onWebViewCreate(webView)
     // Media notification, lock screen, Bluetooth buttons and Android Auto.
     MediaBridge.attach(webView)
+    // Speaker / Bluetooth list and the system output switcher.
+    AudioOutputs.attach(webView)
   }
 
   override fun onDestroy() {
