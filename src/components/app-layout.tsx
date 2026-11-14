@@ -4,7 +4,7 @@ import { useServers } from "~/state/servers";
 import { playerLayout, uiStyle } from "~/state/settings";
 import { usePlayer } from "~/player/store";
 import { t } from "~/i18n";
-import { MobileHeader, MobileNav, Sidebar } from "~/components/sidebar";
+import { MobileNav, Sidebar } from "~/components/sidebar";
 import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
@@ -97,7 +97,6 @@ export function AppLayout(props: RouteSectionProps) {
             <div class="relative isolate flex min-h-0 flex-1">
               <Sidebar />
               <main class="min-w-0 flex-1 overflow-y-auto">
-                <MobileHeader />
                 {props.children}
                 <Show when={floating()}>
                   <div

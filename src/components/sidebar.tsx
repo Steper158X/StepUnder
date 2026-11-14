@@ -134,21 +134,6 @@ function NavSections(props: { onNavigate?: () => void }) {
   );
 }
 
-/** Compact top bar shown below the md breakpoint; navigation lives in MobileNav. */
-export function MobileHeader() {
-  return (
-    <header class="glass-bar sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border/60 bg-background/85 px-3 backdrop-blur md:hidden">
-      <Logo class="size-7 shrink-0 rounded-md shadow-sm" />
-      <div class="min-w-0 leading-tight">
-        <p class="truncate text-sm font-semibold">{t("app.name")}</p>
-        <p class="truncate text-[10px] text-muted-foreground">
-          {t("app.tagline")}
-        </p>
-      </div>
-    </header>
-  );
-}
-
 /** Routes that light up the Library tab: everything reached from /library. */
 const libraryRoutes = [
   "/library",
