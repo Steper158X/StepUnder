@@ -10,6 +10,7 @@ import { downloadOnStar } from "~/state/settings";
 import { t, type MessageKey } from "~/i18n";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { toast } from "~/components/toaster";
+import { dragScroll } from "~/lib/drag-scroll";
 import { Cover } from "~/components/common";
 import { RatingSubmenu, StarMenuItem } from "~/components/annotations";
 import {
@@ -139,7 +140,13 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
 
 export function AlbumRow(props: { albums: Album[]; class?: string }) {
   return (
-    <div class={cn("glass-row phone-no-scrollbar flex gap-4 overflow-x-auto pb-2 max-md:pb-0", props.class)}>
+    <div
+      ref={dragScroll}
+      class={cn(
+        "glass-row phone-no-scrollbar flex gap-4 overflow-x-auto pb-2",
+        props.class,
+      )}
+    >
       <For each={props.albums}>{(album) => <AlbumCard album={album} />}</For>
     </div>
   );

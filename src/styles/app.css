@@ -525,8 +525,9 @@ html[data-platform="linux"] .player-progress {
   display: none;
 }
 
-/* Phones swipe these rows, so the scrollbar is just clutter there. */
-@media (max-width: 767.98px) {
+/* Touch screens swipe these rows, so the scrollbar is just clutter there. A
+   narrow desktop window keeps it for the mouse. */
+@media (hover: none) and (pointer: coarse) {
   .phone-no-scrollbar {
     scrollbar-width: none;
   }
