@@ -48,7 +48,7 @@ uploads. Everything stays between you and your server.
 | 📻 **Track radio**         | Start an endless radio of similar songs from any track.                              |
 | 📝 **Full playlist editor** | Create, edit, reorder with drag & drop, set custom covers, public or private.      |
 | 🎚️ **Two audio engines**   | Built-in web player or the bundled **MPV** engine for wider format support.         |
-| 🎨 **Make it yours**       | Dark / light / system theme, 7 accent colors, Thai or English UI.                   |
+| 🎨 **Make it yours**       | Dark / light / system theme, 7 accent colors, UI in 7 languages.                    |
 | 🔄 **Auto-updates**        | Signed in-app updates straight from GitHub Releases.                                 |
 | 🔒 **Private by design**   | Passwords in the OS credential store. No backend, no analytics, no telemetry.        |
 
@@ -81,7 +81,11 @@ uploads. Everything stays between you and your server.
 
 - **Multiple servers** — save several servers and switch between them anytime.
 - **Home** — newest albums, recently played, random picks, and your favorites.
-- **Albums** — browse, sort, and keep scrolling to load more.
+- **Albums** — browse, sort, and keep scrolling to load more. Album pages
+  glow with a color taken from the cover, show the play count, and split
+  multi-disc albums by disc.
+- **Ratings & favorites** — rate songs and albums from 1 to 5 stars and star
+  albums from the right-click menu, or rate an album right on its page.
 - **Artists** — artist pages with artwork, albums, and most-played songs.
 - **Genres** — browse every genre, filter as you type, and shuffle a whole genre.
 - **Favorites** — all your starred songs, albums, and artists in one place.
@@ -145,10 +149,14 @@ uploads. Everything stays between you and your server.
   volume mixer.
 - **Automatic updates** — check on startup or manually, with release notes and
   download progress.
+- **Cover art cache** — covers are saved on disk so they load instantly, even
+  after a restart. Set the maximum size and how often covers refresh, or clear
+  the cache from **Settings → Cache**.
 
 ### 🎨 Personalization
 
-- **Languages** — Thai and English, switchable at any time.
+- **Languages** — English, Thai, Simplified Chinese, Spanish, Portuguese,
+  German, and French, switchable at any time.
 - **Themes** — dark, light, or follow the system.
 - **Liquid Glass** — translucent glass panels with adjustable blur; on Windows
   the window itself can be see-through (Acrylic or Mica).
@@ -200,9 +208,10 @@ Builds target Ubuntu 22.04 / Pop!_OS 22.04 and newer (x86_64).
 The MPV audio player uses the system libmpv: `sudo apt install libmpv2`
 (Ubuntu/Pop!_OS 24.04) or `libmpv1` (22.04). The built-in web player needs no
 extra packages. Saved passwords go to GNOME Keyring. Mica/Acrylic window
-effects are Windows-only. If the window opens blank, StepUnder already sets
-`WEBKIT_DISABLE_DMABUF_RENDERER=1`; try also launching it with
-`WEBKIT_DISABLE_COMPOSITING_MODE=1`.
+effects are Windows-only. With NVIDIA's proprietary driver StepUnder sets
+`WEBKIT_DISABLE_DMABUF_RENDERER=1` for you. If the window still opens blank,
+launch it with `WEBKIT_DISABLE_DMABUF_RENDERER=1` (or also
+`WEBKIT_DISABLE_COMPOSITING_MODE=1`).
 
 ### Building from source on Linux
 
