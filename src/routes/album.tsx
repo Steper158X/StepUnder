@@ -353,7 +353,7 @@ export default function AlbumPage() {
 
             {/* ---------------------------------------------------- genres */}
             <Show when={genres().length > 0}>
-              <div class="mt-4 flex flex-wrap items-center gap-1.5 px-1.5 @2xl:mt-5 sm:px-2">
+              <div class="mt-4 flex flex-wrap items-center justify-center gap-1.5 px-1.5 @2xl:mt-5 @2xl:justify-start sm:px-2">
                 <For each={genres()}>
                   {(genre) => (
                     <A
