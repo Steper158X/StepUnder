@@ -5,10 +5,15 @@ mod discord;
 mod downloads;
 mod mpv;
 
+#[cfg(not(target_os = "android"))]
 use keyring::Entry;
 use tauri::webview::{PageLoadEvent, PermissionKind, PermissionResponse};
 use tauri::Manager;
 
+#[cfg(target_os = "android")]
+use android_secrets::{delete_secret, get_secret, save_secret};
+
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn save_secret(service: String, account: String, secret: String) -> Result<(), String> {
     let entry = Entry::new(&service, &account).map_err(|error| error.to_string())?;
@@ -17,6 +22,7 @@ fn save_secret(service: String, account: String, secret: String) -> Result<(), S
         .map_err(|error| error.to_string())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn get_secret(service: String, account: String) -> Result<Option<String>, String> {
     let entry = Entry::new(&service, &account).map_err(|error| error.to_string())?;
@@ -27,6 +33,7 @@ fn get_secret(service: String, account: String) -> Result<Option<String>, String
     }
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn delete_secret(service: String, account: String) -> Result<(), String> {
     let entry = Entry::new(&service, &account).map_err(|error| error.to_string())?;
@@ -34,6 +41,68 @@ fn delete_secret(service: String, account: String) -> Result<(), String> {
         Ok(()) => Ok(()),
         Err(keyring::Error::NoEntry) => Ok(()),
         Err(error) => Err(error.to_string()),
+    }
+}
+
+/// Android has no keyring backend, so secrets live in a JSON file inside the
+/// app's private data folder, which other apps cannot read.
+#[cfg(target_os = "android")]
+mod android_secrets {
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use tauri::{AppHandle, Manager};
+
+    fn file(app: &AppHandle) -> Result<PathBuf, String> {
+        let dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+        std::fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+        Ok(dir.join("secrets.json"))
+    }
+
+    fn load(app: &AppHandle) -> Result<HashMap<String, String>, String> {
+        match std::fs::read(file(app)?) {
+            Ok(bytes) => serde_json::from_slice(&bytes).map_err(|error| error.to_string()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(HashMap::new()),
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
+    fn store(app: &AppHandle, secrets: &HashMap<String, String>) -> Result<(), String> {
+        let bytes = serde_json::to_vec(secrets).map_err(|error| error.to_string())?;
+        std::fs::write(file(app)?, bytes).map_err(|error| error.to_string())
+    }
+
+    fn key(service: &str, account: &str) -> String {
+        format!("{service}\u{0}{account}")
+    }
+
+    #[tauri::command]
+    pub fn save_secret(
+        app: AppHandle,
+        service: String,
+        account: String,
+        secret: String,
+    ) -> Result<(), String> {
+        let mut secrets = load(&app)?;
+        secrets.insert(key(&service, &account), secret);
+        store(&app, &secrets)
+    }
+
+    #[tauri::command]
+    pub fn get_secret(
+        app: AppHandle,
+        service: String,
+        account: String,
+    ) -> Result<Option<String>, String> {
+        Ok(load(&app)?.remove(&key(&service, &account)))
+    }
+
+    #[tauri::command]
+    pub fn delete_secret(app: AppHandle, service: String, account: String) -> Result<(), String> {
+        let mut secrets = load(&app)?;
+        if secrets.remove(&key(&service, &account)).is_some() {
+            store(&app, &secrets)?;
+        }
+        Ok(())
     }
 }
 
@@ -101,11 +170,13 @@ pub fn run() {
         }
     }));
 
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+
     let app = builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(mpv::MpvManager::default())

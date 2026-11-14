@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
+#[cfg(desktop)]
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_http::reqwest;
 use tokio::io::AsyncWriteExt;
@@ -354,6 +355,7 @@ pub fn allow_asset_dir(app: AppHandle, path: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn pick_download_dir(app: AppHandle, current: Option<String>) -> Option<String> {
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -368,6 +370,14 @@ pub async fn pick_download_dir(app: AppHandle, current: Option<String>) -> Optio
         .ok()
         .flatten()
         .map(|path| path.to_string_lossy().into_owned())
+}
+
+/// Mobile has no folder picker in the dialog plugin; downloads stay in the
+/// app's default folder, so picking behaves like a cancelled dialog.
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn pick_download_dir(_app: AppHandle, _current: Option<String>) -> Option<String> {
+    None
 }
 
 /// Opens the folder in the file manager, creating it first if needed.

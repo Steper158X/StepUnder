@@ -12,7 +12,6 @@
     "core:window:allow-set-effects",
     "opener:default",
     "store:default",
-    "updater:default",
     "process:allow-restart",
     {
       "identifier": "http:default",
