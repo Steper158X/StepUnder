@@ -1178,6 +1178,10 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
     onCleanup(() => {
       disposed = true;
+      // A disposed player must not keep sounding with no UI attached to it.
+      audio.pause();
+      audio.removeAttribute("src");
+      if (usingMpv()) void mpvStop().catch(() => undefined);
       for (const off of unlisteners) off();
       clearInterval(interval);
       clearInterval(discordHeartbeat);
@@ -1262,4 +1266,11 @@ export function usePlayer(): PlayerContextValue {
     throw new Error("usePlayer must be used inside <PlayerProvider>");
   }
   return context;
+}
+
+// The player owns an <audio> element and engine listeners. Hot-swapping this
+// module would build a second, empty player while the old one keeps playing,
+// so the UI shows "Nothing playing" over audible music. Reload the page instead.
+if (import.meta.hot) {
+  import.meta.hot.accept(() => window.location.reload());
 }
