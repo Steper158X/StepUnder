@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
-import { isMobile, isTauri, isWindows } from "~/lib/platform";
+import { isMobile, isNarrow, isTauri, isWindows } from "~/lib/platform";
 
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
@@ -99,8 +99,11 @@ const [maxBitRate, setMaxBitRateSignal] = createSignal(0);
 const [streamFormat, setStreamFormatSignal] = createSignal<StreamFormat>("raw");
 const [font, setFontSignal] = createSignal<Font>("system");
 const [accent, setAccentSignal] = createSignal<Accent>("purple");
-const [playerLayout, setPlayerLayoutSignal] =
+const [savedPlayerLayoutSignal, setPlayerLayoutSignal] =
   createSignal<PlayerLayout>("docked");
+/** Phones always use the floating bar; the saved choice applies to wider windows. */
+const playerLayout = (): PlayerLayout =>
+  isNarrow() ? "floating" : savedPlayerLayoutSignal();
 const [uiStyle, setUiStyleSignal] = createSignal<UiStyle>("standard");
 const [coverShape, setCoverShapeSignal] = createSignal<CoverShape>("rounded");
 const [glassBrightness, setGlassBrightnessSignal] = createSignal(

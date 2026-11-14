@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js";
 import { t, type MessageKey } from "~/i18n";
 import { LanguageSwitcher } from "~/components/language-switcher";
+import { isNarrow } from "~/lib/platform";
 import {
   Check,
   Droplet,
@@ -337,30 +338,33 @@ export default function AppearanceSettingsPage() {
         </div>
       </Row>
 
-      <Row
-        label={t("settings.playerLayout")}
-        description={t("settings.playerLayoutHint")}
-      >
-        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-          <For each={playerLayoutOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => setPlayerLayout(option.value)}
-                class={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  playerLayout() === option.value
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <option.icon class="size-3.5" />
-                {t(option.key)}
-              </button>
-            )}
-          </For>
-        </div>
-      </Row>
+      {/* Phones always use the floating player bar. */}
+      <Show when={!isNarrow()}>
+        <Row
+          label={t("settings.playerLayout")}
+          description={t("settings.playerLayoutHint")}
+        >
+          <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
+            <For each={playerLayoutOptions}>
+              {(option) => (
+                <button
+                  type="button"
+                  onClick={() => setPlayerLayout(option.value)}
+                  class={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    playerLayout() === option.value
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <option.icon class="size-3.5" />
+                  {t(option.key)}
+                </button>
+              )}
+            </For>
+          </div>
+        </Row>
+      </Show>
 
       <Row label={t("settings.language")}>
         <LanguageSwitcher />

@@ -1,4 +1,12 @@
-import { Show, createEffect, createResource, createSignal, on, onCleanup } from "solid-js";
+import {
+  Show,
+  createEffect,
+  createResource,
+  createSignal,
+  on,
+  onCleanup,
+  onMount,
+} from "solid-js";
 import { Search } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t, type MessageKey } from "~/i18n";
@@ -11,6 +19,7 @@ import { EmptyState, ErrorState, Spinner } from "~/components/common";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
+import { takeKeyboardFocus } from "~/lib/keyboard";
 
 type Tab = "all" | "songs" | "albums" | "artists";
 
@@ -26,6 +35,12 @@ export default function SearchPage() {
   const [input, setInput] = createSignal("");
   const [query, setQuery] = createSignal("");
   const [tab, setTab] = createSignal<Tab>("all");
+  let searchInput: HTMLInputElement | undefined;
+
+  // `autofocus` is ignored on elements added after page load, so focus the box
+  // here. The bottom tab already focused a stand-in during the tap, which is
+  // what makes the phone keyboard open.
+  onMount(() => takeKeyboardFocus(searchInput));
 
   createEffect(
     on(input, (value) => {
@@ -60,6 +75,7 @@ export default function SearchPage() {
       <div class="relative mb-5 max-w-md">
         <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          ref={searchInput}
           value={input()}
           onInput={(event) => setInput(event.currentTarget.value)}
           placeholder={t("search.placeholder")}

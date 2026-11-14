@@ -1,9 +1,16 @@
-import { Router, Route, type RouteSectionProps } from "@solidjs/router";
+import {
+  Router,
+  Route,
+  useLocation,
+  useNavigate,
+  type RouteSectionProps,
+} from "@solidjs/router";
 import { onMount } from "solid-js";
 import { ServersProvider } from "~/state/servers";
 import { PlayerProvider } from "~/player/store";
 import { PlaylistsProvider } from "~/state/playlists";
 import { initI18n } from "~/i18n";
+import { isMobile, isNarrow } from "~/lib/platform";
 import { initSettings } from "~/state/settings";
 import { initDownloads } from "~/state/downloads";
 import { initCoverCache } from "~/state/cover-cache";
@@ -42,7 +49,21 @@ import CacheSettingsPage from "~/routes/settings/cache";
 import NotFoundPage from "~/routes/not-found";
 
 function Root(props: RouteSectionProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   onMount(() => {
+    // Phones always open on Home, not on whatever page the webview restored.
+    const path = location.pathname;
+    if (
+      (isMobile || isNarrow()) &&
+      path !== "/" &&
+      path !== "/setup" &&
+      path !== "/servers"
+    ) {
+      navigate("/", { replace: true });
+    }
+
     void initI18n();
     void initSettings().then(() => {
       initCoverCache();

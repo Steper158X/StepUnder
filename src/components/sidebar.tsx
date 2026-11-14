@@ -24,6 +24,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { Logo } from "~/components/logo";
 import { cn } from "~/lib/utils";
+import { holdKeyboardFocus } from "~/lib/keyboard";
 
 const navItems = [
   { href: "/search", labelKey: "nav.search" as MessageKey, icon: Search },
@@ -189,6 +190,9 @@ export function MobileNav() {
               <A
                 href={tab.href}
                 aria-current={active() ? "page" : undefined}
+                onClick={
+                  tab.href === "/search" ? () => holdKeyboardFocus() : undefined
+                }
                 class={cn(
                   "flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors",
                   active()
