@@ -1,7 +1,7 @@
 name: Release
 
-# Push a tag like v0.2.0 to build, sign and publish a release for Windows and
-# Linux. The publish job writes latest.json, the feed the in-app updater reads
+# Push a tag like v0.2.0 to build, sign and publish a release for Windows,
+# Linux and Android. The publish job writes latest.json, the feed the in-app updater reads
 # (see plugins.updater in src-tauri/tauri.conf.json), once both builds exist.
 on:
   push:
@@ -129,8 +129,109 @@ jobs:
           includeUpdaterJson: false
           args: --bundles ${{ matrix.bundles }}
 
+  # Signed universal APK, attached to the same release. Android updates by
+  # installing the new APK; it is not part of latest.json.
+  android:
+    needs: prepare
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    steps:
+      - name: Check signing secrets
+        id: secrets
+        run: |
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set; skipping the Android build."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        if: steps.secrets.outputs.ready == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          sdkmanager --install "ndk;27.2.12479018"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Setup Bun
+        if: steps.secrets.outputs.ready == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        if: steps.secrets.outputs.ready == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache Rust build
+        if: steps.secrets.outputs.ready == 'true'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: android
+
+      - name: Install frontend dependencies
+        if: steps.secrets.outputs.ready == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Write keystore
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          dir=src-tauri/gen/android
+          echo "$KEYSTORE_BASE64" | base64 -d > "$dir/release.jks"
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          } > "$dir/keystore.properties"
+
+      - name: Build APK
+        if: steps.secrets.outputs.ready == 'true'
+        run: bun run tauri android build --apk
+
+      - name: Upload APK
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.prepare.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          apk=$(ls src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk | head -n1)
+          name="StepUnder_${GITHUB_REF_NAME#v}_android.apk"
+          api="repos/$GITHUB_REPOSITORY/releases"
+          # Replace an APK an earlier attempt uploaded.
+          gh api "$api/$RELEASE_ID/assets" --paginate --jq ".[] | select(.name == \"$name\") | .id" |
+            while read -r id; do gh api -X DELETE "$api/assets/$id"; done
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary "@$apk" \
+            "https://uploads.github.com/$api/$RELEASE_ID/assets?name=$name" > /dev/null
+          echo "Uploaded $name"
+
   publish:
-    needs: [prepare, build]
+    needs: [prepare, build, android]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
