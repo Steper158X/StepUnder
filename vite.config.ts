@@ -76,5 +76,12 @@ export default defineConfig(() => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+    // 4. crawl the app at startup so dependency pre-bundling finishes before
+    //    the webview connects. Otherwise Vite reloads the page mid-load, which
+    //    on Android (every module goes through Tauri's dev proxy) can leave
+    //    a blank page.
+    warmup: {
+      clientFiles: ["./src/index.tsx"],
+    },
   },
 }));
