@@ -51,6 +51,10 @@ const en = {
   "action.goToAlbum": "Go to album",
   "action.startRadio": "Start track radio",
   "action.songInfo": "Song info",
+  "action.rate": "Rating",
+  "rating.stars": "{count} stars",
+  "rating.oneStar": "1 star",
+  "rating.clear": "Remove rating",
   "action.share": "Share",
 
   "info.title": "Title",
@@ -503,6 +507,8 @@ const en = {
   "toast.testSuccess": "Connection works",
   "toast.starred": "Added to favorites",
   "toast.unstarred": "Removed from favorites",
+  "toast.rated": "Rated {count}/5",
+  "toast.ratingCleared": "Rating removed",
   "toast.queueCleared": "Queue cleared",
 
   "share.title": "Share song",
@@ -588,6 +594,10 @@ const th: Record<MessageKey, string> = {
   "action.goToAlbum": "ไปที่อัลบั้ม",
   "action.startRadio": "เริ่มวิทยุจากเพลงนี้",
   "action.songInfo": "ข้อมูลเพลง",
+  "action.rate": "ให้คะแนน",
+  "rating.stars": "{count} ดาว",
+  "rating.oneStar": "1 ดาว",
+  "rating.clear": "ลบคะแนน",
   "action.share": "แชร์",
 
   "info.title": "ชื่อเพลง",
@@ -1035,6 +1045,8 @@ const th: Record<MessageKey, string> = {
   "toast.testSuccess": "เชื่อมต่อได้สำเร็จ",
   "toast.starred": "เพิ่มในรายการชื่นชอบแล้ว",
   "toast.unstarred": "นำออกจากรายการชื่นชอบแล้ว",
+  "toast.rated": "ให้คะแนน {count}/5 แล้ว",
+  "toast.ratingCleared": "ลบคะแนนแล้ว",
   "toast.queueCleared": "ล้างคิวเพลงแล้ว",
 
   "share.title": "แชร์เพลง",

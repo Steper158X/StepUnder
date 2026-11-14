@@ -31,6 +31,8 @@ export interface Song {
   year?: number;
   genre?: string;
   starred?: string;
+  /** Subsonic: the user's 1–5 rating; absent or 0 when unrated. */
+  userRating?: number;
   size?: number;
   suffix?: string;
   bitRate?: number;

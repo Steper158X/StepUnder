@@ -1,5 +1,6 @@
 import { splitProps, type ComponentProps } from "solid-js";
 import { ContextMenu as KContextMenu } from "@kobalte/core/context-menu";
+import { ChevronRight } from "lucide-solid";
 import { cn } from "~/lib/utils";
 
 export const ContextMenu = KContextMenu;
@@ -34,6 +35,43 @@ export function ContextMenuItem(
       )}
       {...rest}
     />
+  );
+}
+
+export const ContextMenuSub = KContextMenu.Sub;
+
+export function ContextMenuSubTrigger(
+  props: ComponentProps<typeof KContextMenu.SubTrigger>,
+) {
+  const [local, rest] = splitProps(props, ["class", "children"]);
+  return (
+    <KContextMenu.SubTrigger
+      class={cn(
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[expanded]:bg-accent data-[expanded]:text-accent-foreground [&_svg]:size-4",
+        local.class,
+      )}
+      {...rest}
+    >
+      {local.children}
+      <ChevronRight class="ml-auto size-4 text-muted-foreground" />
+    </KContextMenu.SubTrigger>
+  );
+}
+
+export function ContextMenuSubContent(
+  props: ComponentProps<typeof KContextMenu.SubContent>,
+) {
+  const [local, rest] = splitProps(props, ["class"]);
+  return (
+    <KContextMenu.Portal>
+      <KContextMenu.SubContent
+        class={cn(
+          "glass-popover z-[111] min-w-40 overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-xl animate-fade-in",
+          local.class,
+        )}
+        {...rest}
+      />
+    </KContextMenu.Portal>
   );
 }
 

@@ -135,6 +135,8 @@ export interface PlayerContextValue {
   isCurrent: (songId: string) => boolean;
   isStarred: (song: Song) => boolean;
   patchSongStar: (songId: string, starred: boolean) => void;
+  ratingOf: (song: Song) => number;
+  patchSongRating: (songId: string, rating: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextValue>();
@@ -176,6 +178,10 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const [starOverrides, setStarOverrides] = createSignal<Record<string, boolean>>(
     {},
   );
+  // Same idea for ratings, keyed by song id.
+  const [ratingOverrides, setRatingOverrides] = createSignal<
+    Record<string, number>
+  >({});
 
   function setNowPlayingOpen(open: boolean) {
     // Keep the lyrics state: closing and re-opening the full screen player
@@ -779,6 +785,21 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     );
   }
 
+  function ratingOf(song: Song) {
+    return ratingOverrides()[song.id] ?? song.userRating ?? 0;
+  }
+
+  function patchSongRating(songId: string, rating: number) {
+    setRatingOverrides((overrides) => ({ ...overrides, [songId]: rating }));
+    setState("queue", (queue) =>
+      queue.map((song) =>
+        song.id === songId
+          ? { ...song, userRating: rating || undefined }
+          : song,
+      ),
+    );
+  }
+
   function saveNow() {
     const serverId = servers.activeId();
     if (!serverId || state.queue.length === 0) {
@@ -1222,6 +1243,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     isCurrent,
     isStarred,
     patchSongStar,
+    ratingOf,
+    patchSongRating,
   };
 
   return (

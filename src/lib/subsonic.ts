@@ -594,6 +594,11 @@ export class SubsonicClient {
     await this.request("unstar", { id });
   }
 
+  /** Rating 1–5, or 0 to clear it. */
+  async setRating(id: string, rating: number): Promise<void> {
+    await this.request("setRating", { id, rating });
+  }
+
   async scrobble(id: string, submission = true): Promise<void> {
     await this.request("scrobble", { id, submission });
   }

@@ -20,6 +20,7 @@ import {
   Plus,
   Radio,
   Share2,
+  Star,
   Trash2,
   X,
 } from "lucide-solid";
@@ -44,8 +45,79 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
+
+function RatingSubmenu(props: { song: Song }) {
+  const servers = useServers();
+  const player = usePlayer();
+  const rating = () => player.ratingOf(props.song);
+
+  async function rate(value: number) {
+    const client = servers.client();
+    if (!client) return;
+    const previous = rating();
+    player.patchSongRating(props.song.id, value);
+    try {
+      await client.setRating(props.song.id, value);
+      toast(
+        value ? t("toast.rated", { count: value }) : t("toast.ratingCleared"),
+        undefined,
+        "success",
+      );
+    } catch (error) {
+      player.patchSongRating(props.song.id, previous);
+      toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
+    }
+  }
+
+  return (
+    <ContextMenuSub overlap gutter={4}>
+      <ContextMenuSubTrigger>
+        <Star class={cn("size-4", rating() > 0 && "fill-current text-primary")} />
+        {t("action.rate")}
+        <Show when={rating() > 0}>
+          <span class="ml-2 text-xs tabular-nums text-muted-foreground">
+            {rating()}/5
+          </span>
+        </Show>
+      </ContextMenuSubTrigger>
+      <ContextMenuSubContent>
+        {[5, 4, 3, 2, 1].map((value) => (
+          <ContextMenuItem onSelect={() => void rate(value)}>
+            <span
+              class={cn(
+                "flex gap-0.5",
+                rating() === value ? "text-primary" : "text-muted-foreground",
+              )}
+            >
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star
+                  class={cn("!size-3.5", i <= value && "fill-current")}
+                />
+              ))}
+            </span>
+            <span class={cn("ml-1", rating() === value && "font-medium")}>
+              {value === 1
+                ? t("rating.oneStar")
+                : t("rating.stars", { count: value })}
+            </span>
+          </ContextMenuItem>
+        ))}
+        <Show when={rating() > 0}>
+          <ContextMenuSeparator />
+          <ContextMenuItem onSelect={() => void rate(0)}>
+            <X class="size-4" />
+            {t("rating.clear")}
+          </ContextMenuItem>
+        </Show>
+      </ContextMenuSubContent>
+    </ContextMenuSub>
+  );
+}
 
 function TrackLikeButton(props: {
   song: Song;
@@ -332,6 +404,7 @@ export function TrackRow(props: {
             <ListMusic class="size-4" />
             {t("playlist.addTo.action")}
           </ContextMenuItem>
+          <RatingSubmenu song={props.song} />
           <ContextMenuItem onSelect={() => setShareOpen(true)}>
             <Share2 class="size-4" />
             {t("action.share")}
