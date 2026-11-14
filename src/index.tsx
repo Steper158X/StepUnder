@@ -2,6 +2,10 @@
 import { render } from "solid-js/web";
 import App from "./App";
 import "./styles/app.css";
+import { isLinux } from "./lib/platform";
+
+// app.css trims effects that WebKitGTK renders slowly (see `data-platform`).
+if (isLinux) document.documentElement.dataset.platform = "linux";
 
 // ปิดเมนูคลิกขวาของ webview ทั้งแอป (คลิกขวา, Shift+F10, ปุ่มเมนูบนคีย์บอร์ด)
 // ยกเว้น element ที่ทำเครื่องหมาย data-allow-context-menu ไว้ (เช่น แถวเพลงที่ใช้เมนูของตัวเอง)

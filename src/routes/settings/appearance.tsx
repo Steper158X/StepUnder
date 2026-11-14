@@ -41,7 +41,7 @@ import {
   type UiStyle,
   type WindowEffect,
 } from "~/state/settings";
-import { isTauri, isWindows } from "~/lib/platform";
+import { isLinux, isTauri, isWindows } from "~/lib/platform";
 import { Select } from "~/components/ui/select";
 import { Slider } from "~/components/ui/slider";
 import { cn } from "~/lib/utils";
@@ -165,14 +165,17 @@ export default function AppearanceSettingsPage() {
               onChange={setGlassBrightness}
             />
 
-            <SliderRow
-              label={t("settings.glassBlur")}
-              description={t("settings.glassBlurHint")}
-              value={glassBlur()}
-              max={MAX_GLASS_BLUR}
-              defaultValue={DEFAULT_GLASS_BLUR}
-              onChange={setGlassBlur}
-            />
+            {/* Linux turns backdrop blur off for performance (see app.css). */}
+            <Show when={!isLinux}>
+              <SliderRow
+                label={t("settings.glassBlur")}
+                description={t("settings.glassBlurHint")}
+                value={glassBlur()}
+                max={MAX_GLASS_BLUR}
+                defaultValue={DEFAULT_GLASS_BLUR}
+                onChange={setGlassBlur}
+              />
+            </Show>
 
             <Show when={isTauri && isWindows}>
               <Row

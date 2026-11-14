@@ -368,6 +368,39 @@ html[data-style="glass"] header.glass-bar {
   }
 }
 
+/*
+ * Linux (WebKitGTK, `html[data-platform="linux"]`): backdrop-filter and
+ * large filter blurs are re-rendered on every scroll frame there, which is
+ * what made the UI stutter. Swap the frosted panels for denser tints, keep
+ * the blurred artwork on its own static layer, and drop per-line lyric blur.
+ */
+html[data-platform="linux"] *,
+html[data-platform="linux"] *::before,
+html[data-platform="linux"] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-platform="linux"][data-style="glass"] {
+  --glass-tint: color-mix(in oklab, var(--card) 82%, transparent);
+  --glass-tint-strong: color-mix(in oklab, var(--popover) 96%, transparent);
+}
+
+html[data-platform="linux"][data-style="glass"] body {
+  background-attachment: scroll;
+}
+
+html[data-platform="linux"] .glass-backdrop,
+html[data-platform="linux"] .now-playing-backdrop {
+  transform: translateZ(0);
+  will-change: transform;
+  contain: strict;
+}
+
+html[data-platform="linux"] .lyric-line {
+  filter: none;
+}
+
 /* Scrollbars */
 * {
   scrollbar-width: thin;

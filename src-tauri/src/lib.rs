@@ -75,11 +75,15 @@ fn claim_audio_sessions() {}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // WebKitGTK's DMA-BUF renderer shows a blank/white window on many NVIDIA
-    // and some Wayland setups (common on Pop!_OS). Turn it off unless the user
-    // chose otherwise. Runs before any thread is spawned, so set_var is sound.
+    // WebKitGTK's DMA-BUF renderer shows a blank/white window with NVIDIA's
+    // proprietary driver (common on Pop!_OS). Its fallback copies every frame
+    // through shared memory, which makes scrolling and animations stutter, so
+    // only use it there. Set WEBKIT_DISABLE_DMABUF_RENDERER=1 or =0 to force
+    // either way. Runs before any thread is spawned, so set_var is sound.
     #[cfg(target_os = "linux")]
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
+        && std::path::Path::new("/proc/driver/nvidia/version").exists()
+    {
         unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
     }
 

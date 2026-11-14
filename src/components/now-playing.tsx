@@ -334,7 +334,7 @@ function NowPlayingView(props: { track: Song }) {
       class="absolute inset-0 z-50 overflow-hidden bg-background outline-none"
     >
       {/* Large blurred album art backdrop */}
-      <div class="absolute inset-0" aria-hidden="true">
+      <div class="now-playing-backdrop absolute inset-0" aria-hidden="true">
         {/* Blurred this heavily, a tiny thumbnail looks the same and decodes to a fraction of the memory. */}
         <Cover
           coverArtId={props.track.coverArt}
