@@ -1,6 +1,7 @@
 import { A, useNavigate } from "@solidjs/router";
 import { For, Show, createMemo, createResource } from "solid-js";
 import {
+  ChevronLeft,
   Disc3,
   Headphones,
   ListMusic,
@@ -22,6 +23,7 @@ import { usePlayer } from "~/player/store";
 import { t, locale, type MessageKey } from "~/i18n";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { formatDate, initials } from "~/lib/format";
+import { isNarrow } from "~/lib/platform";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -60,8 +62,8 @@ function Stat(props: {
   value: string;
 }) {
   return (
-    <div class="flex items-center gap-3 bg-card p-4">
-      <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+    <div class="flex items-center gap-2.5 bg-card p-3 sm:gap-3 sm:p-4">
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground sm:size-9">
         {props.icon}
       </span>
       <div class="min-w-0">
@@ -81,7 +83,7 @@ function SectionTitle(props: {
   children?: import("solid-js").JSX.Element;
 }) {
   return (
-    <div class="mb-3 flex items-center justify-between gap-2">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
       <h2 class="flex items-center gap-2 text-sm font-semibold">
         {props.icon}
         {props.title}
@@ -269,29 +271,43 @@ export default function ProfilePage() {
 
   return (
     <Page class="max-w-5xl">
+      <Show when={isNarrow()}>
+        <A
+          href="/settings"
+          class="mb-2 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronLeft class="size-4" />
+          {t("settings.title")}
+        </A>
+      </Show>
       <PageHeader
         title={t("profile.title")}
-        subtitle={t("profile.subtitle")}
+        subtitle={isNarrow() ? undefined : t("profile.subtitle")}
+        class={isNarrow() ? "flex-nowrap items-center" : undefined}
         actions={
           <div class="flex items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
+              size={isNarrow() ? "icon" : "sm"}
               onClick={() => void refetch()}
               disabled={data.loading}
+              aria-label={t("action.refresh")}
+              title={t("action.refresh")}
             >
               <RefreshCw
                 class={`size-3.5 ${data.loading ? "animate-spin" : ""}`}
               />
-              {t("action.refresh")}
+              <Show when={!isNarrow()}>{t("action.refresh")}</Show>
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              size={isNarrow() ? "icon" : "sm"}
               onClick={() => navigate("/servers")}
+              aria-label={t("profile.manageServers")}
+              title={t("profile.manageServers")}
             >
               <Settings class="size-3.5" />
-              {t("profile.manageServers")}
+              <Show when={!isNarrow()}>{t("profile.manageServers")}</Show>
             </Button>
           </div>
         }
@@ -316,26 +332,26 @@ export default function ProfilePage() {
           }
         >
           <Card class="mb-6 overflow-hidden">
-            <div class="flex flex-wrap items-center gap-4 bg-gradient-to-br from-primary/15 via-card to-card p-5">
-              <div class="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-xl font-semibold text-primary-foreground shadow-sm">
+            <div class="flex flex-wrap items-center gap-3 bg-gradient-to-br from-primary/15 via-card to-card p-4 sm:gap-4 sm:p-5">
+              <div class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-semibold text-primary-foreground shadow-sm sm:size-16 sm:text-xl">
                 {initials(servers.activeServer()?.username)}
               </div>
               <div class="min-w-0 flex-1">
                 <p class="text-[10px] uppercase tracking-wider text-muted-foreground">
                   {t("profile.signedInAs")}
                 </p>
-                <h2 class="truncate text-xl font-semibold">
+                <h2 class="truncate text-lg font-semibold sm:text-xl">
                   {servers.activeServer()?.username ?? "—"}
                 </h2>
                 <p class="truncate text-sm text-muted-foreground">
                   {servers.activeServer()?.name}
-                  <Show when={servers.activeServer()?.url}>
+                  <Show when={!isNarrow() && servers.activeServer()?.url}>
                     {" · "}
                     {servers.activeServer()?.url}
                   </Show>
                 </p>
               </div>
-              <div class="flex flex-wrap items-center gap-2">
+              <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 <Show when={serverLabel()}>
                   <Badge variant="outline">{serverLabel()}</Badge>
                 </Show>
@@ -385,7 +401,45 @@ export default function ProfilePage() {
               when={topAlbums().length > 0}
               fallback={<EmptyHint text={t("profile.emptyHistory")} />}
             >
-              <div class="grid gap-2 sm:grid-cols-2">
+              <Show when={isNarrow()}>
+                <div class="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+                  <For each={topAlbums()}>
+                    {(album, index) => (
+                      <A
+                        href={`/album/${album.id}`}
+                        class="w-32 shrink-0 snap-start"
+                      >
+                        <div class="relative">
+                          <Cover
+                            coverArtId={album.coverArt ?? album.id}
+                            size={256}
+                            alt={album.name}
+                            class="aspect-square w-full rounded-lg"
+                          />
+                          <span class="absolute left-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/60 text-[11px] font-semibold tabular-nums text-white">
+                            {index() + 1}
+                          </span>
+                        </div>
+                        <p class="mt-1.5 truncate text-sm font-medium">
+                          {album.name}
+                        </p>
+                        <p class="truncate text-[11px] text-muted-foreground">
+                          {album.artist ?? t("common.unknownArtist")}
+                          <Show when={album.playCount}>
+                            {(plays) => (
+                              <>
+                                {" · "}
+                                {t("profile.plays", { count: plays() })}
+                              </>
+                            )}
+                          </Show>
+                        </p>
+                      </A>
+                    )}
+                  </For>
+                </div>
+              </Show>
+              <div class="hidden gap-2 md:grid md:grid-cols-2">
                 <For each={topAlbums()}>
                   {(album, index) => (
                     <A
@@ -528,7 +582,7 @@ export default function ProfilePage() {
             >
               <div class="space-y-1">
                 <For each={topSongs()}>
-                  {(song, index) => (
+                  {(song) => (
                     <button
                       type="button"
                       onClick={() =>
@@ -540,9 +594,6 @@ export default function ProfilePage() {
                       }
                       class="group flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/50"
                     >
-                      <span class="w-4 text-center text-xs font-semibold tabular-nums text-muted-foreground">
-                        {index() + 1}
-                      </span>
                       <Cover
                         coverArtId={song.coverArt ?? song.albumId}
                         size={96}
@@ -568,7 +619,7 @@ export default function ProfilePage() {
                           </span>
                         )}
                       </Show>
-                      <Play class="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                      <Play class="hidden size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 md:block" />
                     </button>
                   )}
                 </For>

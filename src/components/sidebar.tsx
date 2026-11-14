@@ -143,7 +143,6 @@ const libraryRoutes = [
   "/playlist",
   "/genre",
   "/downloads",
-  "/profile",
 ];
 
 const mobileTabs: Array<{
@@ -169,7 +168,8 @@ const mobileTabs: Array<{
     href: "/settings",
     labelKey: "nav.settings",
     icon: Settings,
-    match: (path) => path.startsWith("/settings"),
+    match: (path) =>
+      path.startsWith("/settings") || path.startsWith("/profile"),
   },
 ];
 

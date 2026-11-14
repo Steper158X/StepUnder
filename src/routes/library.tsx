@@ -7,7 +7,6 @@ import {
   Heart,
   ListMusic,
   Tags,
-  UserRound,
   Users,
 } from "lucide-solid";
 import { t, type MessageKey } from "~/i18n";
@@ -26,7 +25,6 @@ export const libraryItems: Array<{
   { href: "/artists", icon: Users, title: "nav.artists" },
   { href: "/genres", icon: Tags, title: "nav.genres" },
   { href: "/downloads", icon: Download, title: "nav.downloads" },
-  { href: "/profile", icon: UserRound, title: "nav.profile" },
 ];
 
 export default function LibraryPage() {

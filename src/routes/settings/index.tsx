@@ -1,5 +1,6 @@
 import { A } from "@solidjs/router";
-import { For } from "solid-js";
+import { For, createMemo } from "solid-js";
+import { isNarrow } from "~/lib/platform";
 import {
   ChevronRight,
   Download,
@@ -9,17 +10,20 @@ import {
   Music,
   Palette,
   Server,
+  UserRound,
 } from "lucide-solid";
 import { t, type MessageKey } from "~/i18n";
 import { Page, PageHeader } from "~/components/layout-bits";
 import { Card } from "~/components/ui/card";
 
-const categories: Array<{
+type Category = {
   href: string;
   icon: typeof Palette;
   title: MessageKey;
   description: MessageKey;
-}> = [
+};
+
+const categories: Category[] = [
   {
     href: "/settings/appearance",
     icon: Palette,
@@ -57,6 +61,12 @@ const categories: Array<{
     description: "settings.serversDesc",
   },
   {
+    href: "/profile",
+    icon: UserRound,
+    title: "nav.profile",
+    description: "profile.subtitle",
+  },
+  {
     href: "/settings/about",
     icon: Info,
     title: "settings.about",
@@ -65,12 +75,18 @@ const categories: Array<{
 ];
 
 export default function SettingsPage() {
+  // Desktop reaches Profile from the sidebar account menu; phones have no
+  // sidebar, so it lives here, just above About.
+  const visible = createMemo(() =>
+    isNarrow() ? categories : categories.filter((c) => c.href !== "/profile"),
+  );
+
   return (
     <Page class="max-w-3xl">
       <PageHeader title={t("settings.title")} />
 
       <Card class="divide-y divide-border/60 overflow-hidden">
-        <For each={categories}>
+        <For each={visible()}>
           {(category) => {
             const Icon = category.icon;
             return (
