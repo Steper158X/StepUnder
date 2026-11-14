@@ -1,14 +1,12 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { Popover } from "@kobalte/core/popover";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-solid";
-import { locale, t } from "~/i18n";
+import { intlLocale, t } from "~/i18n";
 import { cn } from "~/lib/utils";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 const pad = (value: number) => String(value).padStart(2, "0");
-
-const intlLocale = () => (locale() === "th" ? "th-TH" : "en-US");
 
 function sameDay(a: Date, b: Date) {
   return (

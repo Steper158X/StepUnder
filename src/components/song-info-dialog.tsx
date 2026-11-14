@@ -1,7 +1,7 @@
 import { For, Show, createResource } from "solid-js";
 import type { Song } from "~/lib/types";
 import { useServers } from "~/state/servers";
-import { locale, t, type MessageKey } from "~/i18n";
+import { intlLocale, t, type MessageKey } from "~/i18n";
 import { formatBytes, formatTime } from "~/lib/format";
 import { Cover } from "~/components/common";
 import {
@@ -31,7 +31,7 @@ function formatDateTime(value?: string): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale() === "th" ? "th-TH" : "en-US", {
+  return date.toLocaleString(intlLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   });

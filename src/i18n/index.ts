@@ -1,7 +1,12 @@
 import { createSignal } from "solid-js";
 import { readSetting, writeSetting } from "~/lib/storage";
+import { de } from "./locales/de";
+import { es } from "./locales/es";
+import { fr } from "./locales/fr";
+import { pt } from "./locales/pt";
+import { zh } from "./locales/zh";
 
-export type Locale = "th" | "en";
+export type Locale = "th" | "en" | "zh" | "es" | "pt" | "de" | "fr";
 
 const en = {
   "app.name": "StepUnder",
@@ -570,6 +575,13 @@ const en = {
 
 export type MessageKey = keyof typeof en;
 
+/**
+ * A translation that may leave keys out. Any key that is missing (or an empty
+ * string) falls back to English in `t()`, so new strings can be added to `en`
+ * without breaking languages that have not been translated yet.
+ */
+export type PartialMessages = Partial<Record<MessageKey, string>>;
+
 const th: Record<MessageKey, string> = {
   "app.name": "StepUnder",
   "app.tagline": "เพลงของคุณ เซิร์ฟเวอร์ของคุณ",
@@ -1130,7 +1142,15 @@ const th: Record<MessageKey, string> = {
   "empty.noServer": "เชื่อมต่อเซิร์ฟเวอร์ก่อน",
 };
 
-const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, th };
+const dictionaries: Record<Locale, PartialMessages> = {
+  en,
+  th,
+  zh,
+  es,
+  pt,
+  de,
+  fr,
+};
 
 const [locale, setLocaleSignal] = createSignal<Locale>("en");
 
@@ -1139,13 +1159,49 @@ export { locale };
 export const LOCALE_OPTIONS: Array<{ value: Locale; label: string }> = [
   { value: "en", label: "English" },
   { value: "th", label: "ไทย" },
+  { value: "zh", label: "简体中文" },
+  { value: "es", label: "Español" },
+  { value: "pt", label: "Português" },
+  { value: "de", label: "Deutsch" },
+  { value: "fr", label: "Français" },
 ];
+
+const INTL_LOCALES: Record<Locale, string> = {
+  en: "en-US",
+  th: "th-TH",
+  zh: "zh-CN",
+  es: "es-ES",
+  pt: "pt-BR",
+  de: "de-DE",
+  fr: "fr-FR",
+};
+
+/** BCP 47 tag for Intl / toLocale* formatting of the given app locale. */
+export function intlLocale(value: Locale = locale()): string {
+  return INTL_LOCALES[value] ?? "en-US";
+}
+
+/** Value for <html lang>, so the browser picks CJK glyphs, hyphenation etc. */
+const HTML_LANG: Record<Locale, string> = {
+  en: "en",
+  th: "th",
+  zh: "zh-CN",
+  es: "es",
+  pt: "pt",
+  de: "de",
+  fr: "fr",
+};
+
+function isLocale(value: unknown): value is Locale {
+  return typeof value === "string" && value in dictionaries;
+}
 
 export function t(
   key: MessageKey,
   params?: Record<string, string | number>,
 ): string {
-  let text: string = dictionaries[locale()][key] ?? en[key] ?? key;
+  // Missing or empty translation → English → the raw key as a last resort.
+  let text: string = dictionaries[locale()][key] || en[key] || key;
   if (params) {
     for (const [name, value] of Object.entries(params)) {
       text = text.split(`{${name}}`).join(String(value));
@@ -1156,13 +1212,13 @@ export function t(
 
 export async function initI18n(): Promise<void> {
   const saved = await readSetting<Locale>("locale", "en");
-  const next: Locale = saved === "th" ? "th" : "en";
+  const next: Locale = isLocale(saved) ? saved : "en";
   setLocaleSignal(next);
-  document.documentElement.lang = next;
+  document.documentElement.lang = HTML_LANG[next];
 }
 
 export function setLocale(next: Locale): void {
   setLocaleSignal(next);
-  document.documentElement.lang = next;
+  document.documentElement.lang = HTML_LANG[next];
   void writeSetting("locale", next);
 }

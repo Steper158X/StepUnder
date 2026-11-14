@@ -1,3 +1,5 @@
+import { intlLocale, type Locale } from "~/i18n";
+
 /** 245 -> "4:05", 3725 -> "1:02:05" */
 export function formatTime(totalSeconds?: number | null): string {
   if (!totalSeconds || totalSeconds < 0 || !Number.isFinite(totalSeconds)) {
@@ -26,11 +28,11 @@ export function formatYear(value?: string | number | null): string {
 }
 
 /** "2024-05-01T10:00:00Z" -> localized short date ("1 พ.ค. 2024"). */
-export function formatDate(value?: string | null, locale?: string): string {
+export function formatDate(value?: string | null, locale?: Locale): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(locale === "th" ? "th-TH" : "en-US", {
+  return date.toLocaleDateString(intlLocale(locale), {
     day: "numeric",
     month: "short",
     year: "numeric",
