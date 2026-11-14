@@ -151,7 +151,7 @@ export function MobileHeader() {
 
         <Dialog.Portal>
           <Dialog.Overlay class="fixed inset-0 z-50 animate-fade-in bg-black/60 backdrop-blur-[2px]" />
-          <Dialog.Content class="glass-panel fixed inset-y-0 left-0 z-50 flex w-[min(17rem,85vw)] animate-slide-in-left flex-col border-r border-border/60 bg-card shadow-2xl outline-none">
+          <Dialog.Content class="glass-panel fixed inset-y-0 left-0 z-50 flex w-[min(17rem,calc(85vw+env(safe-area-inset-left)))] animate-slide-in-left flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] border-r border-border/60 bg-card shadow-2xl outline-none">
             <Dialog.Title class="sr-only">{t("app.name")}</Dialog.Title>
             <div class="flex h-14 items-center justify-between gap-1 border-b border-border/60 px-4">
               <Brand />

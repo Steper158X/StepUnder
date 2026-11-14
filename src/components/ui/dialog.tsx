@@ -14,7 +14,7 @@ export function DialogContent(
   return (
     <KDialog.Portal>
       <KDialog.Overlay class="fixed inset-0 z-50 animate-fade-in bg-black/65 backdrop-blur-[2px]" />
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <KDialog.Content
           class={cn(
             "glass-panel relative w-full max-w-md animate-fade-in rounded-xl border bg-card p-5 shadow-2xl outline-none",

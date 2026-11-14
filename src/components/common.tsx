@@ -233,7 +233,7 @@ export function Cover(props: {
         <Dialog.Portal>
           <Dialog.Overlay class="fixed inset-0 z-50 animate-fade-in bg-black/90 backdrop-blur-sm" />
           <Dialog.Content
-            class="fixed inset-0 z-50 flex items-center justify-center p-6 outline-none sm:p-10"
+            class="fixed inset-0 z-50 flex items-center justify-center p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] outline-none sm:p-10"
             onClick={(event) => {
               if (event.target === event.currentTarget) setOpen(false);
             }}
@@ -242,7 +242,7 @@ export function Cover(props: {
               {props.alt ?? t("action.viewCover")}
             </Dialog.Title>
             <Dialog.CloseButton
-              class="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              class="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-10 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               aria-label={t("action.close")}
             >
               <X class="size-5" />

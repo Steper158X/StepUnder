@@ -31,7 +31,7 @@ export function QueuePanel() {
       class={cn(
         "flex shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-out",
         open()
-          ? "glass-bar glass-inset w-[22rem] border-l md:mb-[var(--player-space,0px)] border-border/60 bg-card/25 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-40 max-md:max-w-[92vw] max-md:bg-card max-md:shadow-2xl"
+          ? "glass-bar glass-inset w-[22rem] border-l md:mb-[var(--player-space,0px)] border-border/60 bg-card/25 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] max-md:pr-[env(safe-area-inset-right)] max-md:z-40 max-md:max-w-[92vw] max-md:bg-card max-md:shadow-2xl"
           : "w-0 border-l-0",
         // Phones have no room for a lyrics column, only the queue overlay.
         !player.queueOpen() && "max-md:hidden",

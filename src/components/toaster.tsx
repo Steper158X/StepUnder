@@ -37,7 +37,7 @@ const icons = {
 
 export function Toaster() {
   return (
-    <div class="pointer-events-none fixed bottom-28 right-4 z-[120] flex w-[min(92vw,22rem)] flex-col gap-2">
+    <div class="pointer-events-none fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-[120] flex w-[min(92vw,22rem)] flex-col gap-2">
       <For each={items()}>
         {(item) => {
           const Icon = icons[item.variant];
