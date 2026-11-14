@@ -26,6 +26,7 @@ import ArtistPage from "~/routes/artist";
 import PlaylistsPage from "~/routes/playlists";
 import PlaylistPage from "~/routes/playlist";
 import SearchPage from "~/routes/search";
+import LibraryPage from "~/routes/library";
 import GenresPage from "~/routes/genres";
 import GenrePage from "~/routes/genre";
 import ProfilePage from "~/routes/profile";
@@ -80,6 +81,7 @@ export default function App() {
                 <Route path="/playlists" component={PlaylistsPage} />
                 <Route path="/playlist/:id" component={PlaylistPage} />
                 <Route path="/search" component={SearchPage} />
+                <Route path="/library" component={LibraryPage} />
                 <Route path="/genres" component={GenresPage} />
                 <Route path="/genre/:name" component={GenrePage} />
                 <Route path="/profile" component={ProfilePage} />

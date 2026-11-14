@@ -130,8 +130,73 @@ export function PlayerBar(props: {
           : "glass-bar border-t border-border/60 bg-card/50 backdrop-blur",
       )}
     >
+      {/* Phones: cover, title, artist and play/pause, with a thin progress
+          line on the bottom edge. Tapping it opens the full screen player,
+          which brings back the full controls below. */}
+      <Show when={!player.nowPlayingOpen()}>
+        <div class="relative overflow-hidden rounded-[inherit] md:hidden">
+          <div class="flex items-center gap-3 px-3 py-2">
+            <button
+              type="button"
+              onClick={() => player.setNowPlayingOpen(true)}
+              disabled={!track()}
+              aria-label={t("player.openFullscreen")}
+              class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+            >
+              <Cover
+                coverArtId={track()?.coverArt}
+                size={96}
+                alt={track()?.album ?? track()?.title ?? ""}
+                class="size-11 shrink-0 rounded-md shadow-sm"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">
+                  {track()?.title ?? t("player.nothingPlaying")}
+                </p>
+                <p
+                  class={cn(
+                    "truncate text-xs text-muted-foreground",
+                    player.state.error && "text-destructive",
+                  )}
+                >
+                  {player.state.error ??
+                    track()?.artist ??
+                    t("player.queueEmptyHint")}
+                </p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={player.toggle}
+              disabled={!track()}
+              class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform active:scale-95 disabled:cursor-default disabled:opacity-40"
+              aria-label={t(player.state.playing ? "action.pause" : "action.play")}
+            >
+              <Show
+                when={player.state.playing}
+                fallback={<Play class="ml-0.5 size-4 fill-current" />}
+              >
+                <Pause class="size-4 fill-current" />
+              </Show>
+            </button>
+          </div>
+          <div
+            aria-hidden="true"
+            class="absolute inset-x-0 bottom-0 h-0.5 bg-foreground/10"
+          >
+            <div
+              class="h-full bg-primary transition-[width] duration-300 ease-linear"
+              style={{
+                width: `${duration() > 0 ? Math.min((position() / duration()) * 100, 100) : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+      </Show>
+
       <div
         class={cn(
+          !player.nowPlayingOpen() && "max-md:hidden",
           "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)] md:gap-4 md:px-4 md:py-0",
           props.floating ? "md:h-[80px]" : "md:h-[92px]",
         )}

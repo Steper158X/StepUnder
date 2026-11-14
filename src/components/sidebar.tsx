@@ -1,23 +1,21 @@
-import { A, useNavigate } from "@solidjs/router";
-import { For, createSignal, onMount, onCleanup } from "solid-js";
+import { A, useLocation, useNavigate } from "@solidjs/router";
+import { For, Show, onMount, onCleanup } from "solid-js";
 import {
   Disc3,
   Download,
   Ellipsis,
   Heart,
   House,
+  Library,
   ListMusic,
-  Menu,
   Search,
   Settings,
   Tags,
   UserRound,
   Users,
-  X,
 } from "lucide-solid";
 import { usePlayer } from "~/player/store";
 import { t, type MessageKey } from "~/i18n";
-import { Dialog } from "~/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Logo } from "~/components/logo";
+import { cn } from "~/lib/utils";
 
 const navItems = [
   { href: "/search", labelKey: "nav.search" as MessageKey, icon: Search },
@@ -135,39 +134,10 @@ function NavSections(props: { onNavigate?: () => void }) {
   );
 }
 
-/** Compact top bar with a slide-over menu, shown below the md breakpoint. */
+/** Compact top bar shown below the md breakpoint; navigation lives in MobileNav. */
 export function MobileHeader() {
-  const [open, setOpen] = createSignal(false);
-
   return (
-    <header class="glass-bar sticky top-0 z-30 flex h-12 items-center gap-1.5 border-b border-border/60 bg-background/85 px-2 backdrop-blur md:hidden">
-      <Dialog open={open()} onOpenChange={setOpen}>
-        <Dialog.Trigger
-          class="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={t("action.openMenu")}
-        >
-          <Menu class="size-5" />
-        </Dialog.Trigger>
-
-        <Dialog.Portal>
-          <Dialog.Overlay class="fixed inset-0 z-50 animate-fade-in bg-black/60 backdrop-blur-[2px]" />
-          <Dialog.Content class="glass-panel fixed inset-y-0 left-0 z-50 flex w-[min(17rem,calc(85vw+env(safe-area-inset-left)))] animate-slide-in-left flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] border-r border-border/60 bg-card shadow-2xl outline-none">
-            <Dialog.Title class="sr-only">{t("app.name")}</Dialog.Title>
-            <div class="flex h-14 items-center justify-between gap-1 border-b border-border/60 px-4">
-              <Brand />
-              <BrandMenu onNavigate={() => setOpen(false)} />
-              <Dialog.CloseButton
-                class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={t("action.close")}
-              >
-                <X class="size-4" />
-              </Dialog.CloseButton>
-            </div>
-            <NavSections onNavigate={() => setOpen(false)} />
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
-
+    <header class="glass-bar sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border/60 bg-background/85 px-3 backdrop-blur md:hidden">
       <Logo class="size-7 shrink-0 rounded-md shadow-sm" />
       <div class="min-w-0 leading-tight">
         <p class="truncate text-sm font-semibold">{t("app.name")}</p>
@@ -176,6 +146,79 @@ export function MobileHeader() {
         </p>
       </div>
     </header>
+  );
+}
+
+/** Routes that light up the Library tab: everything reached from /library. */
+const libraryRoutes = [
+  "/library",
+  "/favorites",
+  "/album",
+  "/artist",
+  "/playlist",
+  "/genre",
+  "/downloads",
+  "/profile",
+];
+
+const mobileTabs: Array<{
+  href: string;
+  labelKey: MessageKey;
+  icon: typeof House;
+  match: (path: string) => boolean;
+}> = [
+  { href: "/", labelKey: "nav.home", icon: House, match: (path) => path === "/" },
+  {
+    href: "/search",
+    labelKey: "nav.search",
+    icon: Search,
+    match: (path) => path.startsWith("/search"),
+  },
+  {
+    href: "/library",
+    labelKey: "nav.library",
+    icon: Library,
+    match: (path) => libraryRoutes.some((route) => path.startsWith(route)),
+  },
+  {
+    href: "/settings",
+    labelKey: "nav.settings",
+    icon: Settings,
+    match: (path) => path.startsWith("/settings"),
+  },
+];
+
+/** Bottom tab bar for phones. Hidden while the full screen player is open. */
+export function MobileNav() {
+  const player = usePlayer();
+  const location = useLocation();
+
+  return (
+    <Show when={!player.nowPlayingOpen()}>
+      <nav class="glass-bar grid shrink-0 grid-cols-4 border-t border-border/60 bg-card/80 backdrop-blur md:hidden">
+        <For each={mobileTabs}>
+          {(tab) => {
+            const Icon = tab.icon;
+            const active = () => tab.match(location.pathname);
+            return (
+              <A
+                href={tab.href}
+                aria-current={active() ? "page" : undefined}
+                class={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors",
+                  active()
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon class="size-5" />
+                <span class="max-w-full truncate px-1">{t(tab.labelKey)}</span>
+              </A>
+            );
+          }}
+        </For>
+      </nav>
+    </Show>
   );
 }
 

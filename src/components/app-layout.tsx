@@ -4,7 +4,7 @@ import { useServers } from "~/state/servers";
 import { playerLayout, uiStyle } from "~/state/settings";
 import { usePlayer } from "~/player/store";
 import { t } from "~/i18n";
-import { MobileHeader, Sidebar } from "~/components/sidebar";
+import { MobileHeader, MobileNav, Sidebar } from "~/components/sidebar";
 import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
@@ -91,19 +91,27 @@ export function AppLayout(props: RouteSectionProps) {
           }
         >
           <GlassBackdrop />
-          <div class="relative isolate flex min-h-0 flex-1">
-            <Sidebar />
-            <main class="min-w-0 flex-1 overflow-y-auto">
-              <MobileHeader />
-              {props.children}
-              <Show when={floating()}>
-                <div aria-hidden="true" style={{ height: `${barSpace()}px` }} />
-              </Show>
-            </main>
-            <QueuePanel />
-            <NowPlaying />
+          {/* Content and player bar share a box so a floating bar sits above
+              the phone's bottom tab bar instead of covering it. */}
+          <div class="relative flex min-h-0 flex-1 flex-col">
+            <div class="relative isolate flex min-h-0 flex-1">
+              <Sidebar />
+              <main class="min-w-0 flex-1 overflow-y-auto">
+                <MobileHeader />
+                {props.children}
+                <Show when={floating()}>
+                  <div
+                    aria-hidden="true"
+                    style={{ height: `${barSpace()}px` }}
+                  />
+                </Show>
+              </main>
+              <QueuePanel />
+              <NowPlaying />
+            </div>
+            <PlayerBar floating={floating()} ref={setBar} />
           </div>
-          <PlayerBar floating={floating()} ref={setBar} />
+          <MobileNav />
         </div>
       </Show>
     </Show>
