@@ -32,6 +32,7 @@ import { downloadOnStar } from "~/state/settings";
 import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
 import { cn } from "~/lib/utils";
+import { isMobile } from "~/lib/platform";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { toast } from "~/components/toaster";
 import { Cover, PlayingBars } from "~/components/common";
@@ -70,7 +71,10 @@ function TrackLikeButton(props: {
       if (next) await client.star(props.song.id);
       else await client.unstar(props.song.id);
       player.patchSongStar(props.song.id, next);
-      toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      // Phones show the filled heart; a toast would cover the controls.
+      if (!isMobile) {
+        toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      }
       if (next && downloadOnStar()) downloads.download([props.song]);
     } catch (error) {
       toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");

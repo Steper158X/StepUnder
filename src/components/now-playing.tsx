@@ -8,14 +8,33 @@ import {
   onCleanup,
   onMount,
   type Accessor,
+  type JSX,
 } from "solid-js";
-import { X } from "lucide-solid";
+import {
+  ChevronDown,
+  Heart,
+  Infinity as InfinityIcon,
+  ListMusic,
+  MicVocal,
+  Pause,
+  Play,
+  Repeat,
+  Repeat1,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  X,
+} from "lucide-solid";
 import type { Lyrics, Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
 import { BlurredArtwork, Cover, Spinner } from "~/components/common";
 import { cn } from "~/lib/utils";
+import { formatTime } from "~/lib/format";
+import { isNarrow } from "~/lib/platform";
+import { Slider } from "~/components/ui/slider";
+import { toggleAutoMix, useCurrentStar } from "~/components/player-bar";
 import { addPhonetics } from "~/lib/phonetic";
 import {
   LYRICS_BLUR_MAX,
@@ -375,12 +394,286 @@ function NowPlayingView(props: { track: Song }) {
   );
 }
 
-export function NowPlaying() {
+/** Round icon button used by the phone player. */
+function SheetButton(props: {
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  class?: string;
+  children: JSX.Element;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => props.onClick()}
+      disabled={props.disabled}
+      title={props.label}
+      aria-label={props.label}
+      aria-pressed={props.active}
+      class={cn(
+        "relative flex cursor-pointer items-center justify-center rounded-full p-2.5 text-foreground/75 transition-[color,transform] active:scale-90 disabled:cursor-default disabled:opacity-40",
+        props.active && "text-primary",
+        props.class,
+      )}
+    >
+      {props.children}
+    </button>
+  );
+}
+
+/**
+ * Phone full screen player: a sheet that slides up over the whole app with
+ * its own controls, laid out like a phone music player.
+ */
+function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
   const player = usePlayer();
+  const { starred, toggleStar } = useCurrentStar();
+  const [drag, setDrag] = createSignal<number | null>(null);
+  const duration = () => player.state.duration || props.track.duration || 0;
+  const position = () => drag() ?? player.state.position;
+  const close = () => player.setNowPlayingOpen(false);
+  let panel: HTMLDivElement | undefined;
+
+  onMount(() => {
+    panel?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      close();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", onKeyDown));
+  });
 
   return (
-    <Show when={player.nowPlayingOpen() && player.current()}>
-      {(track) => <NowPlayingView track={track()} />}
+    <div
+      ref={panel}
+      tabindex="-1"
+      role="dialog"
+      aria-label={t("player.nowPlaying")}
+      class={cn(
+        "fixed inset-0 z-50 overflow-hidden bg-background outline-none",
+        props.leaving
+          ? "pointer-events-none animate-sheet-down"
+          : "animate-sheet-up",
+      )}
+    >
+      <div class="now-playing-backdrop absolute inset-0" aria-hidden="true">
+        <BlurredArtwork
+          coverArtId={props.track.coverArt}
+          blurClass="blur-[80px]"
+          class="size-full scale-110"
+          iconClass="size-32"
+        />
+        <div class="absolute inset-0 bg-background/40" />
+        <div class="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/70" />
+      </div>
+
+      <div class="relative flex h-full flex-col px-6 pt-[env(safe-area-inset-top)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        {/* Header: the chevron puts the player back down. */}
+        <div class="-mx-2 flex h-14 shrink-0 items-center gap-2">
+          <SheetButton label={t("action.close")} onClick={close}>
+            <ChevronDown class="size-6" />
+          </SheetButton>
+          <div class="min-w-0 flex-1 text-center leading-tight">
+            <p class="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {t("player.nowPlaying")}
+            </p>
+            <Show when={player.state.sourceName}>
+              <p class="truncate text-xs font-semibold">
+                {player.state.sourceName}
+              </p>
+            </Show>
+          </div>
+          {/* Keeps the title centered opposite the chevron. */}
+          <div class="size-11 shrink-0" aria-hidden="true" />
+        </div>
+
+        {/* Artwork, or the lyrics in its place. */}
+        <div class="flex min-h-0 flex-1 flex-col justify-center py-4">
+          <Show
+            when={player.lyricsOpen()}
+            fallback={
+              <Cover
+                coverArtId={props.track.coverArt}
+                size={800}
+                alt={props.track.album ?? props.track.title}
+                class="mx-auto aspect-square w-full max-w-[min(100%,46vh)] rounded-2xl shadow-2xl ring-1 ring-foreground/10"
+                iconClass="size-16"
+              />
+            }
+          >
+            <div class="-mx-6 flex min-h-0 flex-1 flex-col">
+              <LyricsPanel song={props.track} active compact />
+            </div>
+          </Show>
+        </div>
+
+        {/* Title, artist and favorite. */}
+        <div class="flex shrink-0 items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <h2 class="truncate text-xl font-bold tracking-tight">
+              {props.track.title}
+            </h2>
+            <p class="truncate text-sm text-muted-foreground">
+              {props.track.artist || t("common.unknownArtist")}
+            </p>
+          </div>
+          <SheetButton
+            label={t(starred() ? "action.unlike" : "action.like")}
+            active={starred()}
+            onClick={() => void toggleStar()}
+            class="-mr-2.5"
+          >
+            <Heart class={cn("size-6", starred() && "fill-current")} />
+          </SheetButton>
+        </div>
+
+        {/* Seek bar. */}
+        <div class="mt-4 shrink-0">
+          <Slider
+            value={position()}
+            max={duration() || 1}
+            step={1}
+            disabled={duration() === 0}
+            ariaLabel={t("player.nowPlaying")}
+            onValueChange={(value) => setDrag(value)}
+            onValueCommit={(value) => {
+              player.seek(value);
+              setDrag(null);
+            }}
+          />
+          <div class="mt-1.5 flex justify-between text-[11px] tabular-nums text-muted-foreground">
+            <span>{formatTime(position())}</span>
+            <span>{formatTime(duration())}</span>
+          </div>
+        </div>
+
+        {/* Transport. */}
+        <div class="mt-3 flex shrink-0 items-center justify-between">
+          <SheetButton
+            label={t("action.shuffle")}
+            active={player.state.shuffle}
+            onClick={player.toggleShuffle}
+            class="-ml-2.5"
+          >
+            <Shuffle class="size-5" />
+          </SheetButton>
+          <SheetButton label={t("action.previous")} onClick={player.previous}>
+            <SkipBack class="size-8 fill-current" />
+          </SheetButton>
+          <button
+            type="button"
+            onClick={player.toggle}
+            class="flex size-[4.5rem] cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
+            aria-label={t(player.state.playing ? "action.pause" : "action.play")}
+          >
+            <Show
+              when={player.state.playing}
+              fallback={<Play class="ml-1 size-8 fill-current" />}
+            >
+              <Pause class="size-8 fill-current" />
+            </Show>
+          </button>
+          <SheetButton label={t("action.next")} onClick={player.next}>
+            <SkipForward class="size-8 fill-current" />
+          </SheetButton>
+          <SheetButton
+            label={t("action.repeat")}
+            active={player.state.repeat !== "off"}
+            onClick={player.cycleRepeat}
+            class="-mr-2.5"
+          >
+            <Show
+              when={player.state.repeat === "one"}
+              fallback={<Repeat class="size-5" />}
+            >
+              <Repeat1 class="size-5" />
+            </Show>
+          </SheetButton>
+        </div>
+
+        {/* Lyrics, auto mix and queue. */}
+        <div class="mt-4 flex shrink-0 items-center justify-between">
+          <SheetButton
+            label={t("player.lyrics")}
+            active={player.lyricsOpen()}
+            onClick={player.toggleLyrics}
+            class="-ml-2.5"
+          >
+            <MicVocal class="size-5" />
+          </SheetButton>
+          <SheetButton
+            label={t("action.autoMix")}
+            active={player.state.radio}
+            onClick={() => toggleAutoMix(player)}
+          >
+            <InfinityIcon
+              class={cn("size-5", player.radioLoading() && "animate-pulse")}
+            />
+          </SheetButton>
+          <SheetButton
+            label={t("player.queue")}
+            active={player.queueOpen()}
+            onClick={() => player.setQueueOpen(!player.queueOpen())}
+            class="-mr-2.5"
+          >
+            <ListMusic class="size-5" />
+          </SheetButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function NowPlaying() {
+  const player = usePlayer();
+  // On phones the sheet stays mounted for its slide-down after closing,
+  // showing the track it had even if the queue was cleared meanwhile.
+  const [leaving, setLeaving] = createSignal(false);
+  const [lastTrack, setLastTrack] = createSignal<Song | null>(null);
+  let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+  createEffect(
+    on(
+      () => player.nowPlayingOpen(),
+      (open, wasOpen) => {
+        clearTimeout(leaveTimer);
+        if (open) {
+          setLeaving(false);
+          return;
+        }
+        if (!wasOpen || !isNarrow()) return;
+        setLeaving(true);
+        leaveTimer = setTimeout(() => setLeaving(false), 280);
+      },
+    ),
+  );
+  onCleanup(() => clearTimeout(leaveTimer));
+
+  createEffect(() => {
+    const track = player.current();
+    if (track) setLastTrack(track);
+  });
+
+  const track = () =>
+    player.nowPlayingOpen()
+      ? player.current()
+      : leaving()
+        ? lastTrack()
+        : null;
+
+  return (
+    <Show when={track()}>
+      {(current) => (
+        <Show
+          when={isNarrow()}
+          fallback={<NowPlayingView track={current()} />}
+        >
+          <PhoneNowPlaying track={current()} leaving={leaving()} />
+        </Show>
+      )}
     </Show>
   );
 }

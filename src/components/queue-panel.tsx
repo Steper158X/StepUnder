@@ -1,4 +1,11 @@
-import { For, Show } from "solid-js";
+import {
+  For,
+  Show,
+  createEffect,
+  createSignal,
+  on,
+  onCleanup,
+} from "solid-js";
 import {
   ListMusic,
   LoaderCircle,
@@ -13,6 +20,7 @@ import { LyricsPanel } from "~/components/now-playing";
 import { t } from "~/i18n";
 import { formatTime } from "~/lib/format";
 import { cn } from "~/lib/utils";
+import { isNarrow } from "~/lib/platform";
 import { Cover, EmptyState, PlayingBars } from "~/components/common";
 import { Button } from "~/components/ui/button";
 
@@ -22,6 +30,70 @@ import { Button } from "~/components/ui/button";
  * it half and half while it is open; app.css `.side-column` runs the motion.
  */
 export function QueuePanel() {
+  return (
+    <Show when={isNarrow()} fallback={<SidePanel />}>
+      <QueueSheet />
+    </Show>
+  );
+}
+
+/**
+ * Phones: the queue pops up from the bottom over half the screen and slides
+ * back down when closed. Phones have no room for the side lyrics column.
+ */
+function QueueSheet() {
+  const player = usePlayer();
+  const [leaving, setLeaving] = createSignal(false);
+  let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+  createEffect(
+    on(player.queueOpen, (open, wasOpen) => {
+      clearTimeout(leaveTimer);
+      if (open) {
+        setLeaving(false);
+        return;
+      }
+      if (!wasOpen) return;
+      setLeaving(true);
+      leaveTimer = setTimeout(() => setLeaving(false), 280);
+    }),
+  );
+  onCleanup(() => clearTimeout(leaveTimer));
+
+  const close = () => player.setQueueOpen(false);
+
+  return (
+    <Show when={player.queueOpen() || leaving()}>
+      <div class={cn("fixed inset-0 z-[60]", leaving() && "pointer-events-none")}>
+        <div
+          aria-hidden="true"
+          onClick={close}
+          class={cn(
+            "absolute inset-0 bg-black/50",
+            leaving() ? "animate-fade-out" : "animate-fade-in",
+          )}
+        />
+        <aside
+          role="dialog"
+          aria-label={t("player.queue")}
+          class={cn(
+            "absolute inset-x-0 bottom-0 flex h-[50dvh] flex-col overflow-hidden rounded-t-2xl border-t border-border/60 bg-card pb-[env(safe-area-inset-bottom)] shadow-2xl",
+            leaving() ? "animate-sheet-down" : "animate-sheet-up",
+          )}
+        >
+          <div class="flex shrink-0 justify-center pt-2" aria-hidden="true">
+            <div class="h-1 w-10 rounded-full bg-muted-foreground/40" />
+          </div>
+          <div class="min-h-0 flex-1">
+            <QueueList class="w-full max-w-none" />
+          </div>
+        </aside>
+      </div>
+    </Show>
+  );
+}
+
+function SidePanel() {
   const player = usePlayer();
   const lyricsShown = () => sideLyrics() && player.current() !== null;
   const open = () => player.queueOpen() || lyricsShown();
@@ -31,10 +103,8 @@ export function QueuePanel() {
       class={cn(
         "flex shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-out",
         open()
-          ? "glass-bar glass-inset w-[22rem] border-l md:mb-[var(--player-space,0px)] border-border/60 bg-card/25 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] max-md:pr-[env(safe-area-inset-right)] max-md:z-40 max-md:max-w-[92vw] max-md:bg-card max-md:shadow-2xl"
+          ? "glass-bar glass-inset w-[22rem] border-l md:mb-[var(--player-space,0px)] border-border/60 bg-card/25"
           : "w-0 border-l-0",
-        // Phones have no room for a lyrics column, only the queue overlay.
-        !player.queueOpen() && "max-md:hidden",
       )}
       inert={open() ? undefined : true}
       aria-label={t("player.queue")}
@@ -95,11 +165,11 @@ function SideLyrics() {
   );
 }
 
-function QueueList() {
+function QueueList(props: { class?: string }) {
   const player = usePlayer();
 
   return (
-    <div class="flex h-full w-[22rem] max-w-[92vw] flex-col">
+    <div class={cn("flex h-full w-[22rem] max-w-[92vw] flex-col", props.class)}>
       <div class="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 px-4">
         <div class="flex items-center gap-2">
           <ListMusic class="size-4 text-muted-foreground" />
@@ -191,7 +261,8 @@ function QueueList() {
                   </span>
                   <button
                     type="button"
-                    class="rounded p-1 text-muted-foreground opacity-0 transition-colors hover:text-destructive group-hover:opacity-100"
+                    // Touch screens have no hover, so phones always show it.
+                    class="rounded p-1 text-muted-foreground opacity-0 transition-colors hover:text-destructive group-hover:opacity-100 max-md:opacity-100"
                     onClick={() => player.removeAt(index())}
                     aria-label={t("player.remove")}
                   >

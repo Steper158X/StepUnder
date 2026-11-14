@@ -5,6 +5,7 @@ import { useServers } from "~/state/servers";
 import { t, type MessageKey } from "~/i18n";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { cn } from "~/lib/utils";
+import { isMobile } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import {
   ContextMenuItem,
@@ -66,7 +67,10 @@ export function useStar(
       if (next) await client.star(id);
       else await client.unstar(id);
       player.patchSongStar(id, next);
-      toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      // Phones show the filled heart; a toast would cover the controls.
+      if (!isMobile) {
+        toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      }
       if (next) options.onStarred?.();
     } catch (error) {
       toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");

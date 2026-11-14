@@ -737,3 +737,43 @@ html[data-platform="linux"] .player-progress {
 input[type="range"] {
   accent-color: var(--primary);
 }
+
+/* Phone full screen player: slides up like a sheet and back down to close. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.animate-sheet-down {
+  animation: sheet-down 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out {
+  animation: fade-out 0.28s ease-out forwards;
+}

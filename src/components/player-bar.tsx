@@ -25,6 +25,7 @@ import { t, type MessageKey } from "~/i18n";
 import { formatTime } from "~/lib/format";
 import { subsonicErrorKey } from "~/lib/subsonic";
 import { cn } from "~/lib/utils";
+import { isMobile } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import { Cover } from "~/components/common";
 import { Slider } from "~/components/ui/slider";
@@ -55,19 +56,14 @@ function ControlButton(props: {
   );
 }
 
-export function PlayerBar(props: {
-  floating?: boolean;
-  ref?: (element: HTMLDivElement) => void;
-}) {
+/** Favorite state of the playing track, shared by the bar and the phone player. */
+export function useCurrentStar() {
   const player = usePlayer();
   const servers = useServers();
   const downloads = useDownloads();
-  const [drag, setDrag] = createSignal<number | null>(null);
   const [starBusy, setStarBusy] = createSignal(false);
-
   const track = () => player.current();
-  const duration = () => player.state.duration || track()?.duration || 0;
-  const position = () => drag() ?? player.state.position;
+
   const starred = () => {
     const current = track();
     return current ? player.isStarred(current) : false;
@@ -83,7 +79,10 @@ export function PlayerBar(props: {
       if (next) await client.star(current.id);
       else await client.unstar(current.id);
       player.patchSongStar(current.id, next);
-      toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      // Phones show the filled heart; a toast would cover the controls.
+      if (!isMobile) {
+        toast(t(next ? "toast.starred" : "toast.unstarred"), undefined, "success");
+      }
       if (next && downloadOnStar()) downloads.download([current]);
     } catch (error) {
       toast(t(subsonicErrorKey(error) as MessageKey), undefined, "error");
@@ -91,6 +90,28 @@ export function PlayerBar(props: {
       setStarBusy(false);
     }
   }
+
+  return { starred, toggleStar };
+}
+
+/** Starts or stops the auto-mix radio from the playing track. */
+export function toggleAutoMix(player: ReturnType<typeof usePlayer>) {
+  const current = player.current();
+  if (player.state.radio) player.stopRadio();
+  else if (current) player.startRadio(current);
+}
+
+export function PlayerBar(props: {
+  floating?: boolean;
+  ref?: (element: HTMLDivElement) => void;
+}) {
+  const player = usePlayer();
+  const { starred, toggleStar } = useCurrentStar();
+  const [drag, setDrag] = createSignal<number | null>(null);
+
+  const track = () => player.current();
+  const duration = () => player.state.duration || track()?.duration || 0;
+  const position = () => drag() ?? player.state.position;
 
   /** Format, bit depth and sample rate of the playing track, e.g. "FLAC · 24-bit · 96 kHz". */
   const quality = () => {
@@ -108,12 +129,6 @@ export function PlayerBar(props: {
       .join(" · ");
   };
 
-  function toggleAutoMix() {
-    const current = track();
-    if (player.state.radio) player.stopRadio();
-    else if (current) player.startRadio(current);
-  }
-
   const volumeIcon = () => {
     if (player.state.muted || player.state.volume === 0) return VolumeX;
     if (player.state.volume < 0.5) return Volume1;
@@ -125,78 +140,77 @@ export function PlayerBar(props: {
       ref={props.ref}
       class={cn(
         "shrink-0",
+        // The phone full screen player brings its own controls.
+        player.nowPlayingOpen() && "max-md:hidden",
         props.floating
           ? "glass-panel absolute inset-x-2 bottom-2 z-10 animate-fade-in rounded-2xl border border-border/50 bg-card/55 shadow-2xl shadow-black/30 backdrop-blur-2xl backdrop-saturate-150 transition-[background-color,border-color] duration-300 focus-within:border-border/80 focus-within:bg-card/85 hover:border-border/80 hover:bg-card/85 md:inset-x-3 md:bottom-3"
           : "glass-bar border-t border-border/60 bg-card/50 backdrop-blur",
       )}
     >
       {/* Phones: cover, title, artist and play/pause, with a thin progress
-          line on the bottom edge. Tapping it opens the full screen player,
-          which brings back the full controls below. */}
-      <Show when={!player.nowPlayingOpen()}>
-        <div class="relative overflow-hidden rounded-[inherit] md:hidden">
-          <div class="flex items-center gap-3 px-3 py-2">
-            <button
-              type="button"
-              onClick={() => player.setNowPlayingOpen(true)}
-              disabled={!track()}
-              aria-label={t("player.openFullscreen")}
-              class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
-            >
-              <Cover
-                coverArtId={track()?.coverArt}
-                size={96}
-                alt={track()?.album ?? track()?.title ?? ""}
-                class="size-11 shrink-0 rounded-md shadow-sm"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-medium">
-                  {track()?.title ?? t("player.nothingPlaying")}
-                </p>
-                <p
-                  class={cn(
-                    "truncate text-xs text-muted-foreground",
-                    player.state.error && "text-destructive",
-                  )}
-                >
-                  {player.state.error ??
-                    track()?.artist ??
-                    t("player.queueEmptyHint")}
-                </p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={player.toggle}
-              disabled={!track()}
-              class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform active:scale-95 disabled:cursor-default disabled:opacity-40"
-              aria-label={t(player.state.playing ? "action.pause" : "action.play")}
-            >
-              <Show
-                when={player.state.playing}
-                fallback={<Play class="ml-0.5 size-4 fill-current" />}
-              >
-                <Pause class="size-4 fill-current" />
-              </Show>
-            </button>
-          </div>
-          <div
-            aria-hidden="true"
-            class="absolute inset-x-0 bottom-0 h-0.5 bg-foreground/10"
+          line on the bottom edge. Tapping it opens the full screen player. */}
+      <div class="relative overflow-hidden rounded-[inherit] md:hidden">
+        <div class="flex items-center gap-3 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => player.setNowPlayingOpen(true)}
+            disabled={!track()}
+            aria-label={t("player.openFullscreen")}
+            class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
           >
-            <div
-              class="h-full bg-primary transition-[width] duration-300 ease-linear"
-              style={{
-                width: `${duration() > 0 ? Math.min((position() / duration()) * 100, 100) : 0}%`,
-              }}
+            <Cover
+              coverArtId={track()?.coverArt}
+              size={96}
+              alt={track()?.album ?? track()?.title ?? ""}
+              class="size-11 shrink-0 rounded-md shadow-sm"
             />
-          </div>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">
+                {track()?.title ?? t("player.nothingPlaying")}
+              </p>
+              <p
+                class={cn(
+                  "truncate text-xs text-muted-foreground",
+                  player.state.error && "text-destructive",
+                )}
+              >
+                {player.state.error ??
+                  track()?.artist ??
+                  t("player.queueEmptyHint")}
+              </p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={player.toggle}
+            disabled={!track()}
+            class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-transform active:scale-95 disabled:cursor-default disabled:opacity-40"
+            aria-label={t(player.state.playing ? "action.pause" : "action.play")}
+          >
+            <Show
+              when={player.state.playing}
+              fallback={<Play class="ml-0.5 size-4 fill-current" />}
+            >
+              <Pause class="size-4 fill-current" />
+            </Show>
+          </button>
         </div>
-      </Show>
+        <div
+          aria-hidden="true"
+          class="absolute inset-x-0 bottom-0 h-0.5 bg-foreground/10"
+        >
+          <div
+            class="h-full bg-primary transition-[width] duration-300 ease-linear"
+            style={{
+              width: `${duration() > 0 ? Math.min((position() / duration()) * 100, 100) : 0}%`,
+            }}
+          />
+        </div>
+      </div>
 
       <div
         class={cn(
-          !player.nowPlayingOpen() && "max-md:hidden",
+          "max-md:hidden",
           "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_minmax(320px,1.5fr)_minmax(0,1fr)] md:gap-4 md:px-4 md:py-0",
           props.floating ? "md:h-[80px]" : "md:h-[92px]",
         )}
@@ -356,7 +370,7 @@ export function PlayerBar(props: {
               label={t("action.autoMix")}
               active={player.state.radio}
               disabled={!track()}
-              onClick={toggleAutoMix}
+              onClick={() => toggleAutoMix(player)}
             >
               <InfinityIcon
                 class={cn("size-4", player.radioLoading() && "animate-pulse")}
