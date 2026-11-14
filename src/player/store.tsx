@@ -42,6 +42,12 @@ import {
   type MpvSnapshot,
 } from "~/lib/mpv";
 import { isTauri } from "~/lib/platform";
+import {
+  clearAndroidMedia,
+  hasAndroidMedia,
+  onAndroidMediaAction,
+  updateAndroidMedia,
+} from "~/lib/android-media";
 import { clearDiscordPresence, updateDiscordPresence } from "~/lib/discord";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { toast } from "~/components/toaster";
@@ -1043,6 +1049,33 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     }
   });
 
+  // Android: media notification, lock screen, Bluetooth buttons, Android Auto.
+  // The bridge drops position updates that match its own extrapolation.
+  createEffect(() => {
+    if (!hasAndroidMedia()) return;
+    const track = current();
+    if (!track) {
+      clearAndroidMedia();
+      return;
+    }
+    const client = servers.client();
+    updateAndroidMedia({
+      title: track.title ?? "",
+      artist: track.artist ?? "",
+      album: track.album ?? "",
+      artworkUrl:
+        track.coverArt && client
+          ? client.coverUrl(track.coverArt, 512)
+          : undefined,
+      playing: state.playing,
+      loading: state.loading,
+      position: state.position,
+      duration: state.duration || track.duration || 0,
+      hasNext: state.queue.length > 0,
+      hasPrevious: state.queue.length > 0,
+    });
+  });
+
   // Track/play-state changes (and the moment a server becomes active) republish
   // the Discord activity.
   createEffect(
@@ -1194,6 +1227,33 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       if (discordTimer) clearTimeout(discordTimer);
       // Do not leave a stale "listening to ..." behind after a reload.
       void clearDiscordPresence();
+    });
+
+    const offAndroidMedia = onAndroidMediaAction((action, value) => {
+      switch (action) {
+        case "play":
+          play();
+          break;
+        case "pause":
+          pause();
+          break;
+        case "stop":
+          stop();
+          break;
+        case "next":
+          next();
+          break;
+        case "previous":
+          previous();
+          break;
+        case "seek":
+          if (value !== null && Number.isFinite(value)) seek(value);
+          break;
+      }
+    });
+    onCleanup(() => {
+      offAndroidMedia();
+      clearAndroidMedia();
     });
 
     if ("mediaSession" in navigator) {

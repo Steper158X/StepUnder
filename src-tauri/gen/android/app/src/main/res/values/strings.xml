@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">"StepUnder"</string>
     <string name="main_activity_title">"StepUnder"</string>
+    <string name="media_channel_name">Playback</string>
+    <string name="media_play">Play</string>
+    <string name="media_pause">Pause</string>
+    <string name="media_next">Next</string>
+    <string name="media_previous">Previous</string>
 </resources>

@@ -1,0 +1,7 @@
+<resources>
+    <string name="media_channel_name">กำลังเล่นเพลง</string>
+    <string name="media_play">เล่น</string>
+    <string name="media_pause">หยุดชั่วคราว</string>
+    <string name="media_next">เพลงถัดไป</string>
+    <string name="media_previous">เพลงก่อนหน้า</string>
+</resources>
