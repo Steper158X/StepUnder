@@ -28,6 +28,9 @@ export const ACCENT_HUES: Record<Accent, number> = {
 /** Player bar style: attached to the bottom edge, or a floating card. */
 export type PlayerLayout = "docked" | "floating";
 
+/** Corners of album and playlist artwork: rounded, or square. */
+export type CoverShape = "rounded" | "square";
+
 /** Surface style: solid panels, or translucent "liquid glass" panels. */
 export type UiStyle = "standard" | "glass";
 
@@ -99,6 +102,7 @@ const [accent, setAccentSignal] = createSignal<Accent>("purple");
 const [playerLayout, setPlayerLayoutSignal] =
   createSignal<PlayerLayout>("docked");
 const [uiStyle, setUiStyleSignal] = createSignal<UiStyle>("standard");
+const [coverShape, setCoverShapeSignal] = createSignal<CoverShape>("rounded");
 const [glassBrightness, setGlassBrightnessSignal] = createSignal(
   DEFAULT_GLASS_BRIGHTNESS,
 );
@@ -165,6 +169,7 @@ export {
   accent,
   playerLayout,
   uiStyle,
+  coverShape,
   glassBrightness,
   glassBrightnessLight,
   darkActive,
@@ -228,6 +233,11 @@ function applyAccent(value: Accent) {
 /** Glass styling in app.css keys off `html[data-style="glass"]`. */
 function applyUiStyle(value: UiStyle) {
   document.documentElement.dataset.style = value;
+}
+
+/** Square artwork in app.css keys off `html[data-covers="square"]`. */
+function applyCoverShape(value: CoverShape) {
+  document.documentElement.dataset.covers = value;
 }
 
 /** Feeds `--glass-level` (0–1) in app.css. */
@@ -334,6 +344,7 @@ export async function initSettings(): Promise<void> {
     savedCoverCacheEnabled,
     savedCoverCacheMaxMb,
     savedCoverCacheMaxDays,
+    savedCoverShape,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -368,6 +379,7 @@ export async function initSettings(): Promise<void> {
     readSetting<boolean>("coverCacheEnabled", true),
     readSetting<number>("coverCacheMaxMb", DEFAULT_COVER_CACHE_MAX_MB),
     readSetting<number>("coverCacheMaxDays", DEFAULT_COVER_CACHE_MAX_DAYS),
+    readSetting<CoverShape>("coverShape", "rounded"),
   ]);
 
   const nextTheme: Theme =
@@ -438,6 +450,9 @@ export async function initSettings(): Promise<void> {
   );
   const nextUiStyle: UiStyle = savedUiStyle === "glass" ? "glass" : "standard";
   setUiStyleSignal(nextUiStyle);
+  const nextCoverShape: CoverShape =
+    savedCoverShape === "square" ? "square" : "rounded";
+  setCoverShapeSignal(nextCoverShape);
   const nextGlassBrightness = clampSetting(
     savedGlassBrightness,
     100,
@@ -471,6 +486,7 @@ export async function initSettings(): Promise<void> {
   applyFont(nextFont);
   applyAccent(nextAccent);
   applyUiStyle(nextUiStyle);
+  applyCoverShape(nextCoverShape);
   applyGlassBrightness(nextGlassBrightness, nextGlassBrightnessLight);
   applyGlassBlur(nextGlassBlur);
   applyWindowOpacity(nextWindowOpacity);
@@ -524,6 +540,12 @@ export function setUiStyle(value: UiStyle): void {
   applyUiStyle(value);
   applyWindowEffect();
   void writeSetting("uiStyle", value);
+}
+
+export function setCoverShape(value: CoverShape): void {
+  setCoverShapeSignal(value);
+  applyCoverShape(value);
+  void writeSetting("coverShape", value);
 }
 
 /** Updates the look live; pass `save: false` while a slider is still dragging. */

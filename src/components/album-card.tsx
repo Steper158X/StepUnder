@@ -57,13 +57,13 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
         as="div"
         class={cn("glass-tile group w-40 shrink-0", props.class)}
       >
-        <div class="glass-cover relative aspect-square overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-black/5">
+        <div class="glass-cover relative isolate aspect-square overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-black/5 [backface-visibility:hidden] [transform:translateZ(0)]">
           <A href={`/album/${props.album.id}`} class="block size-full">
             <Cover
               coverArtId={props.album.coverArt ?? props.album.id}
               size={props.size ?? 320}
               alt={props.album.name}
-              class="size-full transition-transform duration-300 group-hover:scale-[1.03]"
+              class="size-full transition-transform duration-300 [backface-visibility:hidden] will-change-transform group-hover:scale-[1.03]"
               iconClass="size-8"
             />
           </A>

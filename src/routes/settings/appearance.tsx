@@ -16,6 +16,7 @@ import {
   DEFAULT_WINDOW_OPACITY,
   MAX_GLASS_BLUR,
   accent,
+  coverShape,
   darkActive,
   font,
   glassBlur,
@@ -23,6 +24,7 @@ import {
   glassBrightnessLight,
   playerLayout,
   setAccent,
+  setCoverShape,
   setFont,
   setGlassBlur,
   setGlassBrightness,
@@ -36,6 +38,7 @@ import {
   windowEffect,
   windowOpacity,
   type Accent,
+  type CoverShape,
   type Font,
   type PlayerLayout,
   type Theme,
@@ -86,6 +89,10 @@ const uiStyleOptions: Array<{
   { value: "glass", key: "settings.uiStyle.glass", icon: Droplet },
 ];
 
+const coverShapeOptions: Array<{ value: CoverShape; key: MessageKey }> = [
+  { value: "rounded", key: "settings.coverShape.rounded" },
+  { value: "square", key: "settings.coverShape.square" },
+];
 
 const fontOptions: Array<{ value: Font; key: MessageKey }> = [
   { value: "system", key: "settings.font.system" },
@@ -280,6 +287,36 @@ export default function AppearanceSettingsPage() {
                 <Show when={accent() === option.value}>
                   <Check class="size-3.5" stroke-width={3} />
                 </Show>
+              </button>
+            )}
+          </For>
+        </div>
+      </Row>
+
+      <Row
+        label={t("settings.coverShape")}
+        description={t("settings.coverShapeHint")}
+      >
+        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
+          <For each={coverShapeOptions}>
+            {(option) => (
+              <button
+                type="button"
+                onClick={() => setCoverShape(option.value)}
+                class={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  coverShape() === option.value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  class={cn(
+                    "size-3 border-[1.5px] border-current",
+                    option.value === "rounded" ? "rounded-[3px]" : "rounded-none",
+                  )}
+                />
+                {t(option.key)}
               </button>
             )}
           </For>

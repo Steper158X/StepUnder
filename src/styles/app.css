@@ -347,6 +347,17 @@ html[data-style="glass"] .glass-button {
   }
 }
 
+/*
+ * Square artwork (Settings → Appearance → Cover corners). Covers both
+ * styles; artist pictures (`.glass-round`) stay round.
+ */
+html[data-covers="square"] .glass-cover:not(.glass-round),
+html[data-covers="square"] .glass-cover:not(.glass-round)::before,
+html[data-covers="square"] .glass-cover:not(.glass-round) img,
+html[data-covers="square"] .cover-lightbox {
+  border-radius: 0 !important;
+}
+
 /* The title bar spans the window edge to edge; keep it lighter. */
 html[data-style="glass"] header.glass-bar {
   background-color: color-mix(in oklab, var(--glass-tint) 60%, transparent);

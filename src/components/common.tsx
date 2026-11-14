@@ -252,7 +252,7 @@ export function Cover(props: {
                 src={fullUrl()!}
                 alt={props.alt ?? ""}
                 draggable={false}
-                class="max-h-full max-w-full select-none rounded-lg object-contain shadow-2xl"
+                class="cover-lightbox max-h-full max-w-full select-none rounded-lg object-contain shadow-2xl"
               />
             </Show>
           </Dialog.Content>
