@@ -25,3 +25,9 @@ narrowQuery?.addEventListener("change", (event) => setNarrow(event.matches));
 
 /** Reactive: true while the window is phone-sized. */
 export const isNarrow = narrow;
+
+/**
+ * The desktop app (Windows, macOS, Linux): file manager, folder picker,
+ * updater, mpv and Discord only exist here.
+ */
+export const isDesktopApp = isTauri && !isMobile;

@@ -1,3 +1,4 @@
+import { Show } from "solid-js";
 import { t } from "~/i18n";
 import {
   lyricsBlur,
@@ -12,6 +13,7 @@ import {
   sideLyrics,
   type LyricsBlur,
 } from "~/state/settings";
+import { isNarrow } from "~/lib/platform";
 import { Switch } from "~/components/ui/switch";
 import { Select } from "~/components/ui/select";
 import { Row, SettingsSubPage } from "./shared";
@@ -21,17 +23,20 @@ const blurOptions: LyricsBlur[] = ["off", "soft", "strong"];
 export default function LyricsSettingsPage() {
   return (
     <SettingsSubPage title={t("settings.lyrics")}>
-      <Row
-        label={t("settings.sideLyrics")}
-        description={t("settings.sideLyricsHint")}
-        inline
-      >
-        <Switch
-          checked={sideLyrics()}
-          onChange={setSideLyrics}
+      {/* Phones have no side panel; the queue opens as a bottom sheet. */}
+      <Show when={!isNarrow()}>
+        <Row
           label={t("settings.sideLyrics")}
-        />
-      </Row>
+          description={t("settings.sideLyricsHint")}
+          inline
+        >
+          <Switch
+            checked={sideLyrics()}
+            onChange={setSideLyrics}
+            label={t("settings.sideLyrics")}
+          />
+        </Row>
+      </Show>
 
       <Row
         label={t("settings.phoneticLyrics")}

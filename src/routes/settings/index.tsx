@@ -1,6 +1,6 @@
 import { A } from "@solidjs/router";
 import { For, createMemo } from "solid-js";
-import { isNarrow } from "~/lib/platform";
+import { isNarrow, isTauri } from "~/lib/platform";
 import {
   ChevronRight,
   Download,
@@ -76,9 +76,16 @@ const categories: Category[] = [
 
 export default function SettingsPage() {
   // Desktop reaches Profile from the sidebar account menu; phones have no
-  // sidebar, so it lives here, just above About.
+  // sidebar, so it lives here, just above About. Cache and downloads need the
+  // app, so the web build leaves them out.
   const visible = createMemo(() =>
-    isNarrow() ? categories : categories.filter((c) => c.href !== "/profile"),
+    categories.filter((c) => {
+      if (c.href === "/profile") return isNarrow();
+      if (c.href === "/settings/cache" || c.href === "/settings/downloads") {
+        return isTauri;
+      }
+      return true;
+    }),
   );
 
   return (

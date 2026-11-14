@@ -8,7 +8,7 @@
  */
 import { createSignal } from "solid-js";
 import type { Update } from "@tauri-apps/plugin-updater";
-import { isTauri } from "./platform";
+import { isMobile, isTauri } from "./platform";
 import { autoUpdate } from "~/state/settings";
 
 export type UpdateStatus =
@@ -161,7 +161,7 @@ export async function installUpdate(): Promise<void> {
  */
 export async function checkForUpdatesOnStartup(): Promise<void> {
   // Never nag a `tauri dev` session with release builds.
-  if (!isTauri || import.meta.env.DEV || !autoUpdate()) return;
+  if (!isTauri || isMobile || import.meta.env.DEV || !autoUpdate()) return;
   // Give the library/player requests the first few seconds of bandwidth.
   await new Promise((resolve) => setTimeout(resolve, 4000));
   const found = await checkForUpdates({ silent: true });

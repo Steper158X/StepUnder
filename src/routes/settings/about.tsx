@@ -3,7 +3,7 @@ import { Download, ExternalLink, RefreshCw } from "lucide-solid";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t } from "~/i18n";
 import { autoUpdate, setAutoUpdate } from "~/state/settings";
-import { isTauri } from "~/lib/platform";
+import { isDesktopApp, isTauri } from "~/lib/platform";
 import {
   appVersion,
   available as availableUpdate,
@@ -70,67 +70,75 @@ export default function AboutSettingsPage() {
         </Button>
       </Row>
 
-      <Row label={t("settings.version")} description={updateDescription()}>
-        <div class="flex flex-wrap items-center gap-2">
-          <Badge>v{appVersion()}</Badge>
-          <Show when={updateStatus() === "available"}>
-            <Button size="sm" onClick={() => void installUpdate()}>
-              <Download class="size-3.5" />
-              {t("settings.updateNow")}
-            </Button>
-          </Show>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={
-              !isTauri || updateBusy() || updateStatus() === "available"
-            }
-            onClick={() => void checkForUpdates()}
-          >
-            <RefreshCw
-              class={cn(
-                "size-3.5",
-                updateStatus() === "checking" && "animate-spin",
-              )}
-            />
-            {t("settings.checkUpdate")}
-          </Button>
-        </div>
-      </Row>
-
+      {/* The updater only exists in the desktop app; phones and the web just
+          show the version. */}
       <Show
-        when={
-          updateStatus() === "downloading" || updateStatus() === "installing"
+        when={isDesktopApp}
+        fallback={
+          <Row label={t("settings.version")} inline>
+            <Badge>v{appVersion()}</Badge>
+          </Row>
         }
       >
-        <div class="py-3">
-          <div class="h-1.5 overflow-hidden rounded-full bg-secondary">
-            <div
-              class={cn(
-                "h-full rounded-full bg-primary transition-[width] duration-200",
-                progressPercent() === null && "animate-pulse",
-              )}
-              style={{ width: `${progressPercent() ?? 100}%` }}
-            />
+        <Row label={t("settings.version")} description={updateDescription()}>
+          <div class="flex flex-wrap items-center gap-2">
+            <Badge>v{appVersion()}</Badge>
+            <Show when={updateStatus() === "available"}>
+              <Button size="sm" onClick={() => void installUpdate()}>
+                <Download class="size-3.5" />
+                {t("settings.updateNow")}
+              </Button>
+            </Show>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={updateBusy() || updateStatus() === "available"}
+              onClick={() => void checkForUpdates()}
+            >
+              <RefreshCw
+                class={cn(
+                  "size-3.5",
+                  updateStatus() === "checking" && "animate-spin",
+                )}
+              />
+              {t("settings.checkUpdate")}
+            </Button>
           </div>
-          <p class="mt-1.5 text-xs text-muted-foreground">
-            {updateDescription()}
-          </p>
-        </div>
-      </Show>
+        </Row>
 
-      <Row
-        label={t("settings.autoUpdate")}
-        description={t("settings.autoUpdateHint")}
-        inline
-      >
-        <Switch
-          checked={autoUpdate()}
-          onChange={setAutoUpdate}
+        <Show
+          when={
+            updateStatus() === "downloading" || updateStatus() === "installing"
+          }
+        >
+          <div class="py-3">
+            <div class="h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div
+                class={cn(
+                  "h-full rounded-full bg-primary transition-[width] duration-200",
+                  progressPercent() === null && "animate-pulse",
+                )}
+                style={{ width: `${progressPercent() ?? 100}%` }}
+              />
+            </div>
+            <p class="mt-1.5 text-xs text-muted-foreground">
+              {updateDescription()}
+            </p>
+          </div>
+        </Show>
+
+        <Row
           label={t("settings.autoUpdate")}
-          disabled={!isTauri}
-        />
-      </Row>
+          description={t("settings.autoUpdateHint")}
+          inline
+        >
+          <Switch
+            checked={autoUpdate()}
+            onChange={setAutoUpdate}
+            label={t("settings.autoUpdate")}
+          />
+        </Row>
+      </Show>
     </SettingsSubPage>
   );
 }

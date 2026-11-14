@@ -30,7 +30,7 @@ import {
   revealDownload,
 } from "~/state/downloads";
 import { formatBytes } from "~/lib/format";
-import { isTauri } from "~/lib/platform";
+import { isDesktopApp, isTauri } from "~/lib/platform";
 import { cn } from "~/lib/utils";
 import { EmptyState } from "~/components/common";
 import { Button } from "~/components/ui/button";
@@ -155,41 +155,45 @@ export default function DownloadSettingsPage() {
           </SettingsSection>
         }
       >
-        <Row
-          label={t("settings.downloadFolder")}
-          description={folder() ?? t("settings.audioDeviceLoading")}
-          class="[&_p:last-child]:break-all"
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            class="max-md:flex-1"
-            onClick={() => void changeFolder()}
+        {/* Phones keep downloads in the app's own folder: there is no folder
+            picker and no file manager to open it in. */}
+        <Show when={isDesktopApp}>
+          <Row
+            label={t("settings.downloadFolder")}
+            description={folder() ?? t("settings.audioDeviceLoading")}
+            class="[&_p:last-child]:break-all"
           >
-            {t("settings.downloadFolderChange")}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            title={t("download.openFolder")}
-            aria-label={t("download.openFolder")}
-            disabled={!folder()}
-            onClick={() => void revealDownload(folder()!)}
-          >
-            <FolderOpen class="size-3.5" />
-          </Button>
-          <Show when={downloadDir()}>
             <Button
-              variant="ghost"
-              size="icon-sm"
-              title={t("settings.downloadFolderReset")}
-              aria-label={t("settings.downloadFolderReset")}
-              onClick={() => setDownloadDir("")}
+              variant="outline"
+              size="sm"
+              class="max-md:flex-1"
+              onClick={() => void changeFolder()}
             >
-              <RotateCcw class="size-3.5" />
+              {t("settings.downloadFolderChange")}
             </Button>
-          </Show>
-        </Row>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              title={t("download.openFolder")}
+              aria-label={t("download.openFolder")}
+              disabled={!folder()}
+              onClick={() => void revealDownload(folder()!)}
+            >
+              <FolderOpen class="size-3.5" />
+            </Button>
+            <Show when={downloadDir()}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title={t("settings.downloadFolderReset")}
+                aria-label={t("settings.downloadFolderReset")}
+                onClick={() => setDownloadDir("")}
+              >
+                <RotateCcw class="size-3.5" />
+              </Button>
+            </Show>
+          </Row>
+        </Show>
 
         <Row
           label={t("settings.preferLocal")}

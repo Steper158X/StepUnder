@@ -19,7 +19,7 @@ import {
 } from "~/state/cover-cache";
 import { revealDownload } from "~/state/downloads";
 import { formatBytes } from "~/lib/format";
-import { isTauri } from "~/lib/platform";
+import { isDesktopApp, isTauri } from "~/lib/platform";
 import { cn } from "~/lib/utils";
 import { EmptyState } from "~/components/common";
 import { toast } from "~/components/toaster";
@@ -111,15 +111,23 @@ export default function CacheSettingsPage() {
                 />
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-2 py-3.5 md:flex md:flex-wrap md:justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void openFolder()}
-              >
-                <FolderOpen class="size-3.5" />
-                {t("settings.coverCacheOpenFolder")}
-              </Button>
+            <div
+              class={cn(
+                "grid gap-2 py-3.5 md:flex md:flex-wrap md:justify-end",
+                isDesktopApp && "grid-cols-2",
+              )}
+            >
+              {/* Phones have no file manager to open the folder in. */}
+              <Show when={isDesktopApp}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void openFolder()}
+                >
+                  <FolderOpen class="size-3.5" />
+                  {t("settings.coverCacheOpenFolder")}
+                </Button>
+              </Show>
               <Button
                 variant="outline"
                 size="sm"

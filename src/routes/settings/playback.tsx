@@ -42,7 +42,7 @@ import {
   type MpvAudioDevice,
   type MpvStatus,
 } from "~/lib/mpv";
-import { isLinux, isTauri } from "~/lib/platform";
+import { isDesktopApp, isLinux, isMobile, isTauri } from "~/lib/platform";
 import { toast } from "~/components/toaster";
 import { Button } from "~/components/ui/button";
 import { Select } from "~/components/ui/select";
@@ -58,7 +58,9 @@ const formatOptions: StreamFormat[] = ["raw", "mp3", "aac", "opus", "flac"];
 let unlockedThisSession = false;
 
 export default function PlaybackSettingsPage() {
-  const outputSupported = supportsAudioOutputSelection();
+  // Phones choose the output from the Now Playing sheet, and unlocking the
+  // speaker list would ask for the microphone there.
+  const outputSupported = !isMobile && supportsAudioOutputSelection();
   const [outputs, setOutputs] = createSignal<AudioOutputDevice[]>([]);
   const [refreshingOutputs, setRefreshingOutputs] = createSignal(false);
   const [unlockingOutputs, setUnlockingOutputs] = createSignal(false);
@@ -180,7 +182,7 @@ export default function PlaybackSettingsPage() {
   }
 
   onMount(() => {
-    if (!isTauri) return;
+    if (!isDesktopApp) return;
     void mpvStatus().then(setMpvInfo);
   });
 
@@ -212,7 +214,11 @@ export default function PlaybackSettingsPage() {
     }
     if (checkingPlayer()) return;
     if (!isTauri) {
-      toast(t("settings.mpvMissingTitle"), t(isLinux ? "settings.mpvMissingLinux" : "settings.mpvMissing"), "error");
+      toast(
+        t("settings.mpvMissingTitle"),
+        t(isLinux ? "settings.mpvMissingLinux" : "settings.mpvMissing"),
+        "error",
+      );
       return;
     }
     setCheckingPlayer(true);
@@ -222,7 +228,8 @@ export default function PlaybackSettingsPage() {
       if (!status.available) {
         toast(
           t("settings.mpvMissingTitle"),
-          status.error ?? t(isLinux ? "settings.mpvMissingLinux" : "settings.mpvMissing"),
+          status.error ??
+            t(isLinux ? "settings.mpvMissingLinux" : "settings.mpvMissing"),
           "error",
         );
         return;
@@ -235,78 +242,94 @@ export default function PlaybackSettingsPage() {
 
   return (
     <SettingsSubPage title={t("settings.playback")}>
-      <Row
-        label={t("settings.audioPlayer")}
-        description={t("settings.audioPlayerHint")}
-      >
-        <div class="flex flex-col items-stretch gap-1 max-md:w-full md:items-end">
-          <div class="w-full md:w-44">
-            <Select
-              aria-label={t("settings.audioPlayer")}
-              value={audioPlayer()}
-              options={[
-                { value: "web", label: t("settings.audioPlayerWeb") },
-                { value: "mpv", label: mpvLabel() },
-              ]}
-              onChange={(value) => void changeAudioPlayer(value as AudioPlayer)}
-            />
+      {/* mpv ships with the desktop app only; elsewhere the web engine is the
+          only choice. */}
+      <Show when={isDesktopApp}>
+        <Row
+          label={t("settings.audioPlayer")}
+          description={t("settings.audioPlayerHint")}
+        >
+          <div class="flex flex-col items-stretch gap-1 max-md:w-full md:items-end">
+            <div class="w-full md:w-44">
+              <Select
+                aria-label={t("settings.audioPlayer")}
+                value={audioPlayer()}
+                options={[
+                  { value: "web", label: t("settings.audioPlayerWeb") },
+                  { value: "mpv", label: mpvLabel() },
+                ]}
+                onChange={(value) =>
+                  void changeAudioPlayer(value as AudioPlayer)
+                }
+              />
+            </div>
+            <Show when={checkingPlayer()}>
+              <p class="text-xs text-muted-foreground md:max-w-[18rem] md:text-right">
+                {t("settings.mpvChecking")}
+              </p>
+            </Show>
           </div>
-          <Show when={checkingPlayer()}>
-            <p class="text-xs text-muted-foreground md:max-w-[18rem] md:text-right">
-              {t("settings.mpvChecking")}
-            </p>
-          </Show>
-        </div>
-      </Row>
+        </Row>
+      </Show>
 
-      <Row
-        label={t("settings.audioDevice")}
-        description={
-          audioPlayer() === "mpv" ? mpvDeviceDescription() : deviceDescription()
-        }
-      >
-        <div class="flex items-center gap-2 max-md:w-full">
-          <div class="min-w-0 flex-1 md:w-44 md:flex-none">
-            <Select
-              aria-label={t("settings.audioDevice")}
-              value={audioPlayer() === "mpv" ? mpvAudioDevice() : audioDeviceId()}
-              disabled={audioPlayer() !== "mpv" && !outputSupported}
-              options={deviceOptions()}
-              onChange={(value) => {
-                if (audioPlayer() === "mpv") setMpvAudioDevice(value);
-                else setAudioDeviceId(value);
-              }}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            title={t("settings.audioDeviceRefresh")}
-            aria-label={t("settings.audioDeviceRefresh")}
-            disabled={
-              audioPlayer() === "mpv"
-                ? refreshingMpvDevices()
-                : !outputSupported || refreshingOutputs()
-            }
-            onClick={() =>
-              void (audioPlayer() === "mpv"
-                ? refreshMpvDevices()
-                : refreshOutputs())
-            }
-          >
-            <RefreshCw
-              class={cn(
-                "size-3.5",
-                (audioPlayer() === "mpv"
+      <Show when={!isMobile}>
+        <Row
+          label={t("settings.audioDevice")}
+          description={
+            audioPlayer() === "mpv"
+              ? mpvDeviceDescription()
+              : deviceDescription()
+          }
+        >
+          <div class="flex items-center gap-2 max-md:w-full">
+            <div class="min-w-0 flex-1 md:w-44 md:flex-none">
+              <Select
+                aria-label={t("settings.audioDevice")}
+                value={
+                  audioPlayer() === "mpv" ? mpvAudioDevice() : audioDeviceId()
+                }
+                disabled={audioPlayer() !== "mpv" && !outputSupported}
+                options={deviceOptions()}
+                onChange={(value) => {
+                  if (audioPlayer() === "mpv") setMpvAudioDevice(value);
+                  else setAudioDeviceId(value);
+                }}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              title={t("settings.audioDeviceRefresh")}
+              aria-label={t("settings.audioDeviceRefresh")}
+              disabled={
+                audioPlayer() === "mpv"
                   ? refreshingMpvDevices()
-                  : refreshingOutputs()) && "animate-spin",
-              )}
-            />
-          </Button>
-        </div>
-      </Row>
+                  : !outputSupported || refreshingOutputs()
+              }
+              onClick={() =>
+                void (audioPlayer() === "mpv"
+                  ? refreshMpvDevices()
+                  : refreshOutputs())
+              }
+            >
+              <RefreshCw
+                class={cn(
+                  "size-3.5",
+                  (audioPlayer() === "mpv"
+                    ? refreshingMpvDevices()
+                    : refreshingOutputs()) && "animate-spin",
+                )}
+              />
+            </Button>
+          </div>
+        </Row>
+      </Show>
 
-      <Row label={t("settings.scrobble")} description={t("settings.scrobbleHint")} inline>
+      <Row
+        label={t("settings.scrobble")}
+        description={t("settings.scrobbleHint")}
+        inline
+      >
         <Switch
           checked={scrobble()}
           onChange={setScrobble}
@@ -314,7 +337,7 @@ export default function PlaybackSettingsPage() {
         />
       </Row>
 
-      <Show when={isTauri}>
+      <Show when={isDesktopApp}>
         <Row
           label={t("settings.discordPresence")}
           description={t("settings.discordPresenceHint")}
@@ -328,7 +351,10 @@ export default function PlaybackSettingsPage() {
         </Row>
       </Show>
 
-      <Row label={t("settings.bitrate")} description={t("settings.bitrateHint")}>
+      <Row
+        label={t("settings.bitrate")}
+        description={t("settings.bitrateHint")}
+      >
         <div class="w-full md:w-44">
           <Select
             aria-label={t("settings.bitrate")}
