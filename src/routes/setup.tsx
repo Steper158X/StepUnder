@@ -7,6 +7,7 @@ import { ServerForm } from "~/components/server-form";
 import { Card, CardContent } from "~/components/ui/card";
 import { Spinner } from "~/components/common";
 import { Logo } from "~/components/logo";
+import { LanguageSwitcher } from "~/components/language-switcher";
 
 export default function SetupPage() {
   const servers = useServers();
@@ -15,6 +16,7 @@ export default function SetupPage() {
   return (
     <div class="relative flex min-h-full items-center justify-center overflow-y-auto p-6">
       <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,oklch(0.541_0.247_var(--brand-h)/0.18),transparent_70%)]" />
+      <LanguageSwitcher showIcon class="absolute right-4 top-4 z-10" />
       <div class="relative w-full max-w-lg py-6">
         <div class="mb-6 flex flex-col items-center text-center">
           <Logo class="mb-3 size-12 rounded-2xl shadow-lg" />

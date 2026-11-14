@@ -1132,9 +1132,14 @@ const th: Record<MessageKey, string> = {
 
 const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, th };
 
-const [locale, setLocaleSignal] = createSignal<Locale>("th");
+const [locale, setLocaleSignal] = createSignal<Locale>("en");
 
 export { locale };
+
+export const LOCALE_OPTIONS: Array<{ value: Locale; label: string }> = [
+  { value: "en", label: "English" },
+  { value: "th", label: "ไทย" },
+];
 
 export function t(
   key: MessageKey,
@@ -1150,8 +1155,8 @@ export function t(
 }
 
 export async function initI18n(): Promise<void> {
-  const saved = await readSetting<Locale>("locale", "th");
-  const next: Locale = saved === "en" ? "en" : "th";
+  const saved = await readSetting<Locale>("locale", "en");
+  const next: Locale = saved === "th" ? "th" : "en";
   setLocaleSignal(next);
   document.documentElement.lang = next;
 }

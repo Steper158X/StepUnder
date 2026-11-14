@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
-import { locale, setLocale, t, type MessageKey, type Locale } from "~/i18n";
+import { t, type MessageKey } from "~/i18n";
+import { LanguageSwitcher } from "~/components/language-switcher";
 import {
   Check,
   Droplet,
@@ -85,10 +86,6 @@ const uiStyleOptions: Array<{
   { value: "glass", key: "settings.uiStyle.glass", icon: Droplet },
 ];
 
-const localeOptions: Array<{ value: Locale; label: string }> = [
-  { value: "th", label: "ไทย" },
-  { value: "en", label: "English" },
-];
 
 const fontOptions: Array<{ value: Font; key: MessageKey }> = [
   { value: "system", key: "settings.font.system" },
@@ -329,24 +326,7 @@ export default function AppearanceSettingsPage() {
       </Row>
 
       <Row label={t("settings.language")}>
-        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-          <For each={localeOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => setLocale(option.value)}
-                class={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  locale() === option.value
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {option.label}
-              </button>
-            )}
-          </For>
-        </div>
+        <LanguageSwitcher />
       </Row>
     </SettingsSubPage>
   );
