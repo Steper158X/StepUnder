@@ -245,7 +245,7 @@ export default function AlbumPage() {
                   {t("album.label")}
                 </span>
 
-                <h1 class="text-balance text-3xl font-extrabold leading-[1.1] tracking-tight [overflow-wrap:anywhere] @2xl:text-4xl @5xl:text-5xl">
+                <h1 class="w-full text-pretty text-3xl font-extrabold leading-[1.1] tracking-tight hyphens-auto [overflow-wrap:break-word] @2xl:text-4xl @5xl:text-5xl">
                   {album()!.name}
                 </h1>
 
