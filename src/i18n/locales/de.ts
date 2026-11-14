@@ -284,7 +284,7 @@ export const de: PartialMessages = {
   "player.outputUsb": "USB-Audio",
   "player.outputPlaying": "Wird abgespielt",
   "player.outputSwitch": "Ausgabe wechseln",
-  "player.outputHint": "Android legt fest, wo der Ton läuft. Tippe auf ein Gerät, um den Systemumschalter zu öffnen.",
+  "player.outputHint": "Tippe auf ein Gerät, um darüber abzuspielen. „Ausgabe wechseln“ öffnet den Systemumschalter.",
   "player.outputSettingsOpened": "Bluetooth-Einstellungen geöffnet",
   "player.queueEmpty": "Deine Warteschlange ist leer",
   "player.queueEmptyHint": "Spiele ein Album ab oder füge Songs von überall hinzu.",

@@ -26,6 +26,7 @@ import {
   showAudioOutputSwitcher,
   type AudioOutput,
 } from "~/lib/android-media";
+import { hasNativePlayer, nativeSetOutput } from "~/lib/android-player";
 import { toast } from "~/components/toaster";
 import { Button } from "~/components/ui/button";
 
@@ -60,6 +61,19 @@ function openSwitcher() {
   if (showAudioOutputSwitcher() === "settings") {
     toast(t("player.outputSettingsOpened"));
   }
+}
+
+/** ExoPlayer can be sent to a device directly; otherwise ask Android. */
+function pickOutput(output: AudioOutput) {
+  if (!hasNativePlayer()) {
+    openSwitcher();
+    return;
+  }
+  nativeSetOutput(output.id);
+  // Show the pick right away; the native side confirms through the list.
+  setOutputs((list) =>
+    list.map((item) => ({ ...item, active: item.id === output.id })),
+  );
 }
 
 /**
@@ -193,7 +207,7 @@ export function OutputSheet() {
                 return (
                   <button
                     type="button"
-                    onClick={openSwitcher}
+                    onClick={() => pickOutput(output)}
                     class={cn(
                       "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-foreground/5 active:bg-foreground/10",
                       output.active && "bg-primary/10",

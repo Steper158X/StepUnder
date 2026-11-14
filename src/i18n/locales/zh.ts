@@ -280,7 +280,7 @@ export const zh: PartialMessages = {
   "player.outputUsb": "USB 音频",
   "player.outputPlaying": "正在播放",
   "player.outputSwitch": "切换输出",
-  "player.outputHint": "由 Android 决定音频从哪里播放。点按设备以打开系统切换器。",
+  "player.outputHint": "点按设备即可从该设备播放。“切换输出”会打开系统切换器。",
   "player.outputSettingsOpened": "已打开蓝牙设置",
   "player.queueEmpty": "播放队列为空",
   "player.queueEmptyHint": "播放一张专辑，或从任意位置添加歌曲。",

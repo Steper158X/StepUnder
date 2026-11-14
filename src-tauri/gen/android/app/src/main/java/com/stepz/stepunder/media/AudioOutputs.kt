@@ -22,10 +22,10 @@ import java.lang.ref.WeakReference
 /**
  * Audio outputs for the full screen player's output sheet.
  *
- * The music plays in the WebView, whose audio track belongs to Chromium, so
- * the app cannot route it to a chosen device itself. It can list the outputs,
- * say which one media is using, and open Android's own Output Switcher, which
- * does move the audio.
+ * The music plays through [NativePlayer] (ExoPlayer), which can be sent to a
+ * chosen device with `window.StepUnderPlayer.setOutput(id)`. This lists the
+ * outputs, says which one media is using, and can also open Android's own
+ * Output Switcher.
  *
  * The page calls `window.StepUnderOutputs.list()` and `.showSwitcher()`; when
  * a device connects or disconnects, `window.__stepunderOutputsChanged()` runs.
@@ -56,6 +56,9 @@ object AudioOutputs {
 
     private fun audioManager(): AudioManager? =
         appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+
+    /** Tells the page to read the list again, e.g. after picking an output. */
+    fun refresh() = notifyPage()
 
     private fun notifyPage() {
         main.post {
@@ -95,7 +98,13 @@ object AudioOutputs {
                 if (kind == "speaker") kind else "$kind:${device.productName}"
             }
 
-        val activeIds: Set<Int> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // A device picked in the app wins while it is still connected.
+        val preferred = NativePlayer.preferredDeviceId
+        val pickedIds: Set<Int>? = preferred
+            ?.takeIf { id -> devices.any { it.first.id == id } }
+            ?.let { setOf(it) }
+
+        val activeIds: Set<Int> = pickedIds ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
                 val attributes = AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)

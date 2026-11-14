@@ -284,7 +284,7 @@ export const fr: PartialMessages = {
   "player.outputUsb": "Audio USB",
   "player.outputPlaying": "En lecture",
   "player.outputSwitch": "Changer de sortie",
-  "player.outputHint": "Android choisit où le son est joué. Touchez un appareil pour ouvrir le sélecteur du système.",
+  "player.outputHint": "Touchez un appareil pour y diffuser le son. « Changer de sortie » ouvre le sélecteur du système.",
   "player.outputSettingsOpened": "Paramètres Bluetooth ouverts",
   "player.queueEmpty": "Votre file d’attente est vide",
   "player.queueEmptyHint": "Lancez un album ou ajoutez des titres depuis n’importe où.",

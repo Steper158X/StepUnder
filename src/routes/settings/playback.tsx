@@ -242,8 +242,9 @@ export default function PlaybackSettingsPage() {
 
   return (
     <SettingsSubPage title={t("settings.playback")}>
-      {/* mpv ships with the desktop app only; elsewhere the web engine is the
-          only choice. */}
+      {/* Only the desktop app has a choice (web or mpv). Android always plays
+          through Media3 ExoPlayer, and a plain browser through the web
+          engine, so there is nothing to pick there. */}
       <Show when={isDesktopApp}>
         <Row
           label={t("settings.audioPlayer")}

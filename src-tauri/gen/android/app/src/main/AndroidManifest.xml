@@ -4,6 +4,8 @@
     <!-- Keeps playing with the screen off (media/PlaybackService.kt). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- ExoPlayer's CPU and Wi-Fi locks while streaming (media/NativePlayer.kt). -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />

@@ -77,6 +77,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
     // MediaSessionCompat, MediaStyle notification, MediaBrowserServiceCompat.
     implementation("androidx.media:media:1.7.1")
+    // ExoPlayer: the playback engine (see media/NativePlayer.kt).
+    implementation("androidx.media3:media3-exoplayer:1.8.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

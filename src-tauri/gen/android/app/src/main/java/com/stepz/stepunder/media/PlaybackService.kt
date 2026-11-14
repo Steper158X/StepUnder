@@ -40,8 +40,11 @@ import java.util.concurrent.Executors
  * media notification, lock screen controls, Bluetooth/headset buttons and
  * Android Auto (through the MediaBrowserService interface).
  *
- * The audio itself still plays in the WebView. This service only mirrors the
- * page's state ([MediaBridge.current]) and forwards button presses back.
+ * The audio plays through [NativePlayer] (ExoPlayer), which also handles
+ * audio focus and unplugged headphones. This service mirrors the page's state
+ * ([MediaBridge.current]); play, pause and seek go straight to the player so
+ * they work even while Android holds back the WebView's JavaScript, and
+ * next/previous go to the page, which owns the queue.
  */
 class PlaybackService : MediaBrowserServiceCompat() {
     companion object {
@@ -116,12 +119,12 @@ class PlaybackService : MediaBrowserServiceCompat() {
     private val callback = object : MediaSessionCompat.Callback() {
         override fun onPlay() {
             resumeOnFocusGain = false
-            MediaBridge.dispatch("play")
+            if (NativePlayer.inUse) NativePlayer.play() else MediaBridge.dispatch("play")
         }
 
         override fun onPause() {
             resumeOnFocusGain = false
-            MediaBridge.dispatch("pause")
+            if (NativePlayer.inUse) NativePlayer.pause() else MediaBridge.dispatch("pause")
         }
 
         override fun onStop() {
@@ -133,7 +136,10 @@ class PlaybackService : MediaBrowserServiceCompat() {
 
         override fun onSkipToPrevious() = MediaBridge.dispatch("previous")
 
-        override fun onSeekTo(pos: Long) = MediaBridge.dispatch("seek", pos / 1000.0)
+        override fun onSeekTo(pos: Long) {
+            if (NativePlayer.inUse) NativePlayer.seek(pos / 1000.0)
+            else MediaBridge.dispatch("seek", pos / 1000.0)
+        }
 
         override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) = onPlay()
     }
@@ -178,13 +184,13 @@ class PlaybackService : MediaBrowserServiceCompat() {
             ACTION_PREVIOUS -> callback.onSkipToPrevious()
             ACTION_DISMISS -> if (MediaBridge.current?.playing != true) stopEverything()
         }
-        // The WebView that plays the audio cannot be brought back, so there
+        // The queue lives in the page, which cannot be brought back, so there
         // is nothing to restart after the process dies.
         return START_NOT_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Swiping the app away destroys the WebView, and the music with it.
+        // Swiping the app away destroys the page that owns the queue.
         stopEverything()
         super.onTaskRemoved(rootIntent)
     }
@@ -244,7 +250,12 @@ class PlaybackService : MediaBrowserServiceCompat() {
         updateMetadata(state)
         updatePlaybackState(state)
 
-        if (state.playing) {
+        if (NativePlayer.inUse) {
+            // ExoPlayer holds audio focus itself; a second request from this
+            // service would take it away from the player.
+            unregisterNoisy()
+            abandonFocus()
+        } else if (state.playing) {
             requestFocus()
             registerNoisy()
         } else {
