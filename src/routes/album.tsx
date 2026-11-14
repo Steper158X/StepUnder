@@ -10,6 +10,7 @@ import {
   onCleanup,
 } from "solid-js";
 import {
+  ChevronLeft,
   Disc3,
   Ellipsis,
   Heart,
@@ -162,6 +163,12 @@ export default function AlbumPage() {
     if (shuffle && !player.state.shuffle) player.toggleShuffle();
   }
 
+  /** Back to the previous page, or the album list when the album was opened first. */
+  function goBack() {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/albums");
+  }
+
   return (
     <div class="relative isolate">
       <div
@@ -192,6 +199,15 @@ export default function AlbumPage() {
       </div>
 
       <Page class="@container">
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label={t("action.back")}
+          title={t("action.back")}
+          class="-ml-2 -mt-1 mb-2 inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronLeft class="size-6" />
+        </button>
         <Show
           when={!data.loading}
           fallback={
