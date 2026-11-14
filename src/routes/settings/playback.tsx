@@ -239,8 +239,8 @@ export default function PlaybackSettingsPage() {
         label={t("settings.audioPlayer")}
         description={t("settings.audioPlayerHint")}
       >
-        <div class="flex flex-col items-end gap-1">
-          <div class="w-44">
+        <div class="flex flex-col items-stretch gap-1 max-md:w-full md:items-end">
+          <div class="w-full md:w-44">
             <Select
               aria-label={t("settings.audioPlayer")}
               value={audioPlayer()}
@@ -252,7 +252,7 @@ export default function PlaybackSettingsPage() {
             />
           </div>
           <Show when={checkingPlayer()}>
-            <p class="max-w-[18rem] text-right text-xs text-muted-foreground">
+            <p class="text-xs text-muted-foreground md:max-w-[18rem] md:text-right">
               {t("settings.mpvChecking")}
             </p>
           </Show>
@@ -265,8 +265,8 @@ export default function PlaybackSettingsPage() {
           audioPlayer() === "mpv" ? mpvDeviceDescription() : deviceDescription()
         }
       >
-        <div class="flex items-center gap-2">
-          <div class="w-44">
+        <div class="flex items-center gap-2 max-md:w-full">
+          <div class="min-w-0 flex-1 md:w-44 md:flex-none">
             <Select
               aria-label={t("settings.audioDevice")}
               value={audioPlayer() === "mpv" ? mpvAudioDevice() : audioDeviceId()}
@@ -306,7 +306,7 @@ export default function PlaybackSettingsPage() {
         </div>
       </Row>
 
-      <Row label={t("settings.scrobble")} description={t("settings.scrobbleHint")}>
+      <Row label={t("settings.scrobble")} description={t("settings.scrobbleHint")} inline>
         <Switch
           checked={scrobble()}
           onChange={setScrobble}
@@ -318,6 +318,7 @@ export default function PlaybackSettingsPage() {
         <Row
           label={t("settings.discordPresence")}
           description={t("settings.discordPresenceHint")}
+          inline
         >
           <Switch
             checked={discordPresence()}
@@ -328,7 +329,7 @@ export default function PlaybackSettingsPage() {
       </Show>
 
       <Row label={t("settings.bitrate")} description={t("settings.bitrateHint")}>
-        <div class="w-44">
+        <div class="w-full md:w-44">
           <Select
             aria-label={t("settings.bitrate")}
             value={String(maxBitRate())}
@@ -343,7 +344,7 @@ export default function PlaybackSettingsPage() {
       </Row>
 
       <Row label={t("settings.format")} description={t("settings.formatHint")}>
-        <div class="w-44">
+        <div class="w-full md:w-44">
           <Select
             aria-label={t("settings.format")}
             value={streamFormat()}

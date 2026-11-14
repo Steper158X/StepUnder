@@ -24,6 +24,7 @@ export default function LyricsSettingsPage() {
       <Row
         label={t("settings.sideLyrics")}
         description={t("settings.sideLyricsHint")}
+        inline
       >
         <Switch
           checked={sideLyrics()}
@@ -35,6 +36,7 @@ export default function LyricsSettingsPage() {
       <Row
         label={t("settings.phoneticLyrics")}
         description={t("settings.phoneticLyricsHint")}
+        inline
       >
         <Switch
           checked={phoneticLyrics()}
@@ -46,6 +48,7 @@ export default function LyricsSettingsPage() {
       <Row
         label={t("settings.lyricsLineMarker")}
         description={t("settings.lyricsLineMarkerHint")}
+        inline
       >
         <Switch
           checked={lyricsLineMarker()}
@@ -58,7 +61,7 @@ export default function LyricsSettingsPage() {
         label={t("settings.lyricsBlur")}
         description={t("settings.lyricsBlurHint")}
       >
-        <div class="w-44">
+        <div class="w-full md:w-44">
           <Select
             aria-label={t("settings.lyricsBlur")}
             value={lyricsBlur()}
@@ -74,6 +77,7 @@ export default function LyricsSettingsPage() {
       <Row
         label={t("settings.lyricsBlurSmooth")}
         description={t("settings.lyricsBlurSmoothHint")}
+        inline
       >
         <Switch
           checked={lyricsBlurSmooth()}

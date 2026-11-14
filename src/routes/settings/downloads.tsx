@@ -139,6 +139,7 @@ export default function DownloadSettingsPage() {
                 count: downloadEntries().length,
                 size: formatBytes(downloadedBytes()) || "0 KB",
               })}
+              inline
             >
               <Button
                 variant="outline"
@@ -162,6 +163,7 @@ export default function DownloadSettingsPage() {
           <Button
             variant="outline"
             size="sm"
+            class="max-md:flex-1"
             onClick={() => void changeFolder()}
           >
             {t("settings.downloadFolderChange")}
@@ -192,6 +194,7 @@ export default function DownloadSettingsPage() {
         <Row
           label={t("settings.preferLocal")}
           description={t("settings.preferLocalHint")}
+          inline
         >
           <Switch
             checked={preferLocal()}
@@ -204,7 +207,7 @@ export default function DownloadSettingsPage() {
           label={t("settings.downloadFormat")}
           description={t("settings.downloadFormatHint")}
         >
-          <div class="w-44">
+          <div class="w-full md:w-44">
             <Select
               aria-label={t("settings.downloadFormat")}
               value={downloadFormat()}
@@ -225,7 +228,7 @@ export default function DownloadSettingsPage() {
             label={t("settings.downloadBitrate")}
             description={t("settings.downloadBitrateHint")}
           >
-            <div class="w-44">
+            <div class="w-full md:w-44">
               <Select
                 aria-label={t("settings.downloadBitrate")}
                 value={String(downloadBitRate())}
@@ -246,7 +249,7 @@ export default function DownloadSettingsPage() {
           label={t("settings.downloadLayout")}
           description={t("settings.downloadLayoutHint")}
         >
-          <div class="w-56">
+          <div class="w-full md:w-56">
             <Select
               aria-label={t("settings.downloadLayout")}
               value={downloadLayout()}
@@ -263,7 +266,7 @@ export default function DownloadSettingsPage() {
           label={t("settings.downloadConcurrency")}
           description={t("settings.downloadConcurrencyHint")}
         >
-          <div class="w-44">
+          <div class="w-full md:w-44">
             <Select
               aria-label={t("settings.downloadConcurrency")}
               value={String(downloadConcurrency())}
@@ -282,6 +285,7 @@ export default function DownloadSettingsPage() {
         <Row
           label={t("settings.downloadOnStar")}
           description={t("settings.downloadOnStarHint")}
+          inline
         >
           <Switch
             checked={downloadOnStar()}

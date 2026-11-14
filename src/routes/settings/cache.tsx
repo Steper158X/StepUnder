@@ -111,7 +111,7 @@ export default function CacheSettingsPage() {
                 />
               </div>
             </div>
-            <div class="flex flex-wrap justify-end gap-2 py-3.5">
+            <div class="grid grid-cols-2 gap-2 py-3.5 md:flex md:flex-wrap md:justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -137,6 +137,7 @@ export default function CacheSettingsPage() {
         <Row
           label={t("settings.coverCacheEnabled")}
           description={t("settings.coverCacheEnabledHint")}
+          inline
         >
           <Switch
             checked={coverCacheEnabled()}
@@ -149,7 +150,7 @@ export default function CacheSettingsPage() {
           label={t("settings.coverCacheMaxSize")}
           description={t("settings.coverCacheMaxSizeHint")}
         >
-          <div class="w-44">
+          <div class="w-full md:w-44">
             <Select
               aria-label={t("settings.coverCacheMaxSize")}
               value={String(coverCacheMaxMb())}
@@ -167,7 +168,7 @@ export default function CacheSettingsPage() {
           label={t("settings.coverCacheMaxAge")}
           description={t("settings.coverCacheMaxAgeHint")}
         >
-          <div class="w-44">
+          <div class="w-full md:w-44">
             <Select
               aria-label={t("settings.coverCacheMaxAge")}
               value={String(coverCacheMaxDays())}

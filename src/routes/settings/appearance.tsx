@@ -50,7 +50,7 @@ import { isLinux, isTauri, isWindows } from "~/lib/platform";
 import { Select } from "~/components/ui/select";
 import { Slider } from "~/components/ui/slider";
 import { cn } from "~/lib/utils";
-import { Row, SettingsSection, SettingsSubPage } from "./shared";
+import { Row, Segmented, SettingsSection, SettingsSubPage } from "./shared";
 
 const themeOptions: Array<{ value: Theme; key: MessageKey }> = [
   { value: "dark", key: "settings.theme.dark" },
@@ -117,7 +117,7 @@ function SliderRow(props: {
 }) {
   return (
     <Row label={props.label} description={props.description}>
-      <div class="flex w-56 items-center gap-3">
+      <div class="flex w-full items-center gap-3 md:w-56">
         <Slider
           value={props.value}
           max={props.max}
@@ -187,24 +187,14 @@ export default function AppearanceSettingsPage() {
                 label={t("settings.windowEffect")}
                 description={t("settings.windowEffectHint")}
               >
-                <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-                  <For each={windowEffectOptions}>
-                    {(option) => (
-                      <button
-                        type="button"
-                        onClick={() => setWindowEffect(option.value)}
-                        class={cn(
-                          "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                          windowEffect() === option.value
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {t(option.key)}
-                      </button>
-                    )}
-                  </For>
-                </div>
+                <Segmented
+                  value={windowEffect()}
+                  onChange={setWindowEffect}
+                  options={windowEffectOptions.map((option) => ({
+                    value: option.value,
+                    label: t(option.key),
+                  }))}
+                />
               </Row>
 
               <Show when={windowEffect() !== "none"}>
@@ -223,46 +213,29 @@ export default function AppearanceSettingsPage() {
       }
     >
       <Row label={t("settings.theme")}>
-        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-          <For each={themeOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => setTheme(option.value)}
-                class={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  theme() === option.value
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t(option.key)}
-              </button>
-            )}
-          </For>
-        </div>
+        <Segmented
+          value={theme()}
+          onChange={setTheme}
+          options={themeOptions.map((option) => ({
+            value: option.value,
+            label: t(option.key),
+          }))}
+        />
       </Row>
 
-      <Row label={t("settings.uiStyle")} description={t("settings.uiStyleHint")}>
-        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-          <For each={uiStyleOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => setUiStyle(option.value)}
-                class={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  uiStyle() === option.value
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <option.icon class="size-3.5" />
-                {t(option.key)}
-              </button>
-            )}
-          </For>
-        </div>
+      <Row
+        label={t("settings.uiStyle")}
+        description={t("settings.uiStyleHint")}
+      >
+        <Segmented
+          value={uiStyle()}
+          onChange={setUiStyle}
+          options={uiStyleOptions.map((option) => ({
+            value: option.value,
+            label: t(option.key),
+            icon: <option.icon class="size-3.5" />,
+          }))}
+        />
       </Row>
 
       <Row label={t("settings.accent")}>
@@ -276,7 +249,7 @@ export default function AppearanceSettingsPage() {
                 aria-pressed={accent() === option.value}
                 onClick={() => setAccent(option.value)}
                 class={cn(
-                  "flex size-7 items-center justify-center rounded-full text-white ring-offset-2 ring-offset-card transition-shadow",
+                  "flex size-8 items-center justify-center rounded-full text-white md:size-7 ring-offset-2 ring-offset-card transition-shadow",
                   accent() === option.value
                     ? "ring-2 ring-foreground/70"
                     : "hover:ring-2 hover:ring-border",
@@ -298,34 +271,26 @@ export default function AppearanceSettingsPage() {
         label={t("settings.coverShape")}
         description={t("settings.coverShapeHint")}
       >
-        <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-          <For each={coverShapeOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => setCoverShape(option.value)}
+        <Segmented
+          value={coverShape()}
+          onChange={setCoverShape}
+          options={coverShapeOptions.map((option) => ({
+            value: option.value,
+            label: t(option.key),
+            icon: (
+              <span
                 class={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  coverShape() === option.value
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                  "size-3 border-[1.5px] border-current",
+                  option.value === "rounded" ? "rounded-[3px]" : "rounded-none",
                 )}
-              >
-                <span
-                  class={cn(
-                    "size-3 border-[1.5px] border-current",
-                    option.value === "rounded" ? "rounded-[3px]" : "rounded-none",
-                  )}
-                />
-                {t(option.key)}
-              </button>
-            )}
-          </For>
-        </div>
+              />
+            ),
+          }))}
+        />
       </Row>
 
       <Row label={t("settings.font")} description={t("settings.fontHint")}>
-        <div class="w-44">
+        <div class="w-full md:w-44">
           <Select
             aria-label={t("settings.font")}
             value={font()}
@@ -344,30 +309,20 @@ export default function AppearanceSettingsPage() {
           label={t("settings.playerLayout")}
           description={t("settings.playerLayoutHint")}
         >
-          <div class="flex gap-1 rounded-lg border border-border/70 p-0.5">
-            <For each={playerLayoutOptions}>
-              {(option) => (
-                <button
-                  type="button"
-                  onClick={() => setPlayerLayout(option.value)}
-                  class={cn(
-                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                    playerLayout() === option.value
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <option.icon class="size-3.5" />
-                  {t(option.key)}
-                </button>
-              )}
-            </For>
-          </div>
+          <Segmented
+            value={playerLayout()}
+            onChange={setPlayerLayout}
+            options={playerLayoutOptions.map((option) => ({
+              value: option.value,
+              label: t(option.key),
+              icon: <option.icon class="size-3.5" />,
+            }))}
+          />
         </Row>
       </Show>
 
       <Row label={t("settings.language")}>
-        <LanguageSwitcher />
+        <LanguageSwitcher class="max-md:w-full" selectClass="max-md:w-full" />
       </Row>
     </SettingsSubPage>
   );

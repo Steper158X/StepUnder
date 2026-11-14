@@ -71,7 +71,7 @@ export default function AboutSettingsPage() {
       </Row>
 
       <Row label={t("settings.version")} description={updateDescription()}>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <Badge>v{appVersion()}</Badge>
           <Show when={updateStatus() === "available"}>
             <Button size="sm" onClick={() => void installUpdate()}>
@@ -122,6 +122,7 @@ export default function AboutSettingsPage() {
       <Row
         label={t("settings.autoUpdate")}
         description={t("settings.autoUpdateHint")}
+        inline
       >
         <Switch
           checked={autoUpdate()}
