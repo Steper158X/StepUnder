@@ -101,6 +101,10 @@
     font-family: var(--font-app);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+    /* Android draws the app edge to edge; keep content clear of the status
+       bar and gesture bar. All zero on desktop. */
+    padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0)
+      env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
   }
 
   ::selection {

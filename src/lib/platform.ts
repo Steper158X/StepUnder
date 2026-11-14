@@ -9,3 +9,6 @@ export const isWindows = /Windows/i.test(userAgent);
 
 /** WebKitGTK on Linux (Ubuntu, Pop!_OS, Fedora, …). */
 export const isLinux = !isWindows && /Linux/i.test(userAgent) && !/Android/i.test(userAgent);
+
+/** Android or iOS: no desktop window to minimize, maximize or close. */
+export const isMobile = /Android|iPhone|iPad|iPod/i.test(userAgent);

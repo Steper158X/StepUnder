@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { readSetting, writeSetting } from "~/lib/storage";
 import { DEFAULT_AUDIO_DEVICE } from "~/lib/audio-output";
-import { isTauri, isWindows } from "~/lib/platform";
+import { isMobile, isTauri, isWindows } from "~/lib/platform";
 
 export type Theme = "dark" | "light" | "system";
 export type StreamFormat = "raw" | "mp3" | "aac" | "opus" | "flac";
@@ -271,7 +271,8 @@ function applyWindowEffect() {
   const root = document.documentElement;
   if (effect === "none") delete root.dataset.windowEffect;
   else root.dataset.windowEffect = effect;
-  if (!isTauri) return;
+  // Phones have no window materials; the call would only log an error.
+  if (!isTauri || isMobile) return;
 
   void import("@tauri-apps/api/window")
     .then(({ getCurrentWindow, Effect }) => {

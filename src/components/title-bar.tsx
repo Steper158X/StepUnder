@@ -4,6 +4,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { t } from "~/i18n";
 import { Logo } from "~/components/logo";
+import { isMobile } from "~/lib/platform";
 
 const buttonClass =
   "flex w-11 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-none";
@@ -96,7 +97,10 @@ function WindowChrome() {
   );
 }
 
-/** Only rendered inside the Tauri webview; a plain browser keeps its own frame. */
+/**
+ * Only rendered inside the desktop Tauri webview; a plain browser keeps its
+ * own frame and phones have no window to move, resize or close.
+ */
 export function TitleBar() {
-  return <Show when={isTauri()}>{<WindowChrome />}</Show>;
+  return <Show when={isTauri() && !isMobile}>{<WindowChrome />}</Show>;
 }
