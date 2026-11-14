@@ -133,9 +133,11 @@ export interface PlayerContextValue {
   jumpTo: (index: number) => void;
   clearQueue: () => void;
   isCurrent: (songId: string) => boolean;
-  isStarred: (song: Song) => boolean;
+  /** Works for songs and albums: anything with an id and `starred`. */
+  isStarred: (item: { id: string; starred?: string }) => boolean;
   patchSongStar: (songId: string, starred: boolean) => void;
-  ratingOf: (song: Song) => number;
+  /** Works for songs and albums: anything with an id and `userRating`. */
+  ratingOf: (item: { id: string; userRating?: number }) => number;
   patchSongRating: (songId: string, rating: number) => void;
 }
 
@@ -770,8 +772,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     return current()?.id === songId;
   }
 
-  function isStarred(song: Song) {
-    return starOverrides()[song.id] ?? Boolean(song.starred);
+  function isStarred(item: { id: string; starred?: string }) {
+    return starOverrides()[item.id] ?? Boolean(item.starred);
   }
 
   function patchSongStar(songId: string, starred: boolean) {
@@ -785,8 +787,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     );
   }
 
-  function ratingOf(song: Song) {
-    return ratingOverrides()[song.id] ?? song.userRating ?? 0;
+  function ratingOf(item: { id: string; userRating?: number }) {
+    return ratingOverrides()[item.id] ?? item.userRating ?? 0;
   }
 
   function patchSongRating(songId: string, rating: number) {

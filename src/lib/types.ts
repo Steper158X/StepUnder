@@ -56,6 +56,8 @@ export interface Album {
   year?: number;
   genre?: string;
   starred?: string;
+  /** Subsonic: the user's 1–5 rating; absent or 0 when unrated. */
+  userRating?: number;
   created?: string;
   playCount?: number;
   played?: string;

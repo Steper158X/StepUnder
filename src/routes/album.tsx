@@ -1,6 +1,11 @@
 import { A, useParams } from "@solidjs/router";
 import { createMemo, createResource, Show } from "solid-js";
-import { Disc3, ListPlus, Play, Shuffle } from "lucide-solid";
+import { Disc3, Heart, ListPlus, Play, Shuffle } from "lucide-solid";
+import type { Album, Song } from "~/lib/types";
+import { useDownloads } from "~/state/downloads";
+import { downloadOnStar } from "~/state/settings";
+import { cn } from "~/lib/utils";
+import { RatingStars, useStar } from "~/components/annotations";
 import { useServers } from "~/state/servers";
 import { usePlaylists } from "~/state/playlists";
 import { usePlayer } from "~/player/store";
@@ -14,6 +19,32 @@ import { Button } from "~/components/ui/button";
 import { DownloadAllButton } from "~/components/download-status";
 import { Skeleton } from "~/components/ui/select";
 import { genreHref } from "~/routes/genres";
+
+function AlbumLikeButton(props: { album: Album; songs: Song[] }) {
+  const downloads = useDownloads();
+  const { starred, toggle, busy } = useStar(() => props.album, {
+    onStarred: () => {
+      if (downloadOnStar() && props.songs.length) {
+        downloads.download(props.songs);
+      }
+    },
+  });
+  const label = () => t(starred() ? "action.unlike" : "action.like");
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      class={cn("shrink-0", starred() && "text-primary")}
+      onClick={() => void toggle()}
+      disabled={busy()}
+      title={label()}
+      aria-label={label()}
+      aria-pressed={starred()}
+    >
+      <Heart class={cn("size-4", starred() && "fill-current")} />
+    </Button>
+  );
+}
 
 export default function AlbumPage() {
   const params = useParams();
@@ -133,8 +164,10 @@ export default function AlbumPage() {
                 >
                   <ListPlus class="size-4" />
                 </Button>
+                <AlbumLikeButton album={album()!} songs={songs()} />
                 <DownloadAllButton songs={songs()} />
               </div>
+              <RatingStars item={album()!} class="-ml-0.5" />
             </div>
           </div>
 
