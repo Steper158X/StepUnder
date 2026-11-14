@@ -126,7 +126,7 @@ jobs:
           releaseId: ${{ needs.prepare.outputs.release_id }}
           tauriScript: bun run tauri
           # The publish job writes one feed for every platform.
-          uploadUpdaterJson: false
+          includeUpdaterJson: false
           args: --bundles ${{ matrix.bundles }}
 
   publish:
@@ -136,15 +136,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # Works on the draft by the id prepare created, the same id the builds
+      # uploaded to. Looking a draft up by its tag is unreliable on GitHub.
       - name: Write updater feed and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.prepare.outputs.release_id }}
         run: |
+          set -euo pipefail
+          api="repos/$GITHUB_REPOSITORY/releases"
+          auth=(-H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28")
+          assets="$RUNNER_TEMP/assets.tsv"
+          gh api "$api/$RELEASE_ID/assets" --paginate \
+            --jq '.[] | "\(.id)\t\(.name)"' > "$assets"
+          echo "Assets on release $RELEASE_ID:"; cut -f2 "$assets"
+
           sigs="$RUNNER_TEMP/sigs"
           mkdir -p "$sigs"
-          gh release download "$GITHUB_REF_NAME" --pattern '*.sig' --dir "$sigs" --clobber \
-            || { echo "::error::No signatures were uploaded; leaving the release as a draft."; exit 1; }
+          while IFS=$'\t' read -r id name; do
+            [[ "$name" == *.sig ]] || continue
+            curl -fsSL "${auth[@]}" -H "Accept: application/octet-stream" \
+              "https://api.github.com/$api/assets/$id" -o "$sigs/$name"
+          done < "$assets"
+          if ! ls "$sigs"/*.sig > /dev/null 2>&1; then
+            echo "::error::No signatures were uploaded; leaving the release as a draft."
+            exit 1
+          fi
+
           node scripts/make-updater-feed.mjs "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" \
             "$sigs" "$RUNNER_TEMP/latest.json" ".github/release-notes/$GITHUB_REF_NAME.md"
-          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/latest.json" --clobber
-          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+
+          # Replace any latest.json an earlier attempt uploaded.
+          while IFS=$'\t' read -r id name; do
+            if [[ "$name" == "latest.json" ]]; then gh api -X DELETE "$api/assets/$id"; fi
+          done < "$assets"
+          curl -fsSL "${auth[@]}" -H "Content-Type: application/json" \
+            --data-binary "@$RUNNER_TEMP/latest.json" \
+            "https://uploads.github.com/$api/$RELEASE_ID/assets?name=latest.json" > /dev/null
+
+          gh api -X PATCH "$api/$RELEASE_ID" -F draft=false -f make_latest=true > /dev/null
+          echo "Published $GITHUB_REF_NAME"
