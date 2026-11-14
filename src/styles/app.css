@@ -401,6 +401,77 @@ html[data-platform="linux"] .lyric-line {
   filter: none;
 }
 
+/*
+ * The edge fade masks the whole scroller, so WebKitGTK re-masks it on every
+ * frame of the lyrics auto-scroll. Lines are not blurred here, so a plain
+ * edge reads fine.
+ */
+html[data-platform="linux"] .lyrics-scroller {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/*
+ * Sidebar and queue: `overflow: hidden` plus a border radius makes WebKitGTK
+ * clip every scrolling list inside to a rounded mask. Clip to a plain
+ * rectangle instead and draw the rounded glass sheet on ::before behind it.
+ * (The window is at least 900px wide on Linux, so this never meets the
+ * phone layout above.)
+ */
+@media (min-width: 48rem) {
+  html[data-platform="linux"][data-style="glass"] .glass-inset {
+    position: relative;
+    isolation: isolate;
+    border-radius: 0;
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  html[data-platform="linux"][data-style="glass"] .glass-inset::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border: 1px solid var(--glass-line);
+    border-radius: 1.25rem;
+    background-color: var(--glass-tint);
+    box-shadow: inset 0 1px 0 0 var(--glass-rim);
+  }
+}
+
+/*
+ * Large blurred shadows are painted on the CPU and repainted with whatever
+ * they surround (the player bar redraws every time the position ticks).
+ * Keep them short, and never animate them.
+ */
+html[data-platform="linux"][data-style="glass"] .glass-panel {
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-rim),
+    0 4px 12px -6px var(--glass-shade);
+}
+
+html[data-platform="linux"][data-style="glass"] .glass-popover {
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-rim),
+    0 6px 16px -8px var(--glass-shade);
+}
+
+html[data-platform="linux"][data-style="glass"] .glass-cover,
+html[data-platform="linux"][data-style="glass"] .glass-tile:hover .glass-cover,
+html[data-platform="linux"][data-style="glass"] .glass-tile:focus-within .glass-cover,
+html[data-platform="linux"][data-style="glass"] .glass-cover:hover {
+  box-shadow: 0 4px 10px -6px var(--glass-shade);
+  transition: transform 0.25s ease;
+}
+
+/* Its own layer, so position updates don't repaint the whole player bar. */
+html[data-platform="linux"] .player-progress {
+  will-change: transform;
+  contain: layout paint;
+}
+
 /* Scrollbars */
 * {
   scrollbar-width: thin;

@@ -8,7 +8,7 @@ import { MobileHeader, Sidebar } from "~/components/sidebar";
 import { PlayerBar } from "~/components/player-bar";
 import { NowPlaying } from "~/components/now-playing";
 import { QueuePanel } from "~/components/queue-panel";
-import { Cover, Spinner } from "~/components/common";
+import { BlurredArtwork, Spinner } from "~/components/common";
 import { Logo } from "~/components/logo";
 
 function BootScreen() {
@@ -35,11 +35,10 @@ function GlassBackdrop() {
           class="glass-backdrop pointer-events-none fixed inset-0 -z-10 opacity-60"
         >
           {/* Blurred this heavily, a tiny thumbnail looks the same. */}
-          <Cover
+          <BlurredArtwork
             coverArtId={id()}
-            size={64}
-            alt=""
-            class="size-full scale-125 rounded-none blur-[100px]"
+            blurClass="blur-[100px]"
+            class="size-full scale-125 rounded-none"
             iconClass="hidden"
           />
         </div>

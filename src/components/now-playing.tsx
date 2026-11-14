@@ -14,7 +14,7 @@ import type { Lyrics, Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
 import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
-import { Cover, Spinner } from "~/components/common";
+import { BlurredArtwork, Cover, Spinner } from "~/components/common";
 import { cn } from "~/lib/utils";
 import { addPhonetics } from "~/lib/phonetic";
 import {
@@ -346,11 +346,10 @@ function NowPlayingView(props: { track: Song }) {
       {/* Large blurred album art backdrop */}
       <div class="now-playing-backdrop absolute inset-0" aria-hidden="true">
         {/* Blurred this heavily, a tiny thumbnail looks the same and decodes to a fraction of the memory. */}
-        <Cover
+        <BlurredArtwork
           coverArtId={props.track.coverArt}
-          size={64}
-          alt=""
-          class="size-full scale-110 blur-[80px]"
+          blurClass="blur-[80px]"
+          class="size-full scale-110"
           iconClass="size-32"
         />
         <div class="absolute inset-0 bg-background/40" />

@@ -299,7 +299,7 @@ export function PlayerBar(props: {
             </ControlButton>
           </div>
 
-          <div class="flex w-full items-center gap-2">
+          <div class="player-progress flex w-full items-center gap-2">
             <span class="w-8 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground md:w-9 md:text-[11px]">
               {formatTime(position())}
             </span>

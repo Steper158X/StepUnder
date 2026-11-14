@@ -1,4 +1,12 @@
-import { createEffect, createMemo, createSignal, on, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  on,
+  onCleanup,
+  Show,
+} from "solid-js";
+import { isLinux } from "~/lib/platform";
 import { Music, X } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t } from "~/i18n";
@@ -54,6 +62,87 @@ export function ArtistAvatar(props: {
         />
       </Show>
     </div>
+  );
+}
+
+/**
+ * Draws `src` onto `canvas` already blurred: shrink it to a few pixels (which
+ * averages the colours) and grow it back in doubling steps, each one smoothed
+ * bilinearly. CSS then stretches the canvas to fill its box, so the result
+ * looks like a huge blur while the page never runs a CSS filter. Nothing is
+ * read back from the canvas, so cross-origin artwork is fine.
+ */
+function paintBlurred(canvas: HTMLCanvasElement, image: HTMLImageElement) {
+  const start = 8;
+  const final = 64;
+  let source: CanvasImageSource = image;
+  for (let size = start; size <= final; size *= 2) {
+    const step = size === final ? canvas : document.createElement("canvas");
+    step.width = size;
+    step.height = size;
+    const ctx = step.getContext("2d");
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.clearRect(0, 0, size, size);
+    ctx.drawImage(source, 0, 0, size, size);
+    source = step;
+  }
+}
+
+/**
+ * Artwork blurred into a soft colour wash for backdrops. A CSS `filter: blur()`
+ * this large is redrawn on every frame by WebKitGTK, so on Linux the blur is
+ * baked into a tiny canvas once per cover instead.
+ */
+export function BlurredArtwork(props: {
+  coverArtId?: string;
+  /** Tailwind blur class used where CSS filters are cheap, e.g. `blur-[100px]`. */
+  blurClass: string;
+  class?: string;
+  iconClass?: string;
+}) {
+  if (!isLinux) {
+    return (
+      <Cover
+        coverArtId={props.coverArtId}
+        size={64}
+        alt=""
+        class={cn(props.class, props.blurClass)}
+        iconClass={props.iconClass}
+      />
+    );
+  }
+
+  const servers = useServers();
+  let canvas: HTMLCanvasElement | undefined;
+
+  createEffect(() => {
+    const client = servers.client();
+    const id = props.coverArtId;
+    if (!canvas) return;
+    canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+    if (!client || !id) return;
+    const image = new Image();
+    let cancelled = false;
+    image.decoding = "async";
+    image.onload = () => {
+      if (!cancelled && canvas) paintBlurred(canvas, image);
+    };
+    image.src = client.coverSrc(id, 64);
+    onCleanup(() => {
+      cancelled = true;
+      image.onload = null;
+    });
+  });
+
+  return (
+    <canvas
+      ref={canvas}
+      width={64}
+      height={64}
+      class={cn("block object-cover", props.class)}
+    />
   );
 }
 
