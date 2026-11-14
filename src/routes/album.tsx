@@ -223,12 +223,8 @@ export default function AlbumPage() {
             {/* ---------------------------------------------------- header */}
             <header class="flex flex-col items-center gap-6 @2xl:flex-row @2xl:gap-8">
               <div
-                class="shrink-0 rounded-2xl transition-shadow duration-700"
-                style={{
-                  "box-shadow": glow()
-                    ? `0 24px 60px -18px hsl(${glow()} / 0.55), 0 8px 20px -10px rgb(0 0 0 / 0.35)`
-                    : "0 12px 32px -12px rgb(0 0 0 / 0.35)",
-                }}
+                class="cover-frame shrink-0 rounded-2xl"
+                style={{ "box-shadow": "0 12px 32px -12px rgb(0 0 0 / 0.35)" }}
               >
                 <Cover
                   coverArtId={album()!.coverArt ?? album()!.id}

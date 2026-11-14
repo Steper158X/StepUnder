@@ -354,7 +354,8 @@ html[data-style="glass"] .glass-button {
 html[data-covers="square"] .glass-cover:not(.glass-round),
 html[data-covers="square"] .glass-cover:not(.glass-round)::before,
 html[data-covers="square"] .glass-cover:not(.glass-round) img,
-html[data-covers="square"] .cover-lightbox {
+html[data-covers="square"] .cover-lightbox,
+html[data-covers="square"] .cover-frame {
   border-radius: 0 !important;
 }
 
