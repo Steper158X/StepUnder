@@ -432,6 +432,11 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       position: 0,
       duration: track.duration ?? 0,
     });
+    // Queue the song after this one. The effect below does this whenever the
+    // index changes, but it can stay the same (repeat all with a single song
+    // queued), which would leave ExoPlayer nothing to move on to. ExoPlayer
+    // ignores a repeat of what it already has queued.
+    nativeSetNext(nativeNextTrack(index));
     updateMediaSession(track);
     reportNowPlaying(track);
   }

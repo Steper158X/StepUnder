@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# The page calls these through WebView.addJavascriptInterface; nothing in
+# Kotlin does, so R8 would otherwise strip or rename them in release builds.
+-keepclassmembers class com.stepz.stepunder.media.** {
+    @android.webkit.JavascriptInterface <methods>;
+}

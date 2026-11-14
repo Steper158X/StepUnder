@@ -61,6 +61,11 @@ class PlaybackService : MediaBrowserServiceCompat() {
         private const val ACTION_DISMISS = "com.stepz.stepunder.media.DISMISS"
 
         private const val ARTWORK_SIZE = 512
+        /**
+         * Browse items cross the binder with their icon inline; a 512px ARGB
+         * bitmap alone is ~1 MB, the whole transaction limit.
+         */
+        private const val BROWSE_ICON_SIZE = 192
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -77,6 +82,9 @@ class PlaybackService : MediaBrowserServiceCompat() {
 
     private var artworkUrl: String? = null
     private var artwork: Bitmap? = null
+    /** [artwork] scaled down for Android Auto / media browsers. */
+    private var browseIcon: Bitmap? = null
+    private var lastBrowseKey: String? = null
 
     private var focusRequest: AudioFocusRequestCompat? = null
     /** Paused by a phone call or similar; resume once it is over. */
@@ -169,7 +177,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
             val state = MediaBridge.current
             if (state != null) {
                 enterForeground(buildNotification(state))
-                if (!state.playing) leaveForeground(keepNotification = true)
+                if (!keepAlive(state)) leaveForeground(keepNotification = true)
             } else {
                 enterForeground(placeholderNotification())
                 stopEverything()
@@ -182,7 +190,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
             ACTION_PAUSE -> callback.onPause()
             ACTION_NEXT -> callback.onSkipToNext()
             ACTION_PREVIOUS -> callback.onSkipToPrevious()
-            ACTION_DISMISS -> if (MediaBridge.current?.playing != true) stopEverything()
+            ACTION_DISMISS -> if (MediaBridge.current?.let(::keepAlive) != true) stopEverything()
         }
         // The queue lives in the page, which cannot be brought back, so there
         // is nothing to restart after the process dies.
@@ -190,7 +198,10 @@ class PlaybackService : MediaBrowserServiceCompat() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Swiping the app away destroys the page that owns the queue.
+        // Swiping the app away destroys the page that owns the queue. The
+        // activity's onDestroy is not guaranteed here, so silence the player
+        // too, or it could keep playing with no notification to stop it.
+        NativePlayer.release()
         stopEverything()
         super.onTaskRemoved(rootIntent)
     }
@@ -225,7 +236,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
                 .setTitle(state.title)
                 .setSubtitle(state.artist)
                 .setDescription(state.album)
-                .setIconBitmap(artwork)
+                .setIconBitmap(browseIcon)
                 .build()
             items.add(MediaBrowserCompat.MediaItem(description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE))
         }
@@ -244,6 +255,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
         if (state.artworkUrl != artworkUrl) {
             artworkUrl = state.artworkUrl
             artwork = null
+            browseIcon = null
             state.artworkUrl?.let(::loadArtwork)
         }
 
@@ -270,7 +282,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
         val changed = notificationKey != lastNotificationKey
         lastNotificationKey = notificationKey
 
-        if (state.playing) {
+        if (keepAlive(state)) {
             if (!started) {
                 // Bound only (e.g. by Android Auto): make it a started service
                 // so it outlives the binding while music plays.
@@ -290,7 +302,14 @@ class PlaybackService : MediaBrowserServiceCompat() {
             }
         }
 
-        notifyChildrenChanged(ROOT_ID)
+        // Media browsers only show the title, artist, album and icon; do not
+        // make them reload for every play/pause or position update.
+        val browseKey = listOf(state.title, state.artist, state.album, browseIcon?.hashCode())
+            .joinToString("\u0000")
+        if (browseKey != lastBrowseKey) {
+            lastBrowseKey = browseKey
+            notifyChildrenChanged(ROOT_ID)
+        }
     }
 
     private fun updateMetadata(state: NowPlaying) {
@@ -341,6 +360,14 @@ class PlaybackService : MediaBrowserServiceCompat() {
         )
     }
 
+    /**
+     * Stay in the foreground while music plays, and also while ExoPlayer is
+     * only held silent (a phone call): the page shows that as paused, but the
+     * player resumes on its own and must not be killed in the meantime.
+     */
+    private fun keepAlive(state: NowPlaying) =
+        state.playing || (NativePlayer.inUse && NativePlayer.wantsToPlay)
+
     private fun stopEverything() {
         resumeOnFocusGain = false
         abandonFocus()
@@ -348,6 +375,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
         leaveForeground(keepNotification = false)
         notificationManager.cancel(NOTIFICATION_ID)
         lastNotificationKey = null
+        lastBrowseKey = null
         session.isActive = false
         started = false
         stopSelf()
@@ -405,7 +433,7 @@ class PlaybackService : MediaBrowserServiceCompat() {
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
-            .setOngoing(state.playing)
+            .setOngoing(keepAlive(state))
             .setDeleteIntent(serviceIntent(ACTION_DISMISS, 4))
         launchIntent()?.let { builder.setContentIntent(it) }
 
@@ -449,13 +477,18 @@ class PlaybackService : MediaBrowserServiceCompat() {
             .setSilent(true)
             .build()
 
-    private fun serviceIntent(action: String, requestCode: Int): PendingIntent =
-        PendingIntent.getService(
-            this,
-            requestCode,
-            Intent(this, PlaybackService::class.java).setAction(action),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
+    private fun serviceIntent(action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(this, PlaybackService::class.java).setAction(action)
+        val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        // The service may have stopped while paused; a plain startService from
+        // the background is refused on Android 8+. onStartCommand always
+        // calls startForeground, as a foreground start requires.
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && action != ACTION_DISMISS) {
+            PendingIntent.getForegroundService(this, requestCode, intent, flags)
+        } else {
+            PendingIntent.getService(this, requestCode, intent, flags)
+        }
+    }
 
     private fun launchIntent(): PendingIntent? {
         val intent = packageManager.getLaunchIntentForPackage(packageName) ?: return null
@@ -519,7 +552,8 @@ class PlaybackService : MediaBrowserServiceCompat() {
                 connection.connectTimeout = 10_000
                 connection.readTimeout = 15_000
                 try {
-                    connection.inputStream.use { BitmapFactory.decodeStream(it) }?.let(::scaleDown)
+                    connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                        ?.let { scaleDown(it, ARTWORK_SIZE) }
                 } finally {
                     connection.disconnect()
                 }
@@ -527,19 +561,21 @@ class PlaybackService : MediaBrowserServiceCompat() {
                 Log.w(TAG, "Could not load the cover art", error)
                 null
             }
+            val icon = bitmap?.let { scaleDown(it, BROWSE_ICON_SIZE) }
             main.post {
                 // Another track may have started in the meantime.
                 if (artworkUrl != url || bitmap == null) return@post
                 artwork = bitmap
+                browseIcon = icon
                 MediaBridge.current?.let(::render)
             }
         }
     }
 
-    private fun scaleDown(bitmap: Bitmap): Bitmap {
+    private fun scaleDown(bitmap: Bitmap, size: Int): Bitmap {
         val largest = maxOf(bitmap.width, bitmap.height)
-        if (largest <= ARTWORK_SIZE) return bitmap
-        val scale = ARTWORK_SIZE.toFloat() / largest
+        if (largest <= size) return bitmap
+        val scale = size.toFloat() / largest
         return Bitmap.createScaledBitmap(
             bitmap,
             (bitmap.width * scale).toInt().coerceAtLeast(1),

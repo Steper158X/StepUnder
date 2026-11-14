@@ -10,6 +10,9 @@ import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.annotation.OptIn
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -43,6 +46,12 @@ object NativePlayer {
     private const val TAG = "StepUnderPlayer"
     const val JS_NAME = "StepUnderPlayer"
     private const val TICK_MS = 500L
+    /**
+     * With the app in the background nothing draws the progress bar; the
+     * page only needs the position for scrobbling (past half the song), so
+     * wake its JavaScript far less often to save battery.
+     */
+    private const val BACKGROUND_TICK_MS = 10_000L
 
     private val main = Handler(Looper.getMainLooper())
     private var appContext: Context? = null
@@ -52,7 +61,11 @@ object NativePlayer {
     private var volume = 1f
     private var muted = false
 
-    /** Output picked in the app; null lets Android route the audio. Main thread. */
+    /**
+     * Output picked in the app; null lets Android route the audio. Written on
+     * the main thread, read by `StepUnderOutputs.list()` on the bridge thread.
+     */
+    @Volatile
     var preferredDeviceId: Int? = null
         private set
 
@@ -60,10 +73,42 @@ object NativePlayer {
     var inUse = false
         private set
 
+    /**
+     * The player means to play, even if Android holds it silent for now (a
+     * phone call). The service stays in the foreground while this is true,
+     * so the music can come back afterwards. Main thread.
+     */
+    val wantsToPlay: Boolean
+        get() {
+            val player = player ?: return false
+            val state = player.playbackState
+            return player.playWhenReady && state != Player.STATE_IDLE && state != Player.STATE_ENDED
+        }
+
+    private var visible = true
+    private var lifecycleObserved = false
+    private val lifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onStart(owner: LifecycleOwner) {
+            visible = true
+            // Catch the progress bar up straight away.
+            sendState()
+            scheduleTicks()
+        }
+
+        override fun onStop(owner: LifecycleOwner) {
+            visible = false
+            scheduleTicks()
+        }
+    }
+
     fun attach(view: WebView) {
         appContext = view.context.applicationContext
         webView = WeakReference(view)
         view.addJavascriptInterface(JsInterface(), JS_NAME)
+        if (!lifecycleObserved) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+            lifecycleObserved = true
+        }
     }
 
     /** The activity (and with it the queue) is going away for good. */
@@ -126,6 +171,7 @@ object NativePlayer {
                     Player.EVENT_IS_PLAYING_CHANGED,
                     Player.EVENT_PLAYBACK_STATE_CHANGED,
                     Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                    Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED,
                     Player.EVENT_POSITION_DISCONTINUITY,
                     Player.EVENT_TIMELINE_CHANGED,
                 )
@@ -248,26 +294,31 @@ object NativePlayer {
             val player = player ?: return
             if (!player.isPlaying) return
             sendState()
-            main.postDelayed(this, TICK_MS)
+            main.postDelayed(this, tickInterval())
         }
     }
 
+    private fun tickInterval() = if (visible) TICK_MS else BACKGROUND_TICK_MS
+
     private fun scheduleTicks() {
         main.removeCallbacks(ticker)
-        if (player?.isPlaying == true) main.postDelayed(ticker, TICK_MS)
+        if (player?.isPlaying == true) main.postDelayed(ticker, tickInterval())
     }
 
     private fun sendState() {
         val player = player ?: return
         val state = player.playbackState
-        val active = state != Player.STATE_IDLE && state != Player.STATE_ENDED
+        // Held silent by a phone call or similar: show it as paused, though
+        // ExoPlayer resumes by itself afterwards (see [wantsToPlay]).
+        val audible = wantsToPlay &&
+            player.playbackSuppressionReason == Player.PLAYBACK_SUPPRESSION_REASON_NONE
         val duration = player.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0L
         send(
             JSONObject()
                 .put("type", "state")
                 .put("id", player.currentMediaItem?.mediaId ?: JSONObject.NULL)
-                .put("playing", player.playWhenReady && active)
-                .put("loading", player.playWhenReady && state == Player.STATE_BUFFERING)
+                .put("playing", audible)
+                .put("loading", audible && state == Player.STATE_BUFFERING)
                 .put("position", player.currentPosition.coerceAtLeast(0) / 1000.0)
                 .put("duration", duration / 1000.0),
         )

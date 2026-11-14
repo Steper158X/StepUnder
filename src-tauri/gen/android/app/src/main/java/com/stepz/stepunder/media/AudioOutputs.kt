@@ -184,16 +184,12 @@ object AudioOutputs {
         @JavascriptInterface
         fun list(): String = AudioOutputs.list()
 
+        /**
+         * Runs on the WebView's bridge thread. MediaRouter2, sendBroadcast and
+         * startActivity are all safe off the main thread, so there is no need
+         * to block the page's JavaScript waiting for a busy main thread.
+         */
         @JavascriptInterface
-        fun showSwitcher(): String {
-            var result = "none"
-            val latch = java.util.concurrent.CountDownLatch(1)
-            main.post {
-                result = AudioOutputs.showSwitcher()
-                latch.countDown()
-            }
-            latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
-            return result
-        }
+        fun showSwitcher(): String = AudioOutputs.showSwitcher()
     }
 }
