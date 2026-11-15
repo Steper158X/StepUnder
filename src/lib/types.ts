@@ -24,6 +24,8 @@ export interface Song {
   albumId?: string;
   artist?: string;
   artistId?: string;
+  /** OpenSubsonic: every track artist, when the server splits them. */
+  artists?: { id: string; name: string }[];
   coverArt?: string;
   duration?: number;
   track?: number;

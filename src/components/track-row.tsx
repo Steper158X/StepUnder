@@ -1,5 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import {
+  For,
   Match,
   Show,
   Switch,
@@ -108,6 +109,54 @@ function TrackLikeButton(props: {
   );
 }
 
+/**
+ * The row's artist line. On desktop each artist links to their page; on phones
+ * it is plain text so a tap on it plays the track like the rest of the row.
+ */
+function TrackArtists(props: { song: Song }) {
+  const artists = () => {
+    const list = (props.song.artists ?? []).filter((artist) => artist.name);
+    if (list.length) return list;
+    return [
+      {
+        id: props.song.artistId ?? "",
+        name: props.song.artist ?? t("common.unknownArtist"),
+      },
+    ];
+  };
+
+  if (isMobile) {
+    return (
+      <span class="truncate">
+        {artists()
+          .map((artist) => artist.name)
+          .join(", ")}
+      </span>
+    );
+  }
+
+  return (
+    <span class="truncate">
+      <For each={artists()}>
+        {(artist, index) => (
+          <>
+            <Show when={index() > 0}>, </Show>
+            <Show when={artist.id} fallback={<span>{artist.name}</span>}>
+              <A
+                href={`/artist/${artist.id}`}
+                class="hover:text-foreground hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {artist.name}
+              </A>
+            </Show>
+          </>
+        )}
+      </For>
+    </span>
+  );
+}
+
 export function TrackRow(props: {
   song: Song;
   index: number;
@@ -143,20 +192,7 @@ export function TrackRow(props: {
   const subtitle = () => {
     const parts: JSX.Element[] = [];
     if (props.showArtist !== false) {
-      parts.push(
-        <Show
-          when={props.song.artistId}
-          fallback={<span>{props.song.artist ?? t("common.unknownArtist")}</span>}
-        >
-          <A
-            href={`/artist/${props.song.artistId}`}
-            class="hover:text-foreground hover:underline"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {props.song.artist ?? t("common.unknownArtist")}
-          </A>
-        </Show>,
-      );
+      parts.push(<TrackArtists song={props.song} />);
     }
     if (props.showAlbum) {
       if (parts.length) parts.push(<span class="px-1">•</span>);
