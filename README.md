@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Steper158X/StepUnder/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Steper158X/StepUnder?style=flat-square&color=8b5cf6" /></a>
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-0078d4?style=flat-square" />
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20Android-0078d4?style=flat-square" />
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" /></a>
 </p>
 
@@ -191,6 +191,16 @@ uploads. Everything stays between you and your server.
 
 After that, StepUnder keeps itself up to date automatically.
 
+### Android
+
+Download `StepUnder_<version>_android.apk` from the
+[**Releases page**](https://github.com/Steper158X/StepUnder/releases/latest)
+and open it on your phone to install (allow installs from your browser or file
+manager if Android asks). The Android app has a phone layout, keeps playing in
+the background with controls in the notification, and lets you pick the audio
+output (speaker, Bluetooth, wired, or USB). To update, install the newer APK
+from the Releases page over the old one.
+
 ### Linux (Ubuntu, Pop!_OS)
 
 Builds target Ubuntu 22.04 / Pop!_OS 22.04 and newer (x86_64).
@@ -206,8 +216,8 @@ Builds target Ubuntu 22.04 / Pop!_OS 22.04 and newer (x86_64).
   updates itself from **Settings → Updates**.
 
 The MPV audio player works out of the box: the `.deb` installs libmpv as a
-dependency and the AppImage carries its own copy. Saved passwords go to GNOME Keyring. Mica/Acrylic window
-effects are Windows-only. With NVIDIA's proprietary driver StepUnder sets
+dependency and the AppImage carries its own copy. Saved passwords go to GNOME
+Keyring. Mica/Acrylic window effects are Windows-only. With NVIDIA's proprietary driver StepUnder sets
 `WEBKIT_DISABLE_DMABUF_RENDERER=1` for you. If the window still opens blank,
 launch it with `WEBKIT_DISABLE_DMABUF_RENDERER=1` (or also
 `WEBKIT_DISABLE_COMPOSITING_MODE=1`).

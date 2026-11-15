@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Steper158X/StepUnder/releases/latest"><img alt="เวอร์ชันล่าสุด" src="https://img.shields.io/github/v/release/Steper158X/StepUnder?style=flat-square&color=8b5cf6" /></a>
-  <img alt="แพลตฟอร์ม" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-0078d4?style=flat-square" />
+  <img alt="แพลตฟอร์ม" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20Android-0078d4?style=flat-square" />
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" /></a>
 </p>
 
@@ -176,6 +176,15 @@ StepUnder เชื่อมต่อกับเซิร์ฟเวอร์�
 
 หลังจากนั้น StepUnder จะอัปเดตตัวเองให้อัตโนมัติ
 
+### Android
+
+ดาวน์โหลด `StepUnder_<version>_android.apk` จาก
+[**หน้า Releases**](https://github.com/Steper158X/StepUnder/releases/latest)
+แล้วเปิดไฟล์บนมือถือเพื่อติดตั้ง (หาก Android ถาม ให้อนุญาตการติดตั้งจากเบราว์เซอร์หรือ
+แอปจัดการไฟล์) แอป Android มีหน้าตาสำหรับมือถือ เล่นเพลงต่อในเบื้องหลังพร้อมปุ่มควบคุม
+ในแถบแจ้งเตือน และเลือกอุปกรณ์เสียงออกได้ (ลำโพง บลูทูธ หูฟังแบบสาย หรือ USB)
+อัปเดตได้โดยติดตั้ง APK เวอร์ชันใหม่จากหน้า Releases ทับของเดิม
+
 ### Linux (Ubuntu, Pop!_OS)
 
 รองรับ Ubuntu 22.04 / Pop!_OS 22.04 ขึ้นไป (x86_64)
@@ -190,8 +199,8 @@ StepUnder เชื่อมต่อกับเซิร์ฟเวอร์�
   `chmod +x StepUnder_*.AppImage` แล้วเปิดใช้งาน AppImage อัปเดตตัวเองได้จาก
   **ตั้งค่า → อัปเดต**
 
-ตัวเล่น MPV ใช้ได้ทันทีโดยไม่ต้องติดตั้งอะไรเพิ่ม ไฟล์ `.deb` จะติดตั้ง libmpv ให้อัตโนมัติ ส่วน AppImage มี libmpv มาในตัว รหัสผ่านจะเก็บไว้ใน
-GNOME Keyring เอฟเฟกต์หน้าต่าง Mica/Acrylic ใช้ได้เฉพาะ Windows หากหน้าต่างเปิดมาว่างเปล่า
+ตัวเล่น MPV ใช้ได้ทันทีโดยไม่ต้องติดตั้งอะไรเพิ่ม ไฟล์ `.deb` จะติดตั้ง libmpv
+ให้อัตโนมัติ ส่วน AppImage มี libmpv มาในตัว รหัสผ่านจะเก็บไว้ใน GNOME Keyring เอฟเฟกต์หน้าต่าง Mica/Acrylic ใช้ได้เฉพาะ Windows หากหน้าต่างเปิดมาว่างเปล่า
 ลองเปิดด้วย `WEBKIT_DISABLE_DMABUF_RENDERER=1` (หรือเพิ่ม `WEBKIT_DISABLE_COMPOSITING_MODE=1`)
 
 ### Build จากซอร์สบน Linux
