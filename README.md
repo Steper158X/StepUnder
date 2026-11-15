@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="README.th.md">ภาษาไทย</a>
+  <strong>English</strong> · <a href="README.th.md">ภาษาไทย</a> · <a href="README.zh.md">简体中文</a> · <a href="README.es.md">Español</a> · <a href="README.pt.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a>
 </p>
 
 <p align="center">
@@ -70,6 +70,17 @@ uploads. Everything stays between you and your server.
   </tr>
   <tr>
     <td colspan="2"><img src="docs/screenshots/profile.png" alt="Profile with listening stats" /><p align="center"><sub><b>Profile</b> — listening stats from your server</sub></p></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/mobile-home.png" alt="Home on Android" /></td>
+    <td width="33%"><img src="docs/screenshots/mobile-album.png" alt="Album on Android" /></td>
+    <td width="33%"><img src="docs/screenshots/mobile-now-playing.png" alt="Now Playing on Android" /></td>
+  </tr>
+  <tr>
+    <td colspan="3"><p align="center"><sub><b>Android</b> — the same library, built for your phone</sub></p></td>
   </tr>
 </table>
 

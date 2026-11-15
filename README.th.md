@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <strong>ภาษาไทย</strong>
+  <a href="README.md">English</a> · <strong>ภาษาไทย</strong> · <a href="README.zh.md">简体中文</a> · <a href="README.es.md">Español</a> · <a href="README.pt.md">Português</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a>
 </p>
 
 <p align="center">
@@ -70,6 +70,17 @@ StepUnder เชื่อมต่อกับเซิร์ฟเวอร์�
   </tr>
   <tr>
     <td colspan="2"><img src="docs/screenshots/profile.png" alt="หน้าโปรไฟล์พร้อมสถิติการฟัง" /><p align="center"><sub><b>โปรไฟล์</b> — สถิติการฟังจากเซิร์ฟเวอร์ของคุณ</sub></p></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/mobile-home.png" alt="หน้าแรกบน Android" /></td>
+    <td width="33%"><img src="docs/screenshots/mobile-album.png" alt="หน้าอัลบั้มบน Android" /></td>
+    <td width="33%"><img src="docs/screenshots/mobile-now-playing.png" alt="หน้า Now Playing บน Android" /></td>
+  </tr>
+  <tr>
+    <td colspan="3"><p align="center"><sub><b>Android</b> — คลังเพลงเดียวกัน ออกแบบมาสำหรับมือถือ</sub></p></td>
   </tr>
 </table>
 
