@@ -5,7 +5,7 @@ import {
   useNavigate,
   type RouteSectionProps,
 } from "@solidjs/router";
-import { onMount } from "solid-js";
+import { lazy, onMount } from "solid-js";
 import { ServersProvider } from "~/state/servers";
 import { PlayerProvider } from "~/player/store";
 import { PlaylistsProvider } from "~/state/playlists";
@@ -22,31 +22,33 @@ import { Toaster } from "~/components/toaster";
 import { UpdatePrompt } from "~/components/update-prompt";
 import { TitleBar } from "~/components/title-bar";
 import { AppLayout } from "~/components/app-layout";
-import SetupPage from "~/routes/setup";
-import ServersPage from "~/routes/servers";
 import HomePage from "~/routes/home";
-import FavoritesPage from "~/routes/favorites";
-import AlbumsPage from "~/routes/albums";
-import AlbumPage from "~/routes/album";
-import ArtistsPage from "~/routes/artists";
-import ArtistPage from "~/routes/artist";
-import PlaylistsPage from "~/routes/playlists";
-import PlaylistPage from "~/routes/playlist";
-import SearchPage from "~/routes/search";
-import LibraryPage from "~/routes/library";
-import GenresPage from "~/routes/genres";
-import GenrePage from "~/routes/genre";
-import ProfilePage from "~/routes/profile";
-import DownloadsPage from "~/routes/downloads";
-import SettingsPage from "~/routes/settings";
-import AppearanceSettingsPage from "~/routes/settings/appearance";
-import PlaybackSettingsPage from "~/routes/settings/playback";
-import LyricsSettingsPage from "~/routes/settings/lyrics";
-import ServersSettingsPage from "~/routes/settings/servers";
-import DownloadSettingsPage from "~/routes/settings/downloads";
-import AboutSettingsPage from "~/routes/settings/about";
-import CacheSettingsPage from "~/routes/settings/cache";
-import NotFoundPage from "~/routes/not-found";
+
+// Pages load on first visit, so unopened ones never cost parse time or heap.
+const SetupPage = lazy(() => import("~/routes/setup"));
+const ServersPage = lazy(() => import("~/routes/servers"));
+const FavoritesPage = lazy(() => import("~/routes/favorites"));
+const AlbumsPage = lazy(() => import("~/routes/albums"));
+const AlbumPage = lazy(() => import("~/routes/album"));
+const ArtistsPage = lazy(() => import("~/routes/artists"));
+const ArtistPage = lazy(() => import("~/routes/artist"));
+const PlaylistsPage = lazy(() => import("~/routes/playlists"));
+const PlaylistPage = lazy(() => import("~/routes/playlist"));
+const SearchPage = lazy(() => import("~/routes/search"));
+const LibraryPage = lazy(() => import("~/routes/library"));
+const GenresPage = lazy(() => import("~/routes/genres"));
+const GenrePage = lazy(() => import("~/routes/genre"));
+const ProfilePage = lazy(() => import("~/routes/profile"));
+const DownloadsPage = lazy(() => import("~/routes/downloads"));
+const SettingsPage = lazy(() => import("~/routes/settings"));
+const AppearanceSettingsPage = lazy(() => import("~/routes/settings/appearance"));
+const PlaybackSettingsPage = lazy(() => import("~/routes/settings/playback"));
+const LyricsSettingsPage = lazy(() => import("~/routes/settings/lyrics"));
+const ServersSettingsPage = lazy(() => import("~/routes/settings/servers"));
+const DownloadSettingsPage = lazy(() => import("~/routes/settings/downloads"));
+const AboutSettingsPage = lazy(() => import("~/routes/settings/about"));
+const CacheSettingsPage = lazy(() => import("~/routes/settings/cache"));
+const NotFoundPage = lazy(() => import("~/routes/not-found"));
 
 function Root(props: RouteSectionProps) {
   const location = useLocation();

@@ -124,6 +124,21 @@ type Tokenizer = Awaited<
 >;
 
 let tokenizerPromise: Promise<Tokenizer> | undefined;
+let tokenizerIdleTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * The unpacked dictionary takes tens of MB of JS heap, so it is dropped once
+ * no song has needed it for a while; the next Japanese song loads it again.
+ */
+const TOKENIZER_IDLE_MS = 2 * 60 * 1000;
+
+function scheduleTokenizerRelease() {
+  clearTimeout(tokenizerIdleTimer);
+  tokenizerIdleTimer = setTimeout(() => {
+    tokenizerPromise = undefined;
+    tokenizerIdleTimer = undefined;
+  }, TOKENIZER_IDLE_MS);
+}
 
 /** Reads a dictionary file, unpacking it unless the server already did. */
 async function loadDictFile(name: string): Promise<ArrayBufferLike> {
@@ -166,6 +181,7 @@ async function romanizeJapanese(lines: string[]): Promise<string[]> {
     loadTokenizer(),
     import("wanakana"),
   ]);
+  scheduleTokenizerRelease();
   return lines.map((line) => {
     // Words are kept in kana until the end so a trailing っ still doubles
     // the consonant of an ending that follows (知っ + た → shitta).

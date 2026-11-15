@@ -135,6 +135,44 @@ fn set_webview_memory_low(window: &tauri::Window, low: bool) {
     });
 }
 
+/// Bumped on every focus/minimize change so a pending "go low" from an earlier
+/// blur is dropped once the window comes back.
+#[cfg(windows)]
+static MEMORY_TARGET_GENERATION: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+
+/// How long the window must stay in the background before WebView2 is asked
+/// to trim, so quick alt-tabs don't throw away decoded images and tiles.
+#[cfg(windows)]
+const BACKGROUND_TRIM_DELAY: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Minimized: trim right away. Unfocused (but maybe still visible, e.g. on a
+/// second monitor): trim after `BACKGROUND_TRIM_DELAY`. Focused: normal.
+#[cfg(windows)]
+fn update_webview_memory_target(window: &tauri::Window) {
+    use std::sync::atomic::Ordering;
+
+    let generation = MEMORY_TARGET_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    let minimized = window.is_minimized().unwrap_or(false);
+    let focused = window.is_focused().unwrap_or(true);
+
+    if minimized {
+        set_webview_memory_low(window, true);
+    } else if focused {
+        set_webview_memory_low(window, false);
+    } else {
+        let window = window.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(BACKGROUND_TRIM_DELAY);
+            if MEMORY_TARGET_GENERATION.load(Ordering::SeqCst) == generation
+                && !window.is_focused().unwrap_or(true)
+            {
+                set_webview_memory_low(&window, true);
+            }
+        });
+    }
+}
+
 #[cfg(windows)]
 use audio_session::claim_audio_sessions;
 
@@ -205,8 +243,11 @@ pub fn run() {
         })
         .on_window_event(|_window, _event| {
             #[cfg(windows)]
-            if let tauri::WindowEvent::Resized(_) = _event {
-                set_webview_memory_low(_window, _window.is_minimized().unwrap_or(false));
+            match _event {
+                tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Focused(_) => {
+                    update_webview_memory_target(_window);
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
