@@ -21,7 +21,7 @@ import type {
 import { useServers } from "~/state/servers";
 import { usePlayer } from "~/player/store";
 import { t, locale, type MessageKey } from "~/i18n";
-import { subsonicErrorKey } from "~/lib/subsonic";
+import { subsonicErrorKey, type SubsonicClient } from "~/lib/subsonic";
 import { formatDate, initials } from "~/lib/format";
 import { isNarrow } from "~/lib/platform";
 import { Page, PageHeader } from "~/components/layout-bits";
@@ -54,6 +54,77 @@ async function safe<T>(promise: Promise<T>, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+}
+
+const TOP_SONG_COUNT = 8;
+const ALBUM_BATCH = 6;
+const MAX_ALBUMS_SCANNED = 36;
+
+type Client = SubsonicClient;
+
+const byPlays = (a: Song, b: Song) =>
+  (b.playCount ?? 0) - (a.playCount ?? 0) ||
+  (b.played ?? "").localeCompare(a.played ?? "");
+
+/**
+ * The user's own most played songs. Subsonic has no "most played songs"
+ * endpoint, and `getTopSongs` ranks by global (Last.fm) popularity rather than
+ * the user's plays, so read the tracks of the most played albums instead.
+ * An album's play count is at least the play count of any song on it, so once
+ * the next album has fewer plays than the current #8 song, no later album can
+ * change the chart and scanning stops.
+ */
+async function loadTopSongs(client: Client, frequent: Album[]): Promise<Song[]> {
+  const albums = [...frequent]
+    .filter((album) => album?.id)
+    .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0));
+  const hasCounts = albums.some((album) => typeof album.playCount === "number");
+
+  if (!hasCounts) {
+    // No play counts on this server: fall back to per-artist top songs.
+    const artistNames = [
+      ...new Set(
+        albums
+          .map((album) => album.artist)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    ].slice(0, 3);
+    const results = await Promise.all(
+      artistNames.map((name) => safe(client.getTopSongs(name, 10), [])),
+    );
+    const merged = new Map<string, Song>();
+    for (const song of results.flat()) merged.set(song.id, song);
+    return [...merged.values()].slice(0, TOP_SONG_COUNT);
+  }
+
+  const merged = new Map<string, Song>();
+  const ranked = () => [...merged.values()].sort(byPlays);
+  const limit = Math.min(albums.length, MAX_ALBUMS_SCANNED);
+
+  for (let i = 0; i < limit; i += ALBUM_BATCH) {
+    const current = ranked();
+    const cutoff =
+      current.length >= TOP_SONG_COUNT
+        ? (current[TOP_SONG_COUNT - 1].playCount ?? 0)
+        : 0;
+    const batch = albums
+      .slice(i, Math.min(i + ALBUM_BATCH, limit))
+      .filter((album) => (album.playCount ?? 0) > cutoff);
+    if (batch.length === 0) break;
+
+    const results = await Promise.all(
+      batch.map((album) =>
+        safe(client.getAlbum(album.id), { album, songs: [] as Song[] }),
+      ),
+    );
+    for (const { songs } of results) {
+      for (const song of songs) {
+        if ((song.playCount ?? 0) > 0) merged.set(song.id, song);
+      }
+    }
+  }
+
+  return ranked().slice(0, TOP_SONG_COUNT);
 }
 
 function Stat(props: {
@@ -120,30 +191,7 @@ export default function ProfilePage() {
         safe(client.getServerInfo(), {}),
       ]);
 
-      // Navidrome exposes per-artist top songs, so merge the leaders from the
-      // most played artists into one song chart.
-      const artistNames = [
-        ...new Set(
-          [...frequent]
-            .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))
-            .map((album) => album.artist)
-            .filter((name): name is string => Boolean(name))
-            .slice(0, 3),
-        ),
-      ];
-
-      const songResults = await Promise.all(
-        artistNames.map((name) => safe(client.getTopSongs(name, 10), [])),
-      );
-
-      const mergedSongs = new Map<string, Song>();
-      for (const song of songResults.flat()) {
-        mergedSongs.set(song.id, song);
-      }
-
-      const topSongs = [...mergedSongs.values()]
-        .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))
-        .slice(0, 8);
+      const topSongs = await loadTopSongs(client, frequent);
 
       return {
         frequent,
