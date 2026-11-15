@@ -21,6 +21,7 @@ import {
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
 import { cn } from "~/lib/utils";
+import { isMobile } from "~/lib/platform";
 
 export function AlbumCard(props: { album: Album; class?: string; size?: number }) {
   const servers = useServers();
@@ -68,19 +69,23 @@ export function AlbumCard(props: { album: Album; class?: string; size?: number }
               iconClass="size-8"
             />
           </A>
-          <button
-            type="button"
-            onClick={(event) => void playAlbum(event)}
-            class="glass-button absolute bottom-2 right-2 z-[2] flex size-9 translate-y-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-lg transition-all duration-200 hover:scale-105 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
-            aria-label={`${t("action.play")} ${props.album.name}`}
-          >
-            <Show
-              when={!busy()}
-              fallback={<LoaderCircle class="size-4 animate-spin" />}
+          {/* Hover-only play button: on phones it is invisible but still tappable,
+              so a tap on the cover corner would play instead of opening the album. */}
+          <Show when={!isMobile}>
+            <button
+              type="button"
+              onClick={(event) => void playAlbum(event)}
+              class="glass-button absolute bottom-2 right-2 z-[2] flex size-9 translate-y-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-lg transition-all duration-200 hover:scale-105 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
+              aria-label={`${t("action.play")} ${props.album.name}`}
             >
-              <Play class="size-4 fill-current" />
-            </Show>
-          </button>
+              <Show
+                when={!busy()}
+                fallback={<LoaderCircle class="size-4 animate-spin" />}
+              >
+                <Play class="size-4 fill-current" />
+              </Show>
+            </button>
+          </Show>
         </div>
         <A href={`/album/${props.album.id}`} class="mt-2 block">
           <p class="truncate text-sm font-medium leading-tight" title={props.album.name}>
