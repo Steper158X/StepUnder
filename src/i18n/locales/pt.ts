@@ -510,6 +510,7 @@ export const pt: PartialMessages = {
   "update.notes": "Novidades",
   "update.later": "Depois",
   "update.install": "Instalar agora",
+  "update.download": "Baixar do GitHub",
   "update.downloading": "Baixando… {percent}",
   "update.installing": "Instalando atualização…",
   "update.error": "Não foi possível instalar a atualização.",

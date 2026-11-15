@@ -498,6 +498,7 @@ export const zh: PartialMessages = {
   "update.notes": "新功能",
   "update.later": "稍后",
   "update.install": "立即安装",
+  "update.download": "从 GitHub 下载",
   "update.downloading": "正在下载… {percent}",
   "update.installing": "正在安装更新…",
   "update.error": "无法安装更新。",

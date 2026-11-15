@@ -3,7 +3,7 @@ import { Download, ExternalLink, RefreshCw } from "lucide-solid";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t } from "~/i18n";
 import { autoUpdate, setAutoUpdate } from "~/state/settings";
-import { isDesktopApp, isTauri } from "~/lib/platform";
+import { isMobile, isTauri } from "~/lib/platform";
 import {
   appVersion,
   available as availableUpdate,
@@ -70,10 +70,10 @@ export default function AboutSettingsPage() {
         </Button>
       </Row>
 
-      {/* The updater only exists in the desktop app; phones and the web just
-          show the version. */}
+      {/* The desktop app installs updates itself; Android checks GitHub and
+          opens the APK download. The web just shows the version. */}
       <Show
-        when={isDesktopApp}
+        when={isTauri}
         fallback={
           <Row label={t("settings.version")} inline>
             <Badge>v{appVersion()}</Badge>
@@ -85,8 +85,13 @@ export default function AboutSettingsPage() {
             <Badge>v{appVersion()}</Badge>
             <Show when={updateStatus() === "available"}>
               <Button size="sm" onClick={() => void installUpdate()}>
-                <Download class="size-3.5" />
-                {t("settings.updateNow")}
+                <Show
+                  when={isMobile}
+                  fallback={<Download class="size-3.5" />}
+                >
+                  <ExternalLink class="size-3.5" />
+                </Show>
+                {isMobile ? t("update.download") : t("settings.updateNow")}
               </Button>
             </Show>
             <Button

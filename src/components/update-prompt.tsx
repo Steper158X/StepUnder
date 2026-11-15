@@ -1,5 +1,5 @@
 import { For, Match, Show, Switch, type JSX } from "solid-js";
-import { Download, LoaderCircle } from "lucide-solid";
+import { Download, ExternalLink, LoaderCircle } from "lucide-solid";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { t } from "~/i18n";
 import { cn } from "~/lib/utils";
+import { isMobile } from "~/lib/platform";
 import {
   available,
   dismissPrompt,
@@ -205,11 +206,17 @@ export function UpdatePrompt() {
           <Button disabled={busy()} onClick={() => void installUpdate()}>
             <Show
               when={busy()}
-              fallback={<Download class="size-4" />}
+              fallback={
+                isMobile ? (
+                  <ExternalLink class="size-4" />
+                ) : (
+                  <Download class="size-4" />
+                )
+              }
             >
               <LoaderCircle class="size-4 animate-spin" />
             </Show>
-            {t("update.install")}
+            {isMobile ? t("update.download") : t("update.install")}
           </Button>
         </DialogFooter>
       </DialogContent>
