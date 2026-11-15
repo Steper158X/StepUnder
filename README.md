@@ -205,9 +205,8 @@ Builds target Ubuntu 22.04 / Pop!_OS 22.04 and newer (x86_64).
   executable (`chmod +x StepUnder_*.AppImage`) and run it. The AppImage
   updates itself from **Settings → Updates**.
 
-The MPV audio player uses the system libmpv: `sudo apt install libmpv2`
-(Ubuntu/Pop!_OS 24.04) or `libmpv1` (22.04). The built-in web player needs no
-extra packages. Saved passwords go to GNOME Keyring. Mica/Acrylic window
+The MPV audio player works out of the box: the `.deb` installs libmpv as a
+dependency and the AppImage carries its own copy. Saved passwords go to GNOME Keyring. Mica/Acrylic window
 effects are Windows-only. With NVIDIA's proprietary driver StepUnder sets
 `WEBKIT_DISABLE_DMABUF_RENDERER=1` for you. If the window still opens blank,
 launch it with `WEBKIT_DISABLE_DMABUF_RENDERER=1` (or also

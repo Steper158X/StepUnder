@@ -190,8 +190,7 @@ StepUnder เชื่อมต่อกับเซิร์ฟเวอร์�
   `chmod +x StepUnder_*.AppImage` แล้วเปิดใช้งาน AppImage อัปเดตตัวเองได้จาก
   **ตั้งค่า → อัปเดต**
 
-ตัวเล่น MPV ใช้ libmpv ของระบบ: `sudo apt install libmpv2` (Ubuntu/Pop!_OS 24.04)
-หรือ `libmpv1` (22.04) ส่วนตัวเล่นเว็บในตัวไม่ต้องติดตั้งอะไรเพิ่ม รหัสผ่านจะเก็บไว้ใน
+ตัวเล่น MPV ใช้ได้ทันทีโดยไม่ต้องติดตั้งอะไรเพิ่ม ไฟล์ `.deb` จะติดตั้ง libmpv ให้อัตโนมัติ ส่วน AppImage มี libmpv มาในตัว รหัสผ่านจะเก็บไว้ใน
 GNOME Keyring เอฟเฟกต์หน้าต่าง Mica/Acrylic ใช้ได้เฉพาะ Windows หากหน้าต่างเปิดมาว่างเปล่า
 ลองเปิดด้วย `WEBKIT_DISABLE_DMABUF_RENDERER=1` (หรือเพิ่ม `WEBKIT_DISABLE_COMPOSITING_MODE=1`)
 

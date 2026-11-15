@@ -4,7 +4,8 @@
 //! app still compiles and runs on machines that do not have it installed.
 //! The installer bundles `libmpv-2.dll` as a Tauri resource, which ends up
 //! next to the executable (Windows) or in the app's resource directory
-//! (macOS/Linux). `STEPUNDER_LIBMPV` can point at another copy.
+//! (macOS/Linux). The Linux AppImage carries libmpv in `usr/lib`; the .deb
+//! depends on the system package. `STEPUNDER_LIBMPV` can point at another copy.
 //!
 //! All playback happens on a single dedicated thread: libmpv allows commands
 //! from any thread, but `mpv_wait_event` must only be called from one, so the
@@ -215,6 +216,16 @@ fn library_candidates(app: &AppHandle) -> Vec<PathBuf> {
     let names: &[&str] = &["libmpv.2.dylib", "libmpv.dylib"];
     #[cfg(all(unix, not(target_os = "macos")))]
     let names: &[&str] = &["libmpv.so.2", "libmpv.so.1", "libmpv.so"];
+
+    // The AppImage bundles libmpv (and its dependencies) in usr/lib, ahead of
+    // any system copy so the bundled libraries stay consistent.
+    #[cfg(all(unix, not(target_os = "macos")))]
+    if let Some(appdir) = std::env::var_os("APPDIR") {
+        let lib = PathBuf::from(appdir).join("usr").join("lib");
+        for name in names {
+            paths.push(lib.join(name));
+        }
+    }
 
     // Next to the executable (the recommended place for a bundled copy).
     if let Ok(exe) = std::env::current_exe()

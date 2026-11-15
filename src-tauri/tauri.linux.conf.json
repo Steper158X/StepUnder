@@ -18,15 +18,18 @@
     "targets": ["deb", "appimage"],
     "linux": {
       "deb": {
+        "depends": ["libmpv2 | libmpv1"],
         "recommends": [
-          "libmpv2 | libmpv1",
           "gstreamer1.0-plugins-good",
           "gstreamer1.0-libav",
           "gnome-keyring"
         ]
       },
       "appimage": {
-        "bundleMediaFramework": true
+        "bundleMediaFramework": true,
+        "files": {
+          "/usr/lib/libmpv.so.1": "/usr/lib/x86_64-linux-gnu/libmpv.so.1"
+        }
       }
     }
   }
