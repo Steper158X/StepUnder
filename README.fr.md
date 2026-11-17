@@ -28,7 +28,7 @@ transforme en une expérience d'écoute soignée sur ordinateur — sans compte 
 sans télémétrie et sans envoi de fichiers. Tout reste entre vous et votre serveur.
 
 > [!NOTE]
-> StepUnder est en développement actif (v0.2.x). Les fonctionnalités et l'interface peuvent encore évoluer.
+> StepUnder est en développement actif (v0.3.x). Les fonctionnalités et l'interface peuvent encore évoluer.
 
 ## Sommaire
 
@@ -157,6 +157,9 @@ sans télémétrie et sans envoi de fichiers. Tout reste entre vous et votre ser
 - **Cache des pochettes** — les pochettes sont enregistrées sur le disque et se
   chargent instantanément, même après un redémarrage. Définissez la taille maximale
   et la fréquence de rafraîchissement, ou videz le cache dans **Paramètres → Cache**.
+- **Économe en mémoire** — les pages se chargent seulement à l'ouverture, les longues
+  listes et la file d'attente n'affichent que les lignes visibles, et sous Windows
+  l'application libère de la mémoire en arrière-plan.
 
 ### 🎨 Personnalisation
 
@@ -200,8 +203,9 @@ et ouvrez-le sur votre téléphone pour l'installer (autorisez l'installation de
 votre navigateur ou gestionnaire de fichiers si Android le demande). L'application
 Android dispose d'une mise en page pour téléphone, continue de jouer en arrière-plan
 avec des commandes dans la notification et vous permet de choisir la sortie audio
-(haut-parleur, Bluetooth, filaire ou USB). Pour mettre à jour, installez le nouvel
-APK de la page Releases par-dessus l'ancien.
+(haut-parleur, Bluetooth, filaire ou USB). L'application recherche les nouvelles
+versions sur GitHub au démarrage (ou depuis **Paramètres → À propos**) et ouvre le
+nouvel APK pour que vous l'installiez par-dessus l'ancien.
 
 ### Linux (Ubuntu, Pop!_OS)
 

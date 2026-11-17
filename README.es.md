@@ -28,7 +28,7 @@ experiencia de escucha de escritorio pulida: sin cuenta en la nube, sin telemetr
 y sin subir nada. Todo queda entre tú y tu servidor.
 
 > [!NOTE]
-> StepUnder está en desarrollo activo (v0.2.x). Las funciones y la interfaz aún pueden cambiar.
+> StepUnder está en desarrollo activo (v0.3.x). Las funciones y la interfaz aún pueden cambiar.
 
 ## Contenido
 
@@ -156,6 +156,9 @@ y sin subir nada. Todo queda entre tú y tu servidor.
 - **Caché de portadas** — las portadas se guardan en disco para cargar al instante,
   incluso tras reiniciar. Define el tamaño máximo y la frecuencia de actualización,
   o vacía la caché en **Ajustes → Caché**.
+- **Ligera en memoria** — las páginas se cargan solo al abrirlas, las listas largas
+  y la cola dibujan solo las filas visibles, y en Windows la app libera memoria
+  mientras está en segundo plano.
 
 ### 🎨 Personalización
 
@@ -198,8 +201,9 @@ Descarga `StepUnder_<version>_android.apk` desde la
 y ábrelo en tu teléfono para instalarlo (permite la instalación desde tu navegador
 o gestor de archivos si Android lo pide). La app de Android tiene un diseño para
 móvil, sigue sonando en segundo plano con controles en la notificación y te deja
-elegir la salida de audio (altavoz, Bluetooth, cable o USB). Para actualizar,
-instala el APK más nuevo de la página de Releases sobre el anterior.
+elegir la salida de audio (altavoz, Bluetooth, cable o USB). La app busca nuevas
+versiones en GitHub al iniciar (o desde **Ajustes → Acerca de**) y abre el APK más
+nuevo para que lo instales sobre el anterior.
 
 ### Linux (Ubuntu, Pop!_OS)
 

@@ -28,7 +28,7 @@ daraus ein ausgefeiltes Hörerlebnis auf dem Desktop — ohne Cloud-Konto, ohne
 Telemetrie und ohne Uploads. Alles bleibt zwischen dir und deinem Server.
 
 > [!NOTE]
-> StepUnder wird aktiv entwickelt (v0.2.x). Funktionen und Oberfläche können sich noch ändern.
+> StepUnder wird aktiv entwickelt (v0.3.x). Funktionen und Oberfläche können sich noch ändern.
 
 ## Inhalt
 
@@ -157,6 +157,9 @@ Telemetrie und ohne Uploads. Alles bleibt zwischen dir und deinem Server.
 - **Cover-Cache** — Cover werden auf der Festplatte gespeichert und laden sofort,
   auch nach einem Neustart. Lege die maximale Größe und die Aktualisierungshäufigkeit
   fest oder leere den Cache unter **Einstellungen → Cache**.
+- **Sparsam mit Speicher** — Seiten laden erst beim Öffnen, lange Listen und die
+  Warteschlange zeichnen nur die sichtbaren Zeilen, und unter Windows gibt die App
+  im Hintergrund Speicher frei.
 
 ### 🎨 Personalisierung
 
@@ -200,8 +203,9 @@ herunter und öffne die Datei auf deinem Smartphone, um sie zu installieren
 (erlaube Installationen aus deinem Browser oder Dateimanager, falls Android
 danach fragt). Die Android-App hat ein Smartphone-Layout, spielt im Hintergrund
 weiter mit Steuerung in der Benachrichtigung und lässt dich die Audioausgabe
-wählen (Lautsprecher, Bluetooth, Kabel oder USB). Zum Aktualisieren installierst
-du die neuere APK von der Releases-Seite über die alte.
+wählen (Lautsprecher, Bluetooth, Kabel oder USB). Die App sucht beim Start (oder
+unter **Einstellungen → Über**) auf GitHub nach neuen Versionen und öffnet die neuere
+APK, die du über die alte installierst.
 
 ### Linux (Ubuntu, Pop!_OS)
 

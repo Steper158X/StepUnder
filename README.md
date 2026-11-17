@@ -28,7 +28,7 @@ polished desktop listening experience — no cloud account, no telemetry, and no
 uploads. Everything stays between you and your server.
 
 > [!NOTE]
-> StepUnder is in active development (v0.2.x). Features and UI may still change.
+> StepUnder is in active development (v0.3.x). Features and UI may still change.
 
 ## Contents
 
@@ -163,6 +163,9 @@ uploads. Everything stays between you and your server.
 - **Cover art cache** — covers are saved on disk so they load instantly, even
   after a restart. Set the maximum size and how often covers refresh, or clear
   the cache from **Settings → Cache**.
+- **Light on memory** — pages load only when you open them, long lists and the
+  queue render just the rows on screen, and on Windows the app gives memory
+  back while it sits in the background.
 
 ### 🎨 Personalization
 
@@ -209,8 +212,9 @@ Download `StepUnder_<version>_android.apk` from the
 and open it on your phone to install (allow installs from your browser or file
 manager if Android asks). The Android app has a phone layout, keeps playing in
 the background with controls in the notification, and lets you pick the audio
-output (speaker, Bluetooth, wired, or USB). To update, install the newer APK
-from the Releases page over the old one.
+output (speaker, Bluetooth, wired, or USB). The app checks GitHub for new
+versions on startup (or from **Settings → About**) and opens the newer APK for
+you to install over the old one.
 
 ### Linux (Ubuntu, Pop!_OS)
 
