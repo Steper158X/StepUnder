@@ -101,6 +101,7 @@ interface PersistedPlayer {
 
 /** How many songs a radio asks Navidrome for at a time. */
 const RADIO_BATCH = 30;
+const RADIO_HISTORY_LIMIT = 50;
 /** Fewer new songs than this and the radio also tries the broader sources. */
 const RADIO_MIN = 10;
 /** A radio source slower than this is skipped so the queue fills quickly. */
@@ -682,7 +683,11 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       }
       return;
     }
-    setState("queue", (queue) => [...queue, ...songs]);
+    const trim = Math.max(0, state.index - RADIO_HISTORY_LIMIT);
+    setState({
+      queue: [...state.queue.slice(trim), ...songs],
+      index: state.index - trim,
+    });
   }
 
   function startRadio(song: Song) {
@@ -964,6 +969,15 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     );
   }
 
+  function savePosition() {
+    void writeSetting("playerPosition", {
+      serverId: servers.activeId(),
+      songId: current()?.id,
+      index: state.index,
+      position: state.position,
+    });
+  }
+
   function saveNow() {
     const serverId = servers.activeId();
     if (!serverId || state.queue.length === 0) {
@@ -982,6 +996,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       sourceName: state.sourceName,
     };
     void writeSetting("player", payload);
+    savePosition();
   }
 
   function scheduleSave(delay = 700) {
@@ -1300,9 +1315,10 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     if (saved.serverId !== id || !saved.queue?.length) return;
 
     const index = Math.min(Math.max(saved.index ?? 0, 0), saved.queue.length - 1);
+    const trim = saved.radio ? Math.max(0, index - RADIO_HISTORY_LIMIT) : 0;
     setState({
-      queue: saved.queue,
-      index,
+      queue: saved.queue.slice(trim),
+      index: index - trim,
       position: saved.position ?? 0,
       duration: saved.queue[index]?.duration ?? 0,
       volume: typeof saved.volume === "number" ? saved.volume : 0.8,
@@ -1311,6 +1327,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       radio: Boolean(saved.radio),
       sourceName: saved.sourceName ?? null,
     });
+    setPersisted(null);
   });
 
   // Keep a radio going: once playback nears the end of the queue, ask
@@ -1339,7 +1356,14 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   );
 
   onMount(() => {
-    void readSetting<PersistedPlayer | null>("player", null).then((saved) => {
+    void Promise.all([
+      readSetting<PersistedPlayer | null>("player", null),
+      readSetting<{ serverId: string; songId: string; index: number; position: number } | null>("playerPosition", null),
+    ]).then(([saved, progress]) => {
+      if (saved && progress && progress.serverId === saved.serverId &&
+        progress.index === saved.index && saved.queue[progress.index]?.id === progress.songId) {
+        saved.position = progress.position;
+      }
       setPersisted(saved);
       if (saved && typeof saved.volume === "number") {
         setState("volume", saved.volume);
@@ -1370,7 +1394,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     unlisteners.push(onNativePlayerEvent(handleNativeEvent));
 
     const interval = setInterval(() => {
-      if (state.playing) saveNow();
+      if (state.playing) savePosition();
     }, 12000);
 
     // Re-send the activity now and then so a Discord restart (or progress

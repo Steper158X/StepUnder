@@ -49,6 +49,7 @@ import {
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
 import { RatingSubmenu } from "~/components/annotations";
+import { VirtualList } from "~/components/virtual-list";
 
 function TrackLikeButton(props: {
   song: Song;
@@ -505,11 +506,13 @@ export function TrackList(props: {
       const rows = Array.from(
         container!.querySelectorAll<HTMLElement>("[data-track-index]"),
       );
-      let over = rows.length;
-      for (let i = 0; i < rows.length; i += 1) {
-        const rect = rows[i].getBoundingClientRect();
+      let over = rows.length
+        ? Number(rows[rows.length - 1].dataset.trackIndex) + 1
+        : index;
+      for (const row of rows) {
+        const rect = row.getBoundingClientRect();
         if (moveEvent.clientY < rect.top + rect.height / 2) {
-          over = i;
+          over = Number(row.dataset.trackIndex);
           break;
         }
       }
@@ -530,7 +533,10 @@ export function TrackList(props: {
       const to = state.over > state.from ? state.over - 1 : state.over;
       if (to !== state.from) props.onMove?.(state.from, to);
     };
-    const up = () => finish(true);
+    const up = (upEvent: PointerEvent) => {
+      move(upEvent);
+      finish(true);
+    };
     const cancel = () => finish(false);
     const key = (keyEvent: KeyboardEvent) => {
       if (keyEvent.key === "Escape") cancel();
@@ -566,26 +572,36 @@ export function TrackList(props: {
   }
 
   return (
-    <div ref={container} class={cn("flex flex-col gap-0.5", props.class)}>
-      {props.songs.map((song, index) => (
-        <TrackRow
-          song={song}
-          index={index}
-          number={props.trackNumbers ? song.track || index + 1 : undefined}
-          context={props.context ?? props.songs}
-          sourceName={props.sourceName}
-          showCover={props.showCover}
-          showAlbum={props.showAlbum}
-          showArtist={props.showArtist}
-          onRemove={props.onRemove ? () => props.onRemove!(index) : undefined}
-          onDragStart={
-            props.onMove ? (event) => startDrag(index, event) : undefined
-          }
-          dropIndicator={indicator(index)}
-          dragging={drag()?.from === index}
-        />
-      ))}
-    </div>
+    <VirtualList
+      ref={(element) => {
+        container = element;
+      }}
+      class={props.class}
+      items={props.songs}
+      estimateSize={60}
+      pinnedIndex={drag()?.from}
+    >
+      {(song, index) => (
+        <div class="pb-0.5">
+          <TrackRow
+            song={song}
+            index={index}
+            number={props.trackNumbers ? song.track || index + 1 : undefined}
+            context={props.context ?? props.songs}
+            sourceName={props.sourceName}
+            showCover={props.showCover}
+            showAlbum={props.showAlbum}
+            showArtist={props.showArtist}
+            onRemove={props.onRemove ? () => props.onRemove!(index) : undefined}
+            onDragStart={
+              props.onMove ? (event) => startDrag(index, event) : undefined
+            }
+            dropIndicator={indicator(index)}
+            dragging={drag()?.from === index}
+          />
+        </div>
+      )}
+    </VirtualList>
   );
 }
 

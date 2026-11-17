@@ -45,7 +45,7 @@ import {
   phoneticLyrics,
 } from "~/state/settings";
 
-/** Lyrics are immutable per song, so keep them around while the app runs. */
+const LYRICS_CACHE_LIMIT = 50;
 const lyricsCache = new Map<string, Lyrics | null>();
 /**
  * Same lyrics with generated reading lines filled in, keyed by the source
@@ -92,8 +92,11 @@ export function LyricsPanel(props: {
       return;
     }
 
-    const cached = lyricsCache.get(song.id);
+    const key = JSON.stringify([servers.activeId(), client.baseUrl, client.username, song.id]);
+    const cached = lyricsCache.get(key);
     if (cached !== undefined) {
+      lyricsCache.delete(key);
+      lyricsCache.set(key, cached);
       setLyrics(cached);
       return;
     }
@@ -103,8 +106,12 @@ export function LyricsPanel(props: {
       const result =
         (await client.getLyricsBySongId(song.id)) ??
         (await client.getLyrics(song.artist ?? "", song.title));
-      lyricsCache.set(song.id, result);
       if (cancelled) return;
+      lyricsCache.delete(key);
+      lyricsCache.set(key, result);
+      while (lyricsCache.size > LYRICS_CACHE_LIMIT) {
+        lyricsCache.delete(lyricsCache.keys().next().value!);
+      }
       setLyrics(result);
     })();
   });

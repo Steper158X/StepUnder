@@ -23,6 +23,7 @@ import { cn } from "~/lib/utils";
 import { isNarrow } from "~/lib/platform";
 import { Cover, EmptyState, PlayingBars } from "~/components/common";
 import { Button } from "~/components/ui/button";
+import { VirtualList } from "~/components/virtual-list";
 
 /**
  * The right column: the queue, and (with the side lyrics setting) a lyrics
@@ -109,7 +110,14 @@ function SidePanel() {
       inert={open() ? undefined : true}
       aria-label={t("player.queue")}
     >
-      <Show when={lyricsShown()} fallback={<QueueList />}>
+      <Show
+        when={lyricsShown()}
+        fallback={
+          <Show when={player.queueOpen()}>
+            <QueueList />
+          </Show>
+        }
+      >
         <div
           class="side-column h-full w-[22rem] max-w-[92vw]"
           data-queue={player.queueOpen() ? "open" : "closed"}
@@ -119,7 +127,9 @@ function SidePanel() {
             class="side-queue min-h-0 overflow-hidden border-t border-border/60"
             inert={player.queueOpen() ? undefined : true}
           >
-            <QueueList />
+            <Show when={player.queueOpen()}>
+              <QueueList />
+            </Show>
           </div>
         </div>
       </Show>
@@ -211,9 +221,9 @@ function QueueList(props: { class?: string }) {
             />
           }
         >
-          <For each={player.state.queue}>
+          <VirtualList items={player.state.queue} estimateSize={48}>
             {(song, index) => {
-              const isCurrent = () => index() === player.state.index;
+              const isCurrent = () => index === player.state.index;
               return (
                 <div
                   class={cn(
@@ -223,7 +233,7 @@ function QueueList(props: { class?: string }) {
                 >
                   <button
                     type="button"
-                    onClick={() => player.jumpTo(index())}
+                    onClick={() => player.jumpTo(index)}
                     class="relative size-9 shrink-0 overflow-hidden rounded"
                     aria-label={t("action.play")}
                   >
@@ -241,7 +251,7 @@ function QueueList(props: { class?: string }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => player.jumpTo(index())}
+                    onClick={() => player.jumpTo(index)}
                     class="min-w-0 flex-1 text-left"
                   >
                     <p
@@ -263,7 +273,7 @@ function QueueList(props: { class?: string }) {
                     type="button"
                     // Touch screens have no hover, so phones always show it.
                     class="rounded p-1 text-muted-foreground opacity-0 transition-colors hover:text-destructive group-hover:opacity-100 max-md:opacity-100"
-                    onClick={() => player.removeAt(index())}
+                    onClick={() => player.removeAt(index)}
                     aria-label={t("player.remove")}
                   >
                     <Trash2 class="size-3.5" />
@@ -271,7 +281,7 @@ function QueueList(props: { class?: string }) {
                 </div>
               );
             }}
-          </For>
+          </VirtualList>
         </Show>
         <Show when={player.radioLoading()}>
           <div role="status" aria-live="polite">

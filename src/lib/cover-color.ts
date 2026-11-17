@@ -3,6 +3,7 @@ import type { SubsonicClient } from "~/lib/subsonic";
 /** A cover's accent as HSL: hue 0–360, saturation and lightness 0–1. */
 export type CoverColor = { h: number; s: number; l: number };
 
+const CACHE_LIMIT = 100;
 const cache = new Map<string, Promise<CoverColor | null>>();
 
 function toHsl(r: number, g: number, b: number): CoverColor {
@@ -92,10 +93,13 @@ async function extract(
   canvas.width = SIZE;
   canvas.height = SIZE;
   const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) return null;
-  context.drawImage(bitmap, 0, 0, SIZE, SIZE);
-  bitmap.close();
-  return dominantColor(context.getImageData(0, 0, SIZE, SIZE).data);
+  try {
+    if (!context) return null;
+    context.drawImage(bitmap, 0, 0, SIZE, SIZE);
+    return dominantColor(context.getImageData(0, 0, SIZE, SIZE).data);
+  } finally {
+    bitmap.close();
+  }
 }
 
 /** The cover's accent color, cached per cover id; null when it can't be read. */
@@ -107,7 +111,11 @@ export function coverColor(
   let pending = cache.get(key);
   if (!pending) {
     pending = extract(client, coverArtId).catch(() => null);
-    cache.set(key, pending);
+  }
+  cache.delete(key);
+  cache.set(key, pending);
+  while (cache.size > CACHE_LIMIT) {
+    cache.delete(cache.keys().next().value!);
   }
   return pending;
 }

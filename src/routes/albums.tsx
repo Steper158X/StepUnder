@@ -5,7 +5,8 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
-import { Disc3, LoaderCircle } from "lucide-solid";
+import { Disc3 } from "lucide-solid";
+import { Button } from "~/components/ui/button";
 import type { Album, AlbumListType } from "~/lib/types";
 import { useServers } from "~/state/servers";
 import { t, type MessageKey } from "~/i18n";
@@ -16,8 +17,6 @@ import { EmptyState, ErrorState } from "~/components/common";
 import { Select, Skeleton } from "~/components/ui/select";
 
 const PAGE_SIZE = 60;
-const LOAD_MORE_MARGIN = 600;
-
 const sortOptions: Array<{ value: AlbumListType; key: MessageKey }> = [
   { value: "newest", key: "albums.sort.newest" },
   { value: "recent", key: "albums.sort.recent" },
@@ -38,67 +37,32 @@ export default function AlbumsPage() {
   const [error, setError] = createSignal<unknown>(null);
 
   let requestId = 0;
-  let loadMoreSentinel: HTMLDivElement | undefined;
-  let observer: IntersectionObserver | undefined;
+  onCleanup(() => { requestId += 1; });
 
-  function canLoadMore() {
-    return hasMore() && !loading() && !error();
-  }
-
-  function loadMoreIfNeeded() {
-    if (!canLoadMore()) return;
-    if (!loadMoreSentinel) return;
-    const distanceToBottom = loadMoreSentinel.getBoundingClientRect().top;
-    if (distanceToBottom > window.innerHeight + LOAD_MORE_MARGIN) return;
-    void load(false);
-  }
-
-  function observeSentinel(el: HTMLDivElement) {
-    loadMoreSentinel = el;
-    observer?.disconnect();
-    observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) loadMoreIfNeeded();
-      },
-      { rootMargin: `0px 0px ${LOAD_MORE_MARGIN}px 0px` },
-    );
-    observer.observe(el);
-  }
-
-  onCleanup(() => observer?.disconnect());
-
-  async function load(reset: boolean) {
+  async function load(startOffset = 0) {
     const client = servers.client();
     if (!client) return;
-    if (!reset && (!hasMore() || loading())) return;
     const id = (requestId += 1);
-    const startOffset = reset ? 0 : offset();
     setLoading(true);
     setError(null);
-    if (reset) {
-      setAlbums([]);
-      setOffset(0);
-    }
     try {
       const page = await client.getAlbumList2(type(), PAGE_SIZE, startOffset);
       if (id !== requestId) return;
-      setAlbums((previous) => (reset ? page : [...previous, ...page]));
-      setOffset(startOffset + page.length);
+      setAlbums(page);
+      setOffset(startOffset);
       setHasMore(page.length === PAGE_SIZE);
     } catch (err) {
       if (id === requestId) setError(err);
     } finally {
       if (id === requestId) {
         setLoading(false);
-        // Content may still not fill the viewport, so keep loading page after page.
-        if (!reset) loadMoreIfNeeded();
       }
     }
   }
 
   createEffect(
     on([servers.client, type], () => {
-      void load(true);
+      void load(0);
     }),
   );
 
@@ -128,7 +92,7 @@ export default function AlbumsPage() {
         fallback={
           <ErrorState
             message={t(subsonicErrorKey(error()) as MessageKey)}
-            onRetry={() => void load(true)}
+            onRetry={() => void load(0)}
             retryLabel={t("action.retry")}
           />
         }
@@ -158,17 +122,19 @@ export default function AlbumsPage() {
           }
         >
           <AlbumGrid albums={albums()} />
-
-          <div
-            ref={observeSentinel}
-            aria-hidden="true"
-            class="mt-6 flex h-10 items-center justify-center"
-          >
-            <Show when={loading()}>
-              <LoaderCircle class="size-5 animate-spin text-muted-foreground" />
-            </Show>
-          </div>
         </Show>
+
+          <nav class="mt-6 flex items-center justify-center gap-4" aria-label={t("albums.title")}>
+            <Button variant="outline" disabled={loading() || offset() === 0}
+              onClick={() => void load(Math.max(0, offset() - PAGE_SIZE))}>
+              {t("action.previous")}
+            </Button>
+            <span class="text-sm tabular-nums" aria-live="polite">{Math.floor(offset() / PAGE_SIZE) + 1}</span>
+            <Button variant="outline" disabled={loading() || !hasMore()}
+              onClick={() => void load(offset() + PAGE_SIZE)}>
+              {t("action.next")}
+            </Button>
+          </nav>
       </Show>
     </Page>
   );

@@ -8,7 +8,7 @@
 //! A `_v` param (bumped after a playlist cover upload) forces one refetch per
 //! value. The page configures the cache with `cover_cache_configure`.
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -18,10 +18,14 @@ use serde::Serialize;
 use tauri::http::{Request, Response, StatusCode, header};
 use tauri::{AppHandle, Manager, Runtime, Url, UriSchemeContext, UriSchemeResponder};
 use tauri_plugin_http::reqwest;
+use tokio::sync::{Mutex as AsyncMutex, Semaphore};
 
 pub const SCHEME: &str = "cover";
 
 const MB: u64 = 1024 * 1024;
+const MAX_COVER_BYTES: usize = 16 * 1024 * 1024;
+const MAX_COVER_REQUESTS: usize = 8;
+const COVER_LOCK_SHARDS: usize = 32;
 const DAY_SECS: u64 = 24 * 60 * 60;
 /// Defaults until the page sends the saved settings.
 const DEFAULT_MAX_BYTES: u64 = 512 * MB;
@@ -35,8 +39,10 @@ const IGNORED_PARAMS: &[&str] = &["u", "t", "s", "p", "v", "c", "f", "_v"];
 
 pub struct CoverCache {
     client: reqwest::Client,
-    /// `key|_v` pairs already refetched this session.
-    refreshed: Mutex<HashSet<String>>,
+    requests: Semaphore,
+    key_locks: Vec<AsyncMutex<()>>,
+    /// Latest successfully refreshed version per cover key.
+    refreshed: Mutex<HashMap<String, String>>,
     temp_counter: AtomicU64,
     /// When off, covers are passed straight through without touching disk.
     enabled: AtomicBool,
@@ -53,7 +59,9 @@ impl Default for CoverCache {
                 .timeout(Duration::from_secs(30))
                 .build()
                 .unwrap_or_default(),
-            refreshed: Mutex::new(HashSet::new()),
+            requests: Semaphore::new(MAX_COVER_REQUESTS),
+            key_locks: (0..COVER_LOCK_SHARDS).map(|_| AsyncMutex::new(())).collect(),
+            refreshed: Mutex::new(HashMap::new()),
             temp_counter: AtomicU64::new(0),
             enabled: AtomicBool::new(true),
             max_bytes: AtomicU64::new(DEFAULT_MAX_BYTES),
@@ -174,7 +182,7 @@ fn error_response(status: StatusCode) -> Response<Vec<u8>> {
 }
 
 async fn fetch(client: &reqwest::Client, url: &Url) -> Result<Vec<u8>, String> {
-    let response = client
+    let mut response = client
         .get(url.as_str())
         .send()
         .await
@@ -192,11 +200,31 @@ async fn fetch(client: &reqwest::Client, url: &Url) -> Result<Vec<u8>, String> {
     if !content_type.starts_with("image/") {
         return Err(format!("unexpected content type {content_type}"));
     }
-    let bytes = response.bytes().await.map_err(|error| error.to_string())?;
+    if response.content_length().is_some_and(|size| size > MAX_COVER_BYTES as u64) {
+        return Err("cover exceeds size limit".into());
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
+        if chunk.len() > MAX_COVER_BYTES - bytes.len() {
+            return Err("cover exceeds size limit".into());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
     if bytes.is_empty() {
         return Err("empty body".into());
     }
-    Ok(bytes.to_vec())
+    Ok(bytes)
+}
+
+async fn read_cover(file: &Path) -> Result<Vec<u8>, std::io::Error> {
+    use tokio::io::AsyncReadExt;
+    let file = tokio::fs::File::open(file).await?;
+    let mut bytes = Vec::new();
+    file.take(MAX_COVER_BYTES as u64 + 1).read_to_end(&mut bytes).await?;
+    if bytes.is_empty() || bytes.len() > MAX_COVER_BYTES {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid cover size"));
+    }
+    Ok(bytes)
 }
 
 impl CoverCache {
@@ -233,6 +261,11 @@ impl CoverCache {
         let Some(target) = parse_target(uri) else {
             return error_response(StatusCode::BAD_REQUEST);
         };
+        let Ok(_permit) = self.requests.acquire().await else {
+            return error_response(StatusCode::SERVICE_UNAVAILABLE);
+        };
+        let shard = fnv1a(&target.key) as usize % self.key_locks.len();
+        let _key_guard = self.key_locks[shard].lock().await;
         if !self.enabled.load(Ordering::Relaxed) {
             return match fetch(&self.client, &target.upstream).await {
                 Ok(bytes) => image_response(bytes),
@@ -245,21 +278,19 @@ impl CoverCache {
         let force = target.version.as_ref().is_some_and(|version| {
             self.refreshed
                 .lock()
-                .map(|mut set| set.insert(format!("{}|{version}", target.key)))
+                .map(|versions| versions.get(&target.key) != Some(version))
                 .unwrap_or(false)
         });
 
-        let mut stale: Option<Vec<u8>> = None;
         if let Some(file) = &file {
-            if let Ok(bytes) = tokio::fs::read(file).await {
-                let fresh = tokio::fs::metadata(file)
-                    .await
-                    .and_then(|meta| meta.modified())
-                    .is_ok_and(|modified| self.is_fresh(modified));
-                if fresh && !force && !bytes.is_empty() {
+            let fresh = tokio::fs::metadata(file).await.is_ok_and(|meta| {
+                meta.len() <= MAX_COVER_BYTES as u64 &&
+                meta.modified().is_ok_and(|modified| self.is_fresh(modified))
+            });
+            if fresh && !force {
+                if let Ok(bytes) = read_cover(file).await {
                     return image_response(bytes);
                 }
-                stale = Some(bytes);
             }
         }
 
@@ -268,11 +299,23 @@ impl CoverCache {
                 if let (Some(dir), Some(file)) = (&dir, &file) {
                     self.store(app, dir, file, &bytes).await;
                 }
+                if let Some(version) = target.version {
+                    if let Ok(mut versions) = self.refreshed.lock() {
+                        if versions.len() >= 1024 && !versions.contains_key(&target.key) {
+                            versions.clear();
+                        }
+                        versions.insert(target.key, version);
+                    }
+                }
                 image_response(bytes)
             }
-            Err(_) => match stale {
-                Some(bytes) if !bytes.is_empty() => image_response(bytes),
-                _ => error_response(StatusCode::BAD_GATEWAY),
+            Err(_) => {
+                if let Some(file) = &file {
+                    if let Ok(bytes) = read_cover(file).await {
+                        return image_response(bytes);
+                    }
+                }
+                error_response(StatusCode::BAD_GATEWAY)
             },
         }
     }

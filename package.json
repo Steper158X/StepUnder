@@ -21,6 +21,7 @@
     "@patdx/kuromoji": "^1.0.4",
     "@solidjs/router": "^1.0.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/solid-virtual": "^3.13.53",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-http": "^2.8.3",
     "@tauri-apps/plugin-opener": "^2",
