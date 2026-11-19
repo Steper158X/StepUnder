@@ -1,5 +1,6 @@
 import {
   Show,
+  type JSX,
   createEffect,
   createResource,
   createSignal,
@@ -7,7 +8,7 @@ import {
   onCleanup,
   onMount,
 } from "solid-js";
-import { Search } from "lucide-solid";
+import { ChevronRight, Search } from "lucide-solid";
 import { useServers } from "~/state/servers";
 import { t, type MessageKey } from "~/i18n";
 import { subsonicErrorKey } from "~/lib/subsonic";
@@ -29,6 +30,9 @@ const tabs: Array<{ value: Tab; key: MessageKey }> = [
   { value: "albums", key: "search.albums" },
   { value: "artists", key: "search.artists" },
 ];
+
+/** How many items each section shows on the "All" tab before "See all". */
+const PREVIEW = { songs: 8, albums: 8, artists: 8 };
 
 export default function SearchPage() {
   const servers = useServers();
@@ -58,9 +62,9 @@ export default function SearchPage() {
     ({ client, term }) => client.search3(term),
   );
 
-  const showSongs = () => tab() === "all" || tab() === "songs";
-  const showAlbums = () => tab() === "all" || tab() === "albums";
-  const showArtists = () => tab() === "all" || tab() === "artists";
+  const songs = () => results()?.songs ?? [];
+  const albums = () => results()?.albums ?? [];
+  const artists = () => results()?.artists ?? [];
 
   const hasResults = () => {
     const value = results();
@@ -136,47 +140,130 @@ export default function SearchPage() {
                 />
               }
             >
-              <div class="space-y-8">
-                <Show when={showSongs() && results()!.songs.length > 0}>
-                  <section class="space-y-2">
-                    <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      {t("search.songs")}
-                    </h2>
-                    <TrackList
-                      songs={results()!.songs}
-                      sourceName={t("search.songs")}
-                      showAlbum
-                      showCover
-                    />
-                  </section>
-                </Show>
-
-                <Show when={showAlbums() && results()!.albums.length > 0}>
-                  <section class="space-y-3">
-                    <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      {t("search.albums")}
-                    </h2>
-                    <AlbumGrid albums={results()!.albums} />
-                  </section>
-                </Show>
-
-                <Show when={showArtists() && results()!.artists.length > 0}>
-                  <section class="space-y-3">
-                    <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      {t("search.artists")}
-                    </h2>
-                    <div class="flex flex-wrap gap-x-6 gap-y-7">
-                      {results()!.artists.map((artist) => (
-                        <ArtistTile artist={artist} />
-                      ))}
+              <Show
+                when={tab() === "all"}
+                fallback={
+                  <div class="space-y-8">
+                    <Show when={tab() === "songs" && songs().length > 0}>
+                      <ResultSection title={t("search.songs")} count={songs().length}>
+                        <TrackList
+                          songs={songs()}
+                          sourceName={t("search.songs")}
+                          showAlbum
+                          showCover
+                        />
+                      </ResultSection>
+                    </Show>
+                    <Show when={tab() === "albums" && albums().length > 0}>
+                      <ResultSection title={t("search.albums")} count={albums().length}>
+                        <AlbumGrid albums={albums()} />
+                      </ResultSection>
+                    </Show>
+                    <Show when={tab() === "artists" && artists().length > 0}>
+                      <ResultSection title={t("search.artists")} count={artists().length}>
+                        <ArtistRow artists={artists()} />
+                      </ResultSection>
+                    </Show>
+                  </div>
+                }
+              >
+                <div class="space-y-10">
+                  {/* Songs on the left, albums on the right; stacked on narrow screens. */}
+                  <Show when={songs().length > 0 || albums().length > 0}>
+                    <div
+                      class={cn(
+                        "grid gap-8",
+                        songs().length > 0 &&
+                          albums().length > 0 &&
+                          "lg:grid-cols-2 lg:gap-10",
+                      )}
+                    >
+                      <Show when={songs().length > 0}>
+                        <ResultSection
+                          title={t("search.songs")}
+                          count={songs().length}
+                          onMore={() => setTab("songs")}
+                          class="min-w-0"
+                        >
+                          <TrackList
+                            songs={songs().slice(0, PREVIEW.songs)}
+                            sourceName={t("search.songs")}
+                            showAlbum
+                            showCover
+                          />
+                        </ResultSection>
+                      </Show>
+                      <Show when={albums().length > 0}>
+                        <ResultSection
+                          title={t("search.albums")}
+                          count={albums().length}
+                          onMore={() => setTab("albums")}
+                          class="min-w-0"
+                        >
+                          <AlbumGrid albums={albums().slice(0, PREVIEW.albums)} />
+                        </ResultSection>
+                      </Show>
                     </div>
-                  </section>
-                </Show>
-              </div>
+                  </Show>
+
+                  <Show when={artists().length > 0}>
+                    <ResultSection
+                      title={t("search.artists")}
+                      count={artists().length}
+                      onMore={() => setTab("artists")}
+                    >
+                      <ArtistRow artists={artists().slice(0, PREVIEW.artists)} />
+                    </ResultSection>
+                  </Show>
+                </div>
+              </Show>
             </Show>
           </Show>
         </Show>
       </Show>
     </Page>
+  );
+}
+
+function ResultSection(props: {
+  title: string;
+  count: number;
+  /** Shown on the "All" tab: jumps to the tab with every result of this kind. */
+  onMore?: () => void;
+  class?: string;
+  children: JSX.Element;
+}) {
+  return (
+    <section class={cn("space-y-3", props.class)}>
+      <div class="flex items-baseline justify-between gap-3">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {props.title}
+          <span class="ml-1.5 font-normal normal-case tabular-nums">
+            ({props.count})
+          </span>
+        </h2>
+        <Show when={props.onMore}>
+          <button
+            type="button"
+            onClick={() => props.onMore!()}
+            class="flex shrink-0 items-center gap-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("home.more")}
+            <ChevronRight class="size-3.5" />
+          </button>
+        </Show>
+      </div>
+      {props.children}
+    </section>
+  );
+}
+
+function ArtistRow(props: { artists: Parameters<typeof ArtistTile>[0]["artist"][] }) {
+  return (
+    <div class="flex flex-wrap gap-x-6 gap-y-7">
+      {props.artists.map((artist) => (
+        <ArtistTile artist={artist} />
+      ))}
+    </div>
   );
 }
