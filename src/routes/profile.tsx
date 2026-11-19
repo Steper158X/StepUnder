@@ -5,7 +5,6 @@ import {
   Disc3,
   Headphones,
   ListMusic,
-  Play,
   RefreshCw,
   Settings,
   TrendingUp,
@@ -640,7 +639,7 @@ export default function ProfilePage() {
                           t("profile.topSongs"),
                         )
                       }
-                      class="group flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/50"
+                      class="group flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/50"
                     >
                       <Cover
                         coverArtId={song.coverArt ?? song.albumId}
@@ -667,7 +666,6 @@ export default function ProfilePage() {
                           </span>
                         )}
                       </Show>
-                      <Play class="hidden size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 md:block" />
                     </button>
                   )}
                 </For>
