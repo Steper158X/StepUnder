@@ -348,12 +348,18 @@ function NowPlayingBody(props: { track: Song }) {
   );
 }
 
-function NowPlayingView(props: { track: Song; leaving: boolean }) {
+/** Calls `onLeft` once the sheet's own close animation has finished. */
+function onSheetAnimationEnd(event: AnimationEvent, leaving: boolean, onLeft: () => void) {
+  if (event.target !== event.currentTarget) return;
+  if (leaving && (event.animationName === "now-playing-out" || event.animationName === "fade-out")) onLeft();
+}
+
+function NowPlayingView(props: { track: Song; leaving: boolean; onLeft: () => void }) {
   const player = usePlayer();
   let panel: HTMLDivElement | undefined;
 
   onMount(() => {
-    panel?.focus();
+    panel?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -369,11 +375,11 @@ function NowPlayingView(props: { track: Song; leaving: boolean }) {
       tabindex="-1"
       role="dialog"
       aria-label={t("player.nowPlaying")}
+      data-state={props.leaving ? "closing" : "open"}
+      onAnimationEnd={(event) => onSheetAnimationEnd(event, props.leaving, props.onLeft)}
       class={cn(
-        "absolute inset-0 z-50 overflow-hidden bg-background outline-none",
-        props.leaving
-          ? "pointer-events-none animate-sheet-down"
-          : "animate-sheet-up",
+        "now-playing-sheet absolute inset-0 z-50 overflow-hidden bg-background outline-none",
+        props.leaving && "pointer-events-none",
       )}
     >
       {/* Large blurred album art backdrop */}
@@ -389,7 +395,7 @@ function NowPlayingView(props: { track: Song; leaving: boolean }) {
         <div class="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/70" />
       </div>
 
-      <div class="relative flex h-full flex-col px-3 py-3 pb-[var(--player-space,0.75rem)] md:px-5 md:py-4 md:pb-[var(--player-space,1rem)]">
+      <div class="now-playing-content relative flex h-full flex-col px-3 py-3 pb-[var(--player-space,0.75rem)] md:px-5 md:py-4 md:pb-[var(--player-space,1rem)]">
         <div class="flex shrink-0 justify-end">
           <button
             type="button"
@@ -440,7 +446,7 @@ function SheetButton(props: {
  * Phone full screen player: a sheet that slides up over the whole app with
  * its own controls, laid out like a phone music player.
  */
-function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
+function PhoneNowPlaying(props: { track: Song; leaving: boolean; onLeft: () => void }) {
   const player = usePlayer();
   const navigate = useNavigate();
   const { starred, toggleStar } = useCurrentStar();
@@ -449,11 +455,16 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
   const position = () => drag() ?? player.state.position;
   const close = () => player.setNowPlayingOpen(false);
   const [dismissOffset, setDismissOffset] = createSignal(0);
+  const [dragging, setDragging] = createSignal(false);
+  // Reopened mid-close: forget where the last swipe left the sheet.
+  createEffect(on(() => props.leaving, (leaving) => {
+    if (!leaving) setDismissOffset(0);
+  }, { defer: true }));
   let swipe: { id: number; x: number; y: number } | undefined;
   let panel: HTMLDivElement | undefined;
 
   onMount(() => {
-    panel?.focus();
+    panel?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -469,12 +480,16 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
       tabindex="-1"
       role="dialog"
       aria-label={t("player.nowPlaying")}
-      style={{ transform: dismissOffset() ? `translateY(${dismissOffset()}px)` : undefined }}
+      data-state={props.leaving ? "closing" : "open"}
+      data-dragging={dragging() ? "true" : "false"}
+      onAnimationEnd={(event) => onSheetAnimationEnd(event, props.leaving, props.onLeft)}
+      style={{
+        transform: dismissOffset() ? `translate3d(0, ${dismissOffset()}px, 0)` : undefined,
+        "--sheet-from": `${dismissOffset()}px`,
+      }}
       class={cn(
-        "fixed inset-0 z-50 overflow-hidden bg-background outline-none",
-        props.leaving
-          ? "pointer-events-none animate-sheet-down"
-          : "animate-sheet-up",
+        "now-playing-sheet fixed inset-0 z-50 overflow-hidden bg-background outline-none",
+        props.leaving && "pointer-events-none",
       )}
     >
       <div class="now-playing-backdrop absolute inset-0" aria-hidden="true">
@@ -488,23 +503,31 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
         <div class="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/70" />
       </div>
 
-      <div class="relative flex h-full flex-col px-6 pt-[env(safe-area-inset-top)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div class="now-playing-content relative flex h-full flex-col px-6 pt-[env(safe-area-inset-top)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {/* Header: only the chevron, which puts the player back down. */}
         <div class="-mx-2 flex h-14 shrink-0 touch-none items-center gap-2"
           onPointerDown={event => {
             if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
             swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+            setDragging(true);
             event.currentTarget.setPointerCapture(event.pointerId);
           }}
           onPointerMove={event => {
             if (!swipe || swipe.id !== event.pointerId) return;
             const distance = sheetDrag(swipe, { x: event.clientX, y: event.clientY });
-            if (distance === null) { swipe = undefined; setDismissOffset(0); return; }
+            if (distance === null) { swipe = undefined; setDragging(false); setDismissOffset(0); return; }
             setDismissOffset(distance);
           }}
-          onPointerUp={() => { const dismiss = shouldDismissSheet(dismissOffset()); swipe = undefined; setDismissOffset(0); if (dismiss) close(); }}
-          onPointerCancel={() => { swipe = undefined; setDismissOffset(0); }}
-          onLostPointerCapture={() => { swipe = undefined; setDismissOffset(0); }}
+          onPointerUp={() => {
+            const dismiss = shouldDismissSheet(dismissOffset());
+            swipe = undefined;
+            setDragging(false);
+            // Dismissing keeps the offset so the close slides on from there.
+            if (dismiss) close();
+            else setDismissOffset(0);
+          }}
+          onPointerCancel={() => { swipe = undefined; setDragging(false); if (!props.leaving) setDismissOffset(0); }}
+          onLostPointerCapture={() => { swipe = undefined; setDragging(false); if (!props.leaving) setDismissOffset(0); }}
         >
           <SheetButton label={t("action.close")} onClick={close}>
             <ChevronDown class="size-6" />
@@ -672,11 +695,17 @@ export function NowPlaying() {
         }
         if (!wasOpen) return;
         setLeaving(true);
-        leaveTimer = setTimeout(() => setLeaving(false), 280);
+        // The sheet reports its own animation end; this only covers the case
+        // where no animation runs (hidden window, animations disabled).
+        leaveTimer = setTimeout(() => setLeaving(false), 700);
       },
     ),
   );
   onCleanup(() => clearTimeout(leaveTimer));
+  const finishLeaving = () => {
+    clearTimeout(leaveTimer);
+    setLeaving(false);
+  };
 
   createEffect(() => {
     const track = player.current();
@@ -695,9 +724,9 @@ export function NowPlaying() {
       {(current) => (
         <Show
           when={isNarrow()}
-          fallback={<NowPlayingView track={current()} leaving={leaving()} />}
+          fallback={<NowPlayingView track={current()} leaving={leaving()} onLeft={finishLeaving} />}
         >
-          <PhoneNowPlaying track={current()} leaving={leaving()} />
+          <PhoneNowPlaying track={current()} leaving={leaving()} onLeft={finishLeaving} />
         </Show>
       )}
     </Show>

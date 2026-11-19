@@ -777,6 +777,85 @@ input[type="range"] {
   animation: sheet-down 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
+/*
+ * Full screen player. The panel is promoted to its own GPU layer up front so
+ * the heavy blurred backdrop is rasterised once instead of on every frame,
+ * and it opens with a decelerating curve but closes with an accelerating one
+ * (the old shared ease-out made the close lurch at the start and crawl at
+ * the end). Closing starts from wherever a swipe left the sheet
+ * (`--sheet-from`), so a swipe-dismiss no longer snaps back up first.
+ */
+@keyframes now-playing-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes now-playing-out {
+  from {
+    transform: translate3d(0, var(--sheet-from, 0px), 0);
+  }
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@keyframes now-playing-content-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.98);
+  }
+}
+
+@keyframes now-playing-content-out {
+  to {
+    opacity: 0.4;
+    transform: translate3d(0, 0, 0) scale(0.98);
+  }
+}
+
+.now-playing-sheet {
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout paint;
+}
+
+.now-playing-sheet[data-state="open"] {
+  animation: now-playing-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.now-playing-sheet[data-state="closing"] {
+  animation: now-playing-out 0.34s cubic-bezier(0.55, 0, 0.75, 0.2) forwards;
+}
+
+.now-playing-sheet[data-state="open"] > .now-playing-content {
+  animation: now-playing-content-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+.now-playing-sheet[data-state="closing"] > .now-playing-content {
+  animation: now-playing-content-out 0.34s ease-in forwards;
+}
+
+/* Springs back into place when a swipe is let go without dismissing. */
+.now-playing-sheet[data-dragging="false"] {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .now-playing-sheet[data-state="open"],
+  .now-playing-sheet[data-state="open"] > .now-playing-content {
+    animation: fade-in 0.15s ease-out both;
+  }
+
+  .now-playing-sheet[data-state="closing"],
+  .now-playing-sheet[data-state="closing"] > .now-playing-content {
+    animation: fade-out 0.15s ease-in forwards;
+  }
+}
+
 @keyframes fade-out {
   from {
     opacity: 1;
