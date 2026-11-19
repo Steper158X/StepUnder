@@ -12,11 +12,14 @@
 //! thread owns the handle and receives commands over a channel.
 
 use std::{
-    ffi::{c_char, c_double, c_int, c_void, CStr, CString},
+    cell::RefCell,
+    ffi::{CStr, CString, c_char, c_double, c_int, c_void},
+    fs::{self, File, OpenOptions},
+    io::{self, Write},
     path::{Path, PathBuf},
     sync::{
-        mpsc::{self, TryRecvError},
         Mutex, MutexGuard,
+        mpsc::{self, TryRecvError},
     },
     thread,
     time::{Duration, Instant},
@@ -25,6 +28,103 @@ use std::{
 use libloading::Library;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
+
+const AUDIO_LOG_LIMIT: u64 = 256 * 1024;
+const AUDIO_RECORD_LIMIT: usize = 4096;
+
+struct AudioDiagnostics {
+    path: PathBuf,
+    file: Option<File>,
+    bytes: u64,
+    started: Instant,
+    last_native: Option<Instant>,
+}
+
+impl AudioDiagnostics {
+    fn open(dir: &Path) -> io::Result<Self> {
+        fs::create_dir_all(dir)?;
+        let path = dir.join("mpv-audio.log");
+        let file = OpenOptions::new().create(true).append(true).open(&path)?;
+        let bytes = file.metadata()?.len();
+        let mut log = Self {
+            path,
+            file: Some(file),
+            bytes,
+            started: Instant::now(),
+            last_native: None,
+        };
+        if bytes > AUDIO_LOG_LIMIT {
+            // Do not preserve an oversized file from an older implementation.
+            log.file.as_ref().unwrap().set_len(0)?;
+            log.bytes = 0;
+        }
+        let prior = log.path.with_extension("log.1");
+        if prior.exists() && prior.metadata()?.len() > AUDIO_LOG_LIMIT {
+            OpenOptions::new().write(true).open(prior)?.set_len(0)?;
+        }
+        Ok(log)
+    }
+
+    fn write(&mut self, event: &str, fields: serde_json::Value) {
+        if self.file.is_none() {
+            return;
+        }
+        let record = serde_json::json!({
+            "event": event, "uptime_ms": self.started.elapsed().as_millis(),
+            "fields": fields,
+        });
+        let Ok(mut line) = serde_json::to_vec(&record) else {
+            return;
+        };
+        line.push(b'\n');
+        if line.len() > AUDIO_RECORD_LIMIT {
+            return;
+        }
+        if self.append(&line).is_err() {
+            self.file = None;
+        }
+    }
+
+    fn append(&mut self, line: &[u8]) -> io::Result<()> {
+        if self.bytes + line.len() as u64 > AUDIO_LOG_LIMIT {
+            self.file.take();
+            let prior = self.path.with_extension("log.1");
+            match fs::remove_file(&prior) {
+                Ok(()) => {}
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+            fs::rename(&self.path, prior)?;
+            self.file = Some(
+                OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&self.path)?,
+            );
+            self.bytes = 0;
+        }
+        self.file.as_mut().unwrap().write_all(line)?;
+        self.bytes += line.len() as u64;
+        Ok(())
+    }
+}
+
+// Never serialize native text, even from an audio backend. Device names and
+// backend errors can contain user-controlled paths or stream credentials.
+fn audio_log_category(prefix: &str, level: i32) -> Option<(&'static str, &'static str)> {
+    let backend = match prefix {
+        "ao/wasapi" => "wasapi",
+        "ao/null" => "null",
+        _ => return None,
+    };
+    let severity = match level {
+        10 => "fatal",
+        20 => "error",
+        30 => "warn",
+        _ => return None,
+    };
+    Some((backend, severity))
+}
 
 type MpvHandle = *mut c_void;
 
@@ -40,6 +140,14 @@ struct MpvEvent {
     error: c_int,
     reply_userdata: u64,
     data: *mut c_void,
+}
+
+#[repr(C)]
+struct MpvEventLogMessage {
+    prefix: *const c_char,
+    level: *const c_char,
+    text: *const c_char,
+    log_level: c_int,
 }
 
 #[repr(C)]
@@ -76,11 +184,14 @@ struct MpvNodeList {
 
 const MPV_FORMAT_STRING: c_int = 1;
 const MPV_FORMAT_FLAG: c_int = 3;
+const MPV_FORMAT_INT64: c_int = 4;
 const MPV_FORMAT_DOUBLE: c_int = 5;
 const MPV_FORMAT_NODE: c_int = 6;
 const MPV_FORMAT_NODE_ARRAY: c_int = 7;
 const MPV_FORMAT_NODE_MAP: c_int = 8;
 
+const MPV_EVENT_LOG_MESSAGE: c_int = 2;
+const MPV_EVENT_AUDIO_RECONFIG: c_int = 18;
 const MPV_EVENT_SHUTDOWN: c_int = 1;
 const MPV_EVENT_END_FILE: c_int = 7;
 const MPV_EVENT_FILE_LOADED: c_int = 8;
@@ -91,17 +202,15 @@ const MPV_END_FILE_REASON_ERROR: c_int = 4;
 type MpvCreate = unsafe extern "C" fn() -> MpvHandle;
 type MpvInitialize = unsafe extern "C" fn(MpvHandle) -> c_int;
 type MpvTerminateDestroy = unsafe extern "C" fn(MpvHandle);
-type MpvSetOptionString =
-    unsafe extern "C" fn(MpvHandle, *const c_char, *const c_char) -> c_int;
-type MpvSetPropertyString =
-    unsafe extern "C" fn(MpvHandle, *const c_char, *const c_char) -> c_int;
-type MpvGetProperty =
-    unsafe extern "C" fn(MpvHandle, *const c_char, c_int, *mut c_void) -> c_int;
+type MpvSetOptionString = unsafe extern "C" fn(MpvHandle, *const c_char, *const c_char) -> c_int;
+type MpvSetPropertyString = unsafe extern "C" fn(MpvHandle, *const c_char, *const c_char) -> c_int;
+type MpvGetProperty = unsafe extern "C" fn(MpvHandle, *const c_char, c_int, *mut c_void) -> c_int;
 type MpvCommand = unsafe extern "C" fn(MpvHandle, *const *const c_char) -> c_int;
 type MpvWaitEvent = unsafe extern "C" fn(MpvHandle, c_double) -> *mut MpvEvent;
 type MpvErrorString = unsafe extern "C" fn(c_int) -> *const c_char;
 type MpvClientApiVersion = unsafe extern "C" fn() -> u64;
 type MpvFreeNodeContents = unsafe extern "C" fn(*mut MpvNode);
+type MpvRequestLogMessages = unsafe extern "C" fn(MpvHandle, *const c_char) -> c_int;
 
 struct Api {
     // Keeps the shared library loaded for as long as the function pointers
@@ -119,10 +228,12 @@ struct Api {
     wait_event: MpvWaitEvent,
     error_string: MpvErrorString,
     free_node_contents: MpvFreeNodeContents,
+    request_log_messages: Option<MpvRequestLogMessages>,
+    diagnostics: RefCell<Option<AudioDiagnostics>>,
 }
 
-// The function pointers are plain code addresses from a loaded library;
-// libmpv itself is thread-safe for every call we make.
+// Api is moved, never shared. After initialization the engine thread owns
+// both the function pointers and its RefCell-backed diagnostic writer.
 unsafe impl Send for Api {}
 
 impl Api {
@@ -167,18 +278,18 @@ impl Api {
             unsafe { symbol::<MpvSetOptionString>(&library, b"mpv_set_option_string\0")? };
         let set_property_string =
             unsafe { symbol::<MpvSetPropertyString>(&library, b"mpv_set_property_string\0")? };
-        let get_property =
-            unsafe { symbol::<MpvGetProperty>(&library, b"mpv_get_property\0")? };
+        let get_property = unsafe { symbol::<MpvGetProperty>(&library, b"mpv_get_property\0")? };
         let command = unsafe { symbol::<MpvCommand>(&library, b"mpv_command\0")? };
         let wait_event = unsafe { symbol::<MpvWaitEvent>(&library, b"mpv_wait_event\0")? };
-        let error_string =
-            unsafe { symbol::<MpvErrorString>(&library, b"mpv_error_string\0")? };
-        let client_api_version = unsafe {
-            symbol::<MpvClientApiVersion>(&library, b"mpv_client_api_version\0")?
-        };
+        let error_string = unsafe { symbol::<MpvErrorString>(&library, b"mpv_error_string\0")? };
+        let client_api_version =
+            unsafe { symbol::<MpvClientApiVersion>(&library, b"mpv_client_api_version\0")? };
         let free_node_contents =
             unsafe { symbol::<MpvFreeNodeContents>(&library, b"mpv_free_node_contents\0")? };
 
+        let request_log_messages = unsafe {
+            symbol::<MpvRequestLogMessages>(&library, b"mpv_request_log_messages\0").ok()
+        };
         let api_version = unsafe { client_api_version() };
         let version = format!("{}.{}", api_version >> 16, api_version & 0xffff);
 
@@ -196,6 +307,8 @@ impl Api {
             wait_event,
             error_string,
             free_node_contents,
+            request_log_messages,
+            diagnostics: RefCell::new(None),
         })
     }
 }
@@ -440,6 +553,7 @@ fn spawn_engine(api: Api, app: AppHandle) -> Result<Engine, String> {
         return Err("mpv_create() returned null".to_string());
     }
 
+    let mut option_errors = Vec::new();
     // A pure audio player: no window, no video, no terminal, no key bindings.
     for (name, value) in [
         ("vo", "null"),
@@ -469,7 +583,10 @@ fn spawn_engine(api: Api, app: AppHandle) -> Result<Engine, String> {
         ("load-positioning", "no"),
     ] {
         unsafe {
-            set_option(&api, handle.0, name, value);
+            let code = set_option(&api, handle.0, name, value);
+            if code < 0 {
+                option_errors.push((name, code));
+            }
         }
     }
 
@@ -488,13 +605,34 @@ fn spawn_engine(api: Api, app: AppHandle) -> Result<Engine, String> {
     };
     thread::Builder::new()
         .name("mpv-engine".to_string())
-        .spawn(move || engine_loop(api, handle, rx, app))
+        .spawn(move || {
+            *api.diagnostics.borrow_mut() = app
+                .path()
+                .app_log_dir()
+                .ok()
+                .and_then(|dir| AudioDiagnostics::open(&dir).ok());
+            for (name, code) in option_errors {
+                diagnostic_error(&api, "set_option", name, code);
+            }
+            engine_loop(api, handle, rx, app)
+        })
         .map_err(|error| format!("Could not start the MPV thread: {error}"))?;
     Ok(engine)
 }
 
 fn engine_loop(api: Api, handle: EngineHandle, rx: mpsc::Receiver<Request>, app: AppHandle) {
     let handle = handle.0;
+    if api.diagnostics.borrow().is_some() {
+        let versions = serde_json::json!({
+            "mpv-version": diagnostic_string(&api, handle, "mpv-version"),
+            "ffmpeg-version": diagnostic_string(&api, handle, "ffmpeg-version"),
+        });
+        diagnostic_record(&api, "startup", versions);
+        if let Some(request) = api.request_log_messages {
+            let code = unsafe { request(handle, c"warn".as_ptr()) };
+            diagnostic_error(&api, "request_log_messages", "warn", code);
+        }
+    }
     let mut last = Snapshot::default();
     let mut last_emit = Instant::now();
     // Resume offset to apply as soon as the file has loaded.
@@ -515,6 +653,31 @@ fn engine_loop(api: Api, handle: EngineHandle, rx: mpsc::Receiver<Request>, app:
             let event = unsafe { &*event };
             match event.event_id {
                 MPV_EVENT_SHUTDOWN => break 'outer,
+                MPV_EVENT_AUDIO_RECONFIG => diagnostic_audio_state(&api, handle),
+                MPV_EVENT_LOG_MESSAGE if !event.data.is_null() => {
+                    let message = unsafe { &*(event.data as *const MpvEventLogMessage) };
+                    if !message.prefix.is_null() {
+                        let prefix = unsafe { CStr::from_ptr(message.prefix) }
+                            .to_str()
+                            .unwrap_or("");
+                        if let Some((backend, severity)) =
+                            audio_log_category(prefix, message.log_level)
+                            && let Some(log) = api.diagnostics.borrow_mut().as_mut()
+                            && log
+                                .last_native
+                                .is_none_or(|last| last.elapsed() >= Duration::from_secs(1))
+                        {
+                            log.last_native = Some(Instant::now());
+                            log.write(
+                                "audio_backend_message",
+                                serde_json::json!({
+                                    "backend": backend, "severity": severity,
+                                    "category": "native_warning_or_error", "text": "omitted",
+                                }),
+                            );
+                        }
+                    }
+                }
                 MPV_EVENT_FILE_LOADED => {
                     if let Some(position) = pending_seek.take() {
                         let _ = run_command(
@@ -596,12 +759,7 @@ fn apply_request(
                 return;
             }
             unsafe {
-                set_property(
-                    api,
-                    handle,
-                    "mute",
-                    if load.muted { "yes" } else { "no" },
-                );
+                set_property(api, handle, "mute", if load.muted { "yes" } else { "no" });
                 set_property(
                     api,
                     handle,
@@ -656,6 +814,114 @@ fn apply_request(
     }
 }
 
+fn diagnostic_record(api: &Api, event: &str, fields: serde_json::Value) {
+    if let Some(log) = api.diagnostics.borrow_mut().as_mut() {
+        log.write(event, fields);
+    }
+}
+
+fn diagnostic_error(api: &Api, operation: &str, name: &str, code: c_int) {
+    if code < 0 {
+        diagnostic_record(
+            api,
+            "native_call_failed",
+            serde_json::json!({
+                "operation": operation, "name": name, "code": code,
+            }),
+        );
+    }
+}
+
+fn diagnostic_string(api: &Api, handle: MpvHandle, name: &str) -> Option<String> {
+    let name = c_string(name).ok()?;
+    let mut node = MpvNode {
+        value: MpvNodeValue { int64: 0 },
+        format: 0,
+    };
+    let code = unsafe {
+        (api.get_property)(
+            handle,
+            name.as_ptr(),
+            MPV_FORMAT_NODE,
+            &mut node as *mut _ as *mut c_void,
+        )
+    };
+    if code < 0 {
+        return None;
+    }
+    let value = if node.format == MPV_FORMAT_STRING && !unsafe { node.value.string }.is_null() {
+        let text = unsafe { CStr::from_ptr(node.value.string) }.to_string_lossy();
+        (text.len() <= 160
+            && text
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b" ._+-()".contains(&b)))
+        .then(|| text.into_owned())
+    } else {
+        None
+    };
+    unsafe { (api.free_node_contents)(&mut node) };
+    value
+}
+
+fn diagnostic_audio_state(api: &Api, handle: MpvHandle) {
+    if api
+        .diagnostics
+        .borrow()
+        .as_ref()
+        .is_none_or(|log| log.file.is_none())
+    {
+        return;
+    }
+    let mut fields = serde_json::Map::new();
+    for name in [
+        "audio-params/samplerate",
+        "audio-params/channel-count",
+        "audio-out-params/samplerate",
+        "audio-out-params/channel-count",
+        "volume",
+        "speed",
+        "audio-delay",
+        "audio-buffer",
+        "audio-bitrate",
+    ] {
+        let value = unsafe { get_double(api, handle, name) }
+            .or_else(|| {
+                let name = c_string(name).ok()?;
+                let mut value: i64 = 0;
+                let code = unsafe {
+                    (api.get_property)(
+                        handle,
+                        name.as_ptr(),
+                        MPV_FORMAT_INT64,
+                        &mut value as *mut _ as *mut c_void,
+                    )
+                };
+                (code >= 0).then_some(value as f64)
+            })
+            .filter(|v| v.is_finite());
+        fields.insert(name.into(), serde_json::json!(value));
+    }
+    for name in ["mute", "audio-exclusive"] {
+        fields.insert(
+            name.into(),
+            serde_json::json!(unsafe { get_flag(api, handle, name) }),
+        );
+    }
+    for name in [
+        "current-ao",
+        "audio-params/format",
+        "audio-out-params/format",
+        "audio-params/channels",
+        "audio-out-params/channels",
+    ] {
+        fields.insert(
+            name.into(),
+            serde_json::json!(diagnostic_string(api, handle, name)),
+        );
+    }
+    diagnostic_record(api, "audio_reconfig", fields.into());
+}
+
 fn read_snapshot(api: &Api, handle: MpvHandle) -> Snapshot {
     let position = unsafe { get_double(api, handle, "time-pos") }.unwrap_or(0.0);
     let duration = unsafe { get_double(api, handle, "duration") }.unwrap_or(0.0);
@@ -684,20 +950,23 @@ fn c_string(value: &str) -> Result<CString, String> {
     CString::new(value).map_err(|_| "Value contains a NUL byte".to_string())
 }
 
-unsafe fn set_option(api: &Api, handle: MpvHandle, name: &str, value: &str) {
-    let Ok(name) = c_string(name) else { return };
-    let Ok(value) = c_string(value) else { return };
-    unsafe {
-        (api.set_option_string)(handle, name.as_ptr(), value.as_ptr());
-    }
+unsafe fn set_option(api: &Api, handle: MpvHandle, name: &str, value: &str) -> c_int {
+    let Ok(name) = c_string(name) else { return -4 };
+    let Ok(value) = c_string(value) else {
+        return -4;
+    };
+    unsafe { (api.set_option_string)(handle, name.as_ptr(), value.as_ptr()) }
 }
 
 unsafe fn set_property(api: &Api, handle: MpvHandle, name: &str, value: &str) {
+    let property = name;
     let Ok(name) = c_string(name) else { return };
-    let Ok(value) = c_string(value) else { return };
-    unsafe {
-        (api.set_property_string)(handle, name.as_ptr(), value.as_ptr());
-    }
+    let Ok(value) = c_string(value) else {
+        diagnostic_error(api, "set_property", property, -4);
+        return;
+    };
+    let code = unsafe { (api.set_property_string)(handle, name.as_ptr(), value.as_ptr()) };
+    diagnostic_error(api, "set_property", property, code);
 }
 
 fn run_command(api: &Api, handle: MpvHandle, args: &[&str]) -> Result<(), String> {
@@ -830,6 +1099,165 @@ unsafe fn error_text(api: &Api, code: c_int) -> String {
         unsafe { CStr::from_ptr(pointer) }
             .to_string_lossy()
             .into_owned()
+    }
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    fn temp_dir() -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "stepunder-audio-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ))
+    }
+
+    #[test]
+    fn bounded_files_survive_restart_and_rotate() {
+        let dir = temp_dir();
+        let mut log = AudioDiagnostics::open(&dir).unwrap();
+        for _ in 0..20000 {
+            log.write("test", serde_json::json!({"n": 1}));
+        }
+        drop(log);
+        assert!(dir.join("mpv-audio.log").metadata().unwrap().len() <= AUDIO_LOG_LIMIT);
+        assert!(dir.join("mpv-audio.log.1").metadata().unwrap().len() <= AUDIO_LOG_LIMIT);
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 2);
+        let before = fs::read(dir.join("mpv-audio.log")).unwrap();
+        let mut log = AudioDiagnostics::open(&dir).unwrap();
+        log.write("restart", serde_json::json!({}));
+        drop(log);
+        assert!(
+            fs::read(dir.join("mpv-audio.log"))
+                .unwrap()
+                .starts_with(&before)
+        );
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn privacy_rejects_non_audio_prefixes_and_verbose_messages() {
+        for prefix in [
+            "ffmpeg",
+            "demux",
+            "network",
+            "ao/wasapi/https://secret",
+            "ao",
+        ] {
+            assert!(audio_log_category(prefix, 20).is_none());
+        }
+        assert_eq!(
+            audio_log_category("ao/wasapi", 20),
+            Some(("wasapi", "error"))
+        );
+        assert!(audio_log_category("ao/wasapi", 40).is_none());
+    }
+
+    #[test]
+    fn rejects_oversized_records_and_disables_on_write_failure() {
+        let dir = temp_dir();
+        let mut log = AudioDiagnostics::open(&dir).unwrap();
+        log.write(
+            "large",
+            serde_json::json!({"data": "x".repeat(AUDIO_RECORD_LIMIT)}),
+        );
+        assert_eq!(log.bytes, 0);
+        // Force rotation into a path which cannot be removed as a file.
+        fs::create_dir(dir.join("mpv-audio.log.1")).unwrap();
+        log.bytes = AUDIO_LOG_LIMIT;
+        log.write("test", serde_json::json!({}));
+        assert!(log.file.is_none());
+        log.write("still_disabled", serde_json::json!({}));
+        assert!(AudioDiagnostics::open(&dir.join("mpv-audio.log")).is_err());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn ffi_log_event_layout_matches_client_header() {
+        let pointer = std::mem::size_of::<*const c_char>();
+        assert_eq!(std::mem::offset_of!(MpvEventLogMessage, prefix), 0);
+        assert_eq!(std::mem::offset_of!(MpvEventLogMessage, level), pointer);
+        assert_eq!(std::mem::offset_of!(MpvEventLogMessage, text), pointer * 2);
+        assert_eq!(
+            std::mem::offset_of!(MpvEventLogMessage, log_level),
+            pointer * 3
+        );
+    }
+
+    #[test]
+    #[ignore = "requires STEPUNDER_LIBMPV pointing to the actual runtime library"]
+    fn actual_dll_null_audio_diagnostics() {
+        let path =
+            PathBuf::from(std::env::var_os("STEPUNDER_LIBMPV").expect("set STEPUNDER_LIBMPV"));
+        let api = unsafe { Api::from_library(Library::new(&path).unwrap(), &path).unwrap() };
+        let handle = unsafe { (api.create)() };
+        assert!(!handle.is_null());
+        for (name, value) in [
+            ("ao", "null"),
+            ("vo", "null"),
+            ("vid", "no"),
+            ("terminal", "no"),
+            ("load-scripts", "no"),
+        ] {
+            assert!(unsafe { set_option(&api, handle, name, value) } >= 0);
+        }
+        assert!(unsafe { (api.initialize)(handle) } >= 0);
+        let dir = temp_dir();
+        *api.diagnostics.borrow_mut() = Some(AudioDiagnostics::open(&dir).unwrap());
+        assert!(unsafe { api.request_log_messages.unwrap()(handle, c"warn".as_ptr()) } >= 0);
+        let mpv = diagnostic_string(&api, handle, "mpv-version").unwrap();
+        let ffmpeg = diagnostic_string(&api, handle, "ffmpeg-version").unwrap();
+        println!("actual runtime mpv={mpv}, ffmpeg={ffmpeg}");
+        diagnostic_record(
+            &api,
+            "startup",
+            serde_json::json!({"mpv-version":mpv,"ffmpeg-version":ffmpeg}),
+        );
+        unsafe {
+            set_property(
+                &api,
+                handle,
+                "not-a-real-property",
+                "https://user:secret@example.test/song",
+            )
+        };
+        run_command(
+            &api,
+            handle,
+            &[
+                "loadfile",
+                "av://lavfi:sine=frequency=440:duration=0.25",
+                "replace",
+            ],
+        )
+        .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let mut reconfigured = false;
+        while Instant::now() < deadline {
+            let event = unsafe { &*(api.wait_event)(handle, 0.1) };
+            if event.event_id == MPV_EVENT_AUDIO_RECONFIG {
+                diagnostic_audio_state(&api, handle);
+                reconfigured = true;
+            }
+            if event.event_id == MPV_EVENT_END_FILE {
+                break;
+            }
+        }
+        unsafe { (api.terminate_destroy)(handle) };
+        api.diagnostics.borrow_mut().take();
+        let text = fs::read_to_string(dir.join("mpv-audio.log")).unwrap();
+        assert!(reconfigured, "must exercise real audio reconfiguration");
+        assert!(text.contains("audio_reconfig"));
+        assert!(text.contains("native_call_failed"));
+        assert!(!text.contains("secret"));
+        assert!(!text.contains("example.test"));
+        println!("{text}");
+        fs::remove_dir_all(dir).unwrap();
     }
 }
 
