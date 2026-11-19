@@ -204,7 +204,7 @@ export default function AlbumPage() {
           onClick={goBack}
           aria-label={t("action.back")}
           title={t("action.back")}
-          class="-ml-2 -mt-1 mb-2 inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="-ml-2 -mt-1 mb-2 inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronLeft class="size-6" />
         </button>
