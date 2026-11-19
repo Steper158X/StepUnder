@@ -1,9 +1,26 @@
-import { splitProps, type ComponentProps } from "solid-js";
+import { createEffect, createSignal, onCleanup, splitProps, type ComponentProps } from "solid-js";
+import { registerBackLayer } from "~/lib/android-back";
 import { Dialog as KDialog } from "@kobalte/core/dialog";
 import { X } from "lucide-solid";
 import { cn } from "~/lib/utils";
 
-export const Dialog = KDialog;
+function DialogRoot(props: ComponentProps<typeof KDialog>) {
+  const [open, setOpen] = createSignal(props.defaultOpen ?? false);
+  const [local, rest] = splitProps(props, ["open", "defaultOpen", "onOpenChange"]);
+  const isOpen = () => local.open ?? open();
+  const change = (value: boolean) => { setOpen(value); local.onOpenChange?.(value); };
+  createEffect(() => { if (isOpen()) onCleanup(registerBackLayer("dialog", () => change(false))); });
+  return <KDialog {...rest} open={isOpen()} onOpenChange={change} />;
+}
+export const Dialog = Object.assign(DialogRoot, {
+  Trigger: KDialog.Trigger,
+  Portal: KDialog.Portal,
+  Overlay: KDialog.Overlay,
+  Content: KDialog.Content,
+  Title: KDialog.Title,
+  Description: KDialog.Description,
+  CloseButton: KDialog.CloseButton,
+});
 export const DialogTrigger = KDialog.Trigger;
 export const DialogClose = KDialog.CloseButton;
 

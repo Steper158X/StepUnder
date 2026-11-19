@@ -1,4 +1,5 @@
-import type { JSX } from "solid-js";
+import { createEffect, createSignal, onCleanup, type JSX } from "solid-js";
+import { registerBackLayer } from "~/lib/android-back";
 import {
   Content as SelectContent,
   Icon as SelectIcon,
@@ -35,6 +36,8 @@ export function Select(props: {
   class?: string;
   "aria-label"?: string;
 }) {
+  const [open, setOpen] = createSignal(false);
+  createEffect(() => { if (open()) onCleanup(registerBackLayer("menu", () => setOpen(false))); });
   const labelOf = (value: string | undefined) =>
     props.options.find((option) => option.value === value)?.label;
 
@@ -44,6 +47,8 @@ export function Select(props: {
   return (
     <div class={cn("w-full", props.class)}>
       <SelectRoot<string>
+        open={open()}
+        onOpenChange={setOpen}
         options={props.options.map((option) => option.value)}
         optionDisabled={optionDisabled}
         value={props.value}

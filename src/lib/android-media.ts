@@ -1,10 +1,8 @@
 /**
  * Bridge to the Android playback service (src-tauri/gen/android/.../media).
  *
- * The audio plays in the WebView; the service only mirrors what is playing
- * into a MediaSession + foreground notification, which gives lock screen
- * controls, Bluetooth/headset buttons, Android Auto and keeps the app alive
- * with the screen off. Everywhere else these functions do nothing.
+ * Native playback publishes its own media state. These calls also support
+ * the web-audio fallback. Everywhere else these functions do nothing.
  */
 
 export interface AndroidNowPlaying {

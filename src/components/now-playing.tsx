@@ -10,6 +10,7 @@ import {
   type Accessor,
   type JSX,
 } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import {
   ChevronDown,
   Heart,
@@ -23,7 +24,6 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  X,
 } from "lucide-solid";
 import type { Lyrics, Song } from "~/lib/types";
 import { usePlayer } from "~/player/store";
@@ -32,6 +32,7 @@ import { t } from "~/i18n";
 import { BlurredArtwork, Cover, Spinner } from "~/components/common";
 import { cn } from "~/lib/utils";
 import { formatTime } from "~/lib/format";
+import { sheetDrag, shouldDismissSheet } from "~/lib/sheet-gesture";
 import { isNarrow } from "~/lib/platform";
 import { Slider } from "~/components/ui/slider";
 import { toggleAutoMix, useCurrentStar } from "~/components/player-bar";
@@ -347,7 +348,7 @@ function NowPlayingBody(props: { track: Song }) {
   );
 }
 
-function NowPlayingView(props: { track: Song }) {
+function NowPlayingView(props: { track: Song; leaving: boolean }) {
   const player = usePlayer();
   let panel: HTMLDivElement | undefined;
 
@@ -368,7 +369,12 @@ function NowPlayingView(props: { track: Song }) {
       tabindex="-1"
       role="dialog"
       aria-label={t("player.nowPlaying")}
-      class="absolute inset-0 z-50 overflow-hidden bg-background outline-none"
+      class={cn(
+        "absolute inset-0 z-50 overflow-hidden bg-background outline-none",
+        props.leaving
+          ? "pointer-events-none animate-sheet-down"
+          : "animate-sheet-up",
+      )}
     >
       {/* Large blurred album art backdrop */}
       <div class="now-playing-backdrop absolute inset-0" aria-hidden="true">
@@ -383,7 +389,7 @@ function NowPlayingView(props: { track: Song }) {
         <div class="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/70" />
       </div>
 
-      <div class="relative flex h-full animate-now-playing-in flex-col px-3 py-3 pb-[var(--player-space,0.75rem)] md:px-5 md:py-4 md:pb-[var(--player-space,1rem)]">
+      <div class="relative flex h-full flex-col px-3 py-3 pb-[var(--player-space,0.75rem)] md:px-5 md:py-4 md:pb-[var(--player-space,1rem)]">
         <div class="flex shrink-0 justify-end">
           <button
             type="button"
@@ -392,7 +398,7 @@ function NowPlayingView(props: { track: Song }) {
             aria-label={t("action.close")}
             class="-mr-1.5 -mt-1 rounded-full p-2 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
           >
-            <X class="size-5" />
+            <ChevronDown class="size-5" />
           </button>
         </div>
 
@@ -436,11 +442,14 @@ function SheetButton(props: {
  */
 function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
   const player = usePlayer();
+  const navigate = useNavigate();
   const { starred, toggleStar } = useCurrentStar();
   const [drag, setDrag] = createSignal<number | null>(null);
   const duration = () => player.state.duration || props.track.duration || 0;
   const position = () => drag() ?? player.state.position;
   const close = () => player.setNowPlayingOpen(false);
+  const [dismissOffset, setDismissOffset] = createSignal(0);
+  let swipe: { id: number; x: number; y: number } | undefined;
   let panel: HTMLDivElement | undefined;
 
   onMount(() => {
@@ -460,6 +469,7 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
       tabindex="-1"
       role="dialog"
       aria-label={t("player.nowPlaying")}
+      style={{ transform: dismissOffset() ? `translateY(${dismissOffset()}px)` : undefined }}
       class={cn(
         "fixed inset-0 z-50 overflow-hidden bg-background outline-none",
         props.leaving
@@ -480,7 +490,22 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
 
       <div class="relative flex h-full flex-col px-6 pt-[env(safe-area-inset-top)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {/* Header: only the chevron, which puts the player back down. */}
-        <div class="-mx-2 flex h-14 shrink-0 items-center gap-2">
+        <div class="-mx-2 flex h-14 shrink-0 touch-none items-center gap-2"
+          onPointerDown={event => {
+            if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
+            swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={event => {
+            if (!swipe || swipe.id !== event.pointerId) return;
+            const distance = sheetDrag(swipe, { x: event.clientX, y: event.clientY });
+            if (distance === null) { swipe = undefined; setDismissOffset(0); return; }
+            setDismissOffset(distance);
+          }}
+          onPointerUp={() => { const dismiss = shouldDismissSheet(dismissOffset()); swipe = undefined; setDismissOffset(0); if (dismiss) close(); }}
+          onPointerCancel={() => { swipe = undefined; setDismissOffset(0); }}
+          onLostPointerCapture={() => { swipe = undefined; setDismissOffset(0); }}
+        >
           <SheetButton label={t("action.close")} onClick={close}>
             <ChevronDown class="size-6" />
           </SheetButton>
@@ -613,7 +638,11 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
           <SheetButton
             label={t("player.queue")}
             active={player.queueOpen()}
-            onClick={() => player.setQueueOpen(!player.queueOpen())}
+            onClick={() => {
+              close();
+              navigate("/");
+              player.setQueueOpen(true);
+            }}
             class="-mr-2.5"
           >
             <ListMusic class="size-5" />
@@ -626,7 +655,7 @@ function PhoneNowPlaying(props: { track: Song; leaving: boolean }) {
 
 export function NowPlaying() {
   const player = usePlayer();
-  // On phones the sheet stays mounted for its slide-down after closing,
+  // Keep the player mounted for its slide-down after closing,
   // showing the track it had even if the queue was cleared meanwhile.
   const [leaving, setLeaving] = createSignal(false);
   const [lastTrack, setLastTrack] = createSignal<Song | null>(null);
@@ -641,7 +670,7 @@ export function NowPlaying() {
           setLeaving(false);
           return;
         }
-        if (!wasOpen || !isNarrow()) return;
+        if (!wasOpen) return;
         setLeaving(true);
         leaveTimer = setTimeout(() => setLeaving(false), 280);
       },
@@ -666,7 +695,7 @@ export function NowPlaying() {
       {(current) => (
         <Show
           when={isNarrow()}
-          fallback={<NowPlayingView track={current()} />}
+          fallback={<NowPlayingView track={current()} leaving={leaving()} />}
         >
           <PhoneNowPlaying track={current()} leaving={leaving()} />
         </Show>

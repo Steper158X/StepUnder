@@ -1,8 +1,16 @@
-import { splitProps, type ComponentProps } from "solid-js";
+import { createEffect, createSignal, onCleanup, splitProps, type ComponentProps } from "solid-js";
+import { registerBackLayer } from "~/lib/android-back";
 import { DropdownMenu as KDropdownMenu } from "@kobalte/core/dropdown-menu";
 import { cn } from "~/lib/utils";
 
-export const DropdownMenu = KDropdownMenu;
+export function DropdownMenu(props: ComponentProps<typeof KDropdownMenu>) {
+  const [open, setOpen] = createSignal(props.defaultOpen ?? false);
+  const [local, rest] = splitProps(props, ["open", "defaultOpen", "onOpenChange"]);
+  const isOpen = () => local.open ?? open();
+  const change = (value: boolean) => { setOpen(value); local.onOpenChange?.(value); };
+  createEffect(() => { if (isOpen()) onCleanup(registerBackLayer("menu", () => change(false))); });
+  return <KDropdownMenu {...rest} open={isOpen()} onOpenChange={change} />;
+}
 export const DropdownMenuTrigger = KDropdownMenu.Trigger;
 export const DropdownMenuGroup = KDropdownMenu.Group;
 export const DropdownMenuGroupLabel = KDropdownMenu.GroupLabel;

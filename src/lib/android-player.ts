@@ -1,57 +1,57 @@
-/**
- * Bridge to the Android playback engine, Media3 ExoPlayer
- * (src-tauri/gen/android/.../media/NativePlayer.kt).
- *
- * The queue stays here. Each load also hands over the song after the current
- * one, so ExoPlayer moves on by itself (gapless, and even while Android slows
- * down this page's JavaScript with the screen off). It then reports
- * `advanced` and the page sends the next song along.
- *
- * Everywhere else `hasNativePlayer()` is false and nothing here is used.
- */
+import type { Song } from "~/lib/types";
 
 export interface NativeTrack {
-  /** Song id; ExoPlayer echoes it back in events. */
   id: string;
-  /** Stream URL, or a plain file path for a downloaded song. */
   url: string;
+  fallbackUrl?: string;
+  artworkUrl?: string;
+  song: Song;
 }
 
-export interface NativeLoadOptions extends NativeTrack {
+export interface NativeQueueSnapshot {
+  items: NativeTrack[];
+  currentIndex: number;
   position: number;
-  autoplay: boolean;
+  repeat: "off" | "all" | "one";
+  shuffle: boolean;
+  radio: boolean;
+  serverId: string | null;
+  sourceName: string | null;
   volume: number;
   muted: boolean;
-  repeatOne: boolean;
-  next: NativeTrack | null;
+  autoplay: boolean;
+}
+
+export interface NativeProgress {
+  currentIndex: number;
+  position: number;
+  playing: boolean;
+  loading: boolean;
+  duration: number;
+  volume: number;
+  muted: boolean;
+  serverId: string | null;
 }
 
 export type NativePlayerEvent =
-  | {
-      type: "state";
-      id: string | null;
-      playing: boolean;
-      loading: boolean;
-      /** Seconds. */
-      position: number;
-      /** Seconds; 0 when unknown. */
-      duration: number;
-    }
-  | { type: "advanced"; id: string }
-  | { type: "repeated"; id: string }
-  | { type: "ended" }
+  | (Omit<NativeQueueSnapshot, "items"> & NativeProgress & { type: "snapshot"; items: { id: string; song: Song }[] })
+  | (NativeProgress & { type: "state"; transition?: boolean })
+  | (Partial<Omit<NativeQueueSnapshot, "items">> & { type: "recovery"; items?: { song: Song }[] })
   | { type: "error"; message: string };
 
 interface NativeBridge {
   load(json: string): void;
-  setNext(json: string): void;
+  setQueue(json: string): void;
+  snapshot(): void;
+  setForeground(value: boolean): void;
   play(): void;
   pause(): void;
+  next(): void;
+  previous(): void;
   seek(seconds: number): void;
   stop(): void;
   setVolume(value: number): void;
   setMuted(value: boolean): void;
-  setRepeatOne(value: boolean): void;
   setOutput(id: number): void;
 }
 
@@ -62,72 +62,38 @@ declare global {
   }
 }
 
-function bridge(): NativeBridge | undefined {
-  return typeof window !== "undefined" ? window.StepUnderPlayer : undefined;
-}
-
 function call(action: (native: NativeBridge) => void) {
-  const native = bridge();
+  const native = typeof window !== "undefined" ? window.StepUnderPlayer : undefined;
   if (!native) return;
-  try {
-    action(native);
-  } catch (error) {
-    console.warn("Native player call failed", error);
-  }
+  try { action(native); } catch (error) { console.warn("Native player call failed", error); }
 }
 
-/** True inside the Android app, where ExoPlayer plays the music. */
-export function hasNativePlayer(): boolean {
-  return !!bridge();
-}
+export const hasNativePlayer = () => typeof window !== "undefined" && !!window.StepUnderPlayer;
+export const nativeLoad = (options: NativeQueueSnapshot) => call(native => native.load(JSON.stringify(options)));
+export const nativeSetQueue = (options: NativeQueueSnapshot) => call(native => native.setQueue(JSON.stringify(options)));
+export const nativeSnapshot = () => call(native => native.snapshot());
+export const nativePlay = () => call(native => native.play());
+export const nativePause = () => call(native => native.pause());
+export const nativeNext = () => call(native => native.next());
+export const nativePrevious = () => call(native => native.previous());
+export const nativeStop = () => call(native => native.stop());
+export const nativeSeek = (seconds: number) => { if (Number.isFinite(seconds)) call(native => native.seek(seconds)); };
+export const nativeSetVolume = (value: number) => call(native => native.setVolume(Math.min(Math.max(value, 0), 1)));
+export const nativeSetMuted = (value: boolean) => call(native => native.setMuted(value));
+export const nativeSetOutput = (id: number | null) => call(native => native.setOutput(id ?? -1));
 
-export function nativeLoad(options: NativeLoadOptions) {
-  call((native) => native.load(JSON.stringify(options)));
-}
-
-/** Replaces the song ExoPlayer moves on to after the current one. */
-export function nativeSetNext(next: NativeTrack | null) {
-  call((native) => native.setNext(next ? JSON.stringify(next) : ""));
-}
-
-export const nativePlay = () => call((native) => native.play());
-export const nativePause = () => call((native) => native.pause());
-export const nativeStop = () => call((native) => native.stop());
-
-export function nativeSeek(seconds: number) {
-  if (Number.isFinite(seconds)) call((native) => native.seek(seconds));
-}
-
-export function nativeSetVolume(value: number) {
-  call((native) => native.setVolume(Math.min(Math.max(value, 0), 1)));
-}
-
-export const nativeSetMuted = (value: boolean) =>
-  call((native) => native.setMuted(value));
-
-export const nativeSetRepeatOne = (value: boolean) =>
-  call((native) => native.setRepeatOne(value));
-
-/** Plays through this output (an id from `listAudioOutputs`); null lets Android choose. */
-export function nativeSetOutput(id: number | null) {
-  call((native) => native.setOutput(id ?? -1));
-}
-
-export function onNativePlayerEvent(
-  handler: (event: NativePlayerEvent) => void,
-): () => void {
-  if (typeof window === "undefined") return () => undefined;
+export function onNativePlayerEvent(handler: (event: NativePlayerEvent) => void): () => void {
   const listener = (json: string) => {
-    try {
-      handler(JSON.parse(json) as NativePlayerEvent);
-    } catch (error) {
-      console.warn("Bad native player event", error);
-    }
+    try { handler(JSON.parse(json) as NativePlayerEvent); }
+    catch (error) { console.warn("Bad native player event", error); }
   };
   window.__stepunderPlayerEvent = listener;
+  const visibility = () => call(native => native.setForeground(!document.hidden));
+  document.addEventListener("visibilitychange", visibility);
+  visibility();
   return () => {
-    if (window.__stepunderPlayerEvent === listener) {
-      delete window.__stepunderPlayerEvent;
-    }
+    document.removeEventListener("visibilitychange", visibility);
+    call(native => native.setForeground(false));
+    if (window.__stepunderPlayerEvent === listener) delete window.__stepunderPlayerEvent;
   };
 }

@@ -5,7 +5,10 @@ import {
   useNavigate,
   type RouteSectionProps,
 } from "@solidjs/router";
-import { lazy, onMount } from "solid-js";
+import { lazy, onMount, onCleanup } from "solid-js";
+import { dismissBackLayer } from "~/lib/android-back";
+import { usePlayer } from "~/player/store";
+import { outputOpen, setOutputOpen } from "~/components/output-sheet";
 import { ServersProvider } from "~/state/servers";
 import { PlayerProvider } from "~/player/store";
 import { PlaylistsProvider } from "~/state/playlists";
@@ -53,6 +56,18 @@ const NotFoundPage = lazy(() => import("~/routes/not-found"));
 function Root(props: RouteSectionProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const player = usePlayer();
+  onMount(() => {
+    window.__stepunderBack = () => {
+      if (dismissBackLayer()) return true;
+      if (outputOpen()) { setOutputOpen(false); return true; }
+      if (player.queueOpen()) { player.setQueueOpen(false); return true; }
+      if (player.nowPlayingOpen()) { player.setNowPlayingOpen(false); return true; }
+      if (location.pathname !== "/" && location.pathname !== "/setup") { navigate(-1); return true; }
+      return false;
+    };
+    onCleanup(() => { delete window.__stepunderBack; });
+  });
 
   onMount(() => {
     // Phones always open on Home, not on whatever page the webview restored.

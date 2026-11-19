@@ -1,5 +1,5 @@
 import { Show, createSignal } from "solid-js";
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import {
   Heart,
   Infinity as InfinityIcon,
@@ -106,6 +106,7 @@ export function PlayerBar(props: {
   ref?: (element: HTMLDivElement) => void;
 }) {
   const player = usePlayer();
+  const navigate = useNavigate();
   const { starred, toggleStar } = useCurrentStar();
   const [drag, setDrag] = createSignal<number | null>(null);
 
@@ -434,7 +435,15 @@ export function PlayerBar(props: {
           <ControlButton
             label={t("player.queue")}
             active={player.queueOpen()}
-            onClick={() => player.setQueueOpen(!player.queueOpen())}
+            onClick={() => {
+              if (player.nowPlayingOpen()) {
+                player.setNowPlayingOpen(false);
+                navigate("/");
+                player.setQueueOpen(true);
+                return;
+              }
+              player.setQueueOpen(!player.queueOpen());
+            }}
             class="relative"
           >
             <ListMusic class="size-4" />

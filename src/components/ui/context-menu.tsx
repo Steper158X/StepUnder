@@ -1,9 +1,22 @@
-import { splitProps, type ComponentProps } from "solid-js";
+import { createEffect, createSignal, onCleanup, splitProps, type ComponentProps } from "solid-js";
+import { registerBackLayer } from "~/lib/android-back";
 import { ContextMenu as KContextMenu } from "@kobalte/core/context-menu";
 import { ChevronRight } from "lucide-solid";
 import { cn } from "~/lib/utils";
 
-export const ContextMenu = KContextMenu;
+export function ContextMenu(props: ComponentProps<typeof KContextMenu>) {
+  const [open, setOpen] = createSignal(false);
+  const [local, rest] = splitProps(props, ["onOpenChange"]);
+  const change = (value: boolean) => { setOpen(value); local.onOpenChange?.(value); };
+  createEffect(() => {
+    if (open()) onCleanup(registerBackLayer("menu", () => {
+      (document.activeElement ?? document).dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true, cancelable: true }),
+      );
+    }));
+  });
+  return <KContextMenu {...rest} onOpenChange={change} />;
+}
 export const ContextMenuTrigger = KContextMenu.Trigger;
 
 export function ContextMenuContent(

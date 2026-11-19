@@ -55,13 +55,15 @@ import {
   nativePlay,
   nativeSeek,
   nativeSetMuted,
-  nativeSetNext,
-  nativeSetRepeatOne,
+  nativeSetQueue,
+  nativeSnapshot,
+  nativeNext,
+  nativePrevious,
   nativeSetVolume,
   nativeStop,
   onNativePlayerEvent,
   type NativePlayerEvent,
-  type NativeTrack,
+  type NativeQueueSnapshot,
 } from "~/lib/android-player";
 import { clearDiscordPresence, updateDiscordPresence } from "~/lib/discord";
 import { readSetting, writeSetting } from "~/lib/storage";
@@ -245,6 +247,13 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   const nativeEngine = hasNativePlayer();
   // Whether ExoPlayer has our current track loaded.
   let nativeLoaded = false;
+  let nativeRecovery: PersistedPlayer | null = null;
+  const [nativeReady, setNativeReady] = createSignal(!nativeEngine);
+  let nativeServerId: string | null = null;
+  let nativeQueueSignature = "";
+  let pendingNativeSnapshot: Extract<NativePlayerEvent, { type: "snapshot" }> | null = null;
+  const queueSignature = (queue: Song[], repeat: RepeatMode, shuffle: boolean, sourceName: string | null, radio = state.radio) =>
+    JSON.stringify([queue, repeat, shuffle, sourceName, radio]);
 
   function usingMpv() {
     return !nativeEngine && isTauri && audioPlayer() === "mpv";
@@ -397,81 +406,84 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     });
   }
 
-  /** The song that plays when the one at `index` ends, or -1 for none. */
-  function upcomingIndex(index = state.index): number {
-    const length = state.queue.length;
-    if (!length || index < 0) return -1;
-    if (index + 1 < length) return index + 1;
-    return state.repeat === "all" ? 0 : -1;
-  }
-
-  function nativeNextTrack(index = state.index): NativeTrack | null {
-    const track = state.queue[upcomingIndex(index)];
-    if (!track) return null;
-    const url = trackUrl(track);
-    return url ? { id: track.id, url } : null;
-  }
-
-  /** ExoPlayer moved on to the queued next song by itself. */
-  function handleNativeAdvanced(id: string) {
-    const expected = upcomingIndex();
-    let index =
-      state.queue[expected]?.id === id
-        ? expected
-        : state.queue.findIndex(
-            (song, position) => position > state.index && song.id === id,
-          );
-    if (index < 0) index = state.queue.findIndex((song) => song.id === id);
-    if (index < 0) return;
-    const track = state.queue[index];
-    scrobbledCurrent = false;
-    pendingSeek = 0;
-    localSongId = localFile(track) ? track.id : null;
-    setState({
-      index,
-      error: null,
-      position: 0,
-      duration: track.duration ?? 0,
-    });
-    // Queue the song after this one. The effect below does this whenever the
-    // index changes, but it can stay the same (repeat all with a single song
-    // queued), which would leave ExoPlayer nothing to move on to. ExoPlayer
-    // ignores a repeat of what it already has queued.
-    nativeSetNext(nativeNextTrack(index));
-    updateMediaSession(track);
-    reportNowPlaying(track);
+  const nativeSources = new Map<string, { url: string; fallbackUrl?: string; artworkUrl?: string }>();
+  function nativeQueue(index = state.index, position = state.position, autoplay = state.playing): NativeQueueSnapshot {
+    const client = servers.client();
+    return {
+      items: state.queue.map(song => {
+        const local = localFile(song);
+        const key = JSON.stringify([servers.activeId(), song.id, local, maxBitRate(), streamFormat()]);
+        let source = nativeSources.get(key);
+        if (!source) {
+          source = { url: trackUrl(song, local) ?? "",
+            fallbackUrl: client?.streamUrl(song.id, { maxBitRate: maxBitRate(), format: streamFormat() }),
+            artworkUrl: song.coverArt && client ? client.coverUrl(song.coverArt, 512) : undefined };
+          nativeSources.set(key, source);
+        }
+        return { id: song.id, song: { ...song }, ...source };
+      }),
+      currentIndex: index, position, autoplay,
+      repeat: state.repeat, shuffle: state.shuffle, radio: state.radio,
+      serverId: servers.activeId(), sourceName: state.sourceName,
+      volume: state.volume, muted: state.muted,
+    };
   }
 
   function handleNativeEvent(event: NativePlayerEvent) {
     if (!nativeEngine) return;
     switch (event.type) {
+      case "snapshot":
       case "state": {
-        // Late updates about the previous track after a skip.
-        const playingNow = current();
-        if (event.id && playingNow && playingNow.id !== event.id) return;
+        if (!servers.activeId() || !servers.client()) {
+          if (event.type === "snapshot") pendingNativeSnapshot = event;
+          return;
+        }
+        if (event.serverId !== servers.activeId()) {
+          nativeLoaded = false;
+          if (event.type !== "snapshot" || event.items.length > 0) nativeStop();
+          setNativeReady(true);
+          return;
+        }
+        const changed = (event.type === "snapshot" && !nativeLoaded) || state.index !== event.currentIndex ||
+          (event.type === "snapshot" && current()?.id !== event.items[event.currentIndex]?.id) ||
+          (event.type === "state" && event.transition);
+        restoreAttempted = true;
+        if (event.type === "snapshot" || event.playing || !state.error) nativeLoaded = true;
+        nativeServerId = event.serverId;
+        if (event.type === "snapshot") {
+          const queue = event.items.map(item => item.song);
+          nativeQueueSignature = queueSignature(queue, event.repeat, event.shuffle, event.sourceName, event.radio);
+          setState({ queue, index: event.currentIndex,
+            repeat: event.repeat, shuffle: event.shuffle, radio: event.radio, sourceName: event.sourceName });
+          nativeLoaded = event.items.length > 0;
+          setNativeReady(true);
+        } else setState("index", event.currentIndex);
+        if (changed) {
+          scrobbledCurrent = false;
+          const track = current();
+          if (track) { updateMediaSession(track); reportNowPlaying(track); }
+        }
         setState({
           position: event.position,
+          volume: event.volume,
+          muted: event.muted,
           playing: event.playing,
           loading: event.loading,
-          ...(event.duration > 0 ? { duration: event.duration } : {}),
+          duration: event.duration > 0 ? event.duration : (current()?.duration ?? 0),
           ...(event.playing && !event.loading ? { error: null } : {}),
         });
         maybeScrobble();
         break;
       }
-      case "advanced":
-        handleNativeAdvanced(event.id);
-        break;
-      case "repeated": {
-        scrobbledCurrent = false;
-        setState("position", 0);
-        const track = current();
-        if (track) reportNowPlaying(track);
-        break;
-      }
-      case "ended":
-        // Nothing was queued after this song (or the queue changed late).
-        advance(true);
+      case "recovery":
+        if (event.items?.length && event.serverId) {
+          nativeRecovery = { serverId: event.serverId, queue: event.items.map(item => item.song),
+            index: event.currentIndex ?? 0, position: event.position ?? 0,
+            volume: event.volume ?? 0.8, repeat: event.repeat ?? "off", shuffle: event.shuffle ?? false,
+            sourceName: event.sourceName, radio: event.radio };
+          setPersisted(nativeRecovery);
+        }
+        setNativeReady(true);
         break;
       case "error":
         console.warn("ExoPlayer playback failed", event.message);
@@ -490,6 +502,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     index: number,
     options: { autoplay?: boolean; position?: number } = {},
   ) {
+    if (nativeEngine && (!nativeReady() || (nativeLoaded && nativeServerId !== servers.activeId()))) return;
     const client = servers.client();
     const track = state.queue[index];
     if (!track) return;
@@ -514,17 +527,11 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     reportNowPlaying(track);
 
     if (nativeEngine) {
+      if (!nativeReady()) return;
       nativeLoaded = true;
-      nativeLoad({
-        id: track.id,
-        url,
-        position: resumeAt,
-        autoplay: options.autoplay !== false,
-        volume: state.volume,
-        muted: state.muted,
-        repeatOne: state.repeat === "one",
-        next: nativeNextTrack(index),
-      });
+      nativeServerId = servers.activeId();
+      nativeQueueSignature = queueSignature(state.queue, state.repeat, state.shuffle, state.sourceName);
+      nativeLoad(nativeQueue(index, resumeAt, options.autoplay !== false));
       return;
     }
 
@@ -822,10 +829,12 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   }
 
   function next() {
+    if (nativeEngine && nativeLoaded) { nativeNext(); return; }
     advance(false);
   }
 
   function previous() {
+    if (nativeEngine && nativeLoaded) { nativePrevious(); return; }
     if (state.position > 3) {
       seek(0);
       return;
@@ -1133,7 +1142,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
   createEffect(() => {
     audio.volume = state.volume;
     audio.muted = state.muted;
-    if (nativeEngine) {
+    if (nativeEngine && nativeLoaded) {
       nativeSetVolume(state.volume);
       nativeSetMuted(state.muted);
     }
@@ -1224,14 +1233,26 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     }
   });
 
-  // Android: keep ExoPlayer's queued next song and repeat mode in step with
-  // the queue, so it can move on by itself while the screen is off.
+  // Queue edits are commands; the service owns position and progression.
   createEffect(() => {
-    if (!nativeEngine) return;
-    nativeSetRepeatOne(state.repeat === "one");
-    // Read here so the effect re-runs when the queue, index or source changes.
-    const next = nativeNextTrack(state.index);
-    if (untrack(() => nativeLoaded)) nativeSetNext(next);
+    const id = servers.activeId();
+    const client = servers.client();
+    if (pendingNativeSnapshot && id && client) {
+      const snapshot = pendingNativeSnapshot;
+      pendingNativeSnapshot = null;
+      untrack(() => handleNativeEvent(snapshot));
+    }
+  });
+
+  createEffect(() => {
+    if (!nativeEngine || !nativeReady()) return;
+    const signature = queueSignature(state.queue, state.repeat, state.shuffle, state.sourceName);
+    if (signature === nativeQueueSignature) return;
+    untrack(() => {
+      if (!nativeLoaded || nativeServerId !== servers.activeId() || !servers.client()) return;
+      nativeQueueSignature = signature;
+      nativeSetQueue(nativeQueue());
+    });
   });
 
   // Android: media notification, lock screen, Bluetooth buttons, Android Auto.
@@ -1306,7 +1327,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
 
   // Restore the previously playing queue once a client is available.
   createEffect(() => {
-    if (restoreAttempted) return;
+    if (!nativeReady() || restoreAttempted) return;
     const saved = persisted();
     const client = servers.client();
     const id = servers.activeId();
@@ -1364,8 +1385,8 @@ export function PlayerProvider(props: { children: JSX.Element }) {
         progress.index === saved.index && saved.queue[progress.index]?.id === progress.songId) {
         saved.position = progress.position;
       }
-      setPersisted(saved);
-      if (saved && typeof saved.volume === "number") {
+      if (!nativeLoaded) setPersisted(nativeRecovery ?? saved);
+      if (!nativeLoaded && saved && typeof saved.volume === "number") {
         setState("volume", saved.volume);
       }
     });
@@ -1392,6 +1413,7 @@ export function PlayerProvider(props: { children: JSX.Element }) {
     keep(onMpvState(applyMpvSnapshot));
     keep(onMpvEnd(handleMpvEnd));
     unlisteners.push(onNativePlayerEvent(handleNativeEvent));
+    if (nativeEngine) nativeSnapshot();
 
     const interval = setInterval(() => {
       if (state.playing) savePosition();
@@ -1412,7 +1434,6 @@ export function PlayerProvider(props: { children: JSX.Element }) {
       audio.pause();
       audio.removeAttribute("src");
       if (usingMpv()) void mpvStop().catch(() => undefined);
-      if (nativeEngine) nativeStop();
       for (const off of unlisteners) off();
       clearInterval(interval);
       clearInterval(discordHeartbeat);

@@ -58,19 +58,24 @@ object MediaBridge {
         view.addJavascriptInterface(JsInterface(), JS_NAME)
     }
 
-    /** The activity is going away for good: drop the notification too. */
-    fun detach(context: Context) {
+    fun detach() {
         webView = WeakReference(null)
-        current = null
-        main.post {
-            listener?.invoke(null)
-            context.applicationContext.stopService(Intent(context, PlaybackService::class.java))
-        }
     }
 
     /** Sends a media action back to the page. Safe to call from any thread. */
     fun dispatch(action: String, value: Double? = null) {
         main.post {
+            if (NativePlayer.inUse) {
+                when (action) {
+                    "play" -> NativePlayer.play()
+                    "pause" -> NativePlayer.pause()
+                    "next" -> NativePlayer.next()
+                    "previous" -> NativePlayer.previous()
+                    "stop" -> NativePlayer.stop()
+                    "seek" -> value?.let(NativePlayer::seek)
+                }
+                return@post
+            }
             val view = webView.get() ?: return@post
             val arg = value?.let { if (it.isFinite()) it.toString() else "null" } ?: "null"
             view.evaluateJavascript(
@@ -79,6 +84,8 @@ object MediaBridge {
             )
         }
     }
+
+    internal fun publish(state: NowPlaying?) = apply(state)
 
     private fun apply(state: NowPlaying?) {
         current = state
@@ -113,12 +120,12 @@ object MediaBridge {
                 Log.w(TAG, "Ignoring a malformed media update", error)
                 return
             }
-            main.post { apply(state) }
+            main.post { if (!NativePlayer.inUse) apply(state) }
         }
 
         @JavascriptInterface
         fun clear() {
-            main.post { apply(null) }
+            main.post { if (!NativePlayer.inUse) apply(null) }
         }
     }
 
