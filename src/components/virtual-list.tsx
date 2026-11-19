@@ -83,7 +83,12 @@ export function VirtualList<T>(props: {
         {(row) => (
           <div
             data-index={row.index}
-            ref={(element) => virtualizer.measureElement(element)}
+            ref={(element) => {
+              // Solid runs `ref` before it applies attributes, and the
+              // virtualizer needs `data-index` to know which row it measures.
+              element.setAttribute("data-index", String(row.index));
+              virtualizer.measureElement(element);
+            }}
             style={{
               position: "absolute",
               top: 0,

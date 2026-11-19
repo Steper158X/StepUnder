@@ -17,6 +17,7 @@ import {
   DEFAULT_WINDOW_OPACITY,
   MAX_GLASS_BLUR,
   accent,
+  albumPaging,
   coverShape,
   darkActive,
   font,
@@ -25,6 +26,7 @@ import {
   glassBrightnessLight,
   playerLayout,
   setAccent,
+  setAlbumPaging,
   setCoverShape,
   setFont,
   setGlassBlur,
@@ -39,6 +41,7 @@ import {
   windowEffect,
   windowOpacity,
   type Accent,
+  type AlbumPaging,
   type CoverShape,
   type Font,
   type PlayerLayout,
@@ -93,6 +96,11 @@ const uiStyleOptions: Array<{
 const coverShapeOptions: Array<{ value: CoverShape; key: MessageKey }> = [
   { value: "rounded", key: "settings.coverShape.rounded" },
   { value: "square", key: "settings.coverShape.square" },
+];
+
+const albumPagingOptions: Array<{ value: AlbumPaging; key: MessageKey }> = [
+  { value: "pages", key: "settings.albumPaging.pages" },
+  { value: "scroll", key: "settings.albumPaging.scroll" },
 ];
 
 const fontOptions: Array<{ value: Font; key: MessageKey }> = [
@@ -285,6 +293,20 @@ export default function AppearanceSettingsPage() {
                 )}
               />
             ),
+          }))}
+        />
+      </Row>
+
+      <Row
+        label={t("settings.albumPaging")}
+        description={t("settings.albumPagingHint")}
+      >
+        <Segmented
+          value={albumPaging()}
+          onChange={setAlbumPaging}
+          options={albumPagingOptions.map((option) => ({
+            value: option.value,
+            label: t(option.key),
           }))}
         />
       </Row>

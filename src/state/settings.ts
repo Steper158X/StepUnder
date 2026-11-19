@@ -73,6 +73,9 @@ export const LYRICS_BLUR_MAX: Record<LyricsBlur, number> = {
   strong: 6,
 };
 
+/** How the albums page loads more: numbered pages, or appending on scroll. */
+export type AlbumPaging = "pages" | "scroll";
+
 /** Folder layout for downloaded files, inside the download folder. */
 export type DownloadLayout = "artist-album" | "album" | "flat";
 
@@ -106,6 +109,7 @@ const playerLayout = (): PlayerLayout =>
   isNarrow() ? "floating" : savedPlayerLayoutSignal();
 const [uiStyle, setUiStyleSignal] = createSignal<UiStyle>("standard");
 const [coverShape, setCoverShapeSignal] = createSignal<CoverShape>("rounded");
+const [albumPaging, setAlbumPagingSignal] = createSignal<AlbumPaging>("pages");
 const [glassBrightness, setGlassBrightnessSignal] = createSignal(
   DEFAULT_GLASS_BRIGHTNESS,
 );
@@ -173,6 +177,7 @@ export {
   playerLayout,
   uiStyle,
   coverShape,
+  albumPaging,
   glassBrightness,
   glassBrightnessLight,
   darkActive,
@@ -349,6 +354,7 @@ export async function initSettings(): Promise<void> {
     savedCoverCacheMaxMb,
     savedCoverCacheMaxDays,
     savedCoverShape,
+    savedAlbumPaging,
   ] = await Promise.all([
     readSetting<Theme>("theme", "dark"),
     readSetting<boolean>("scrobble", true),
@@ -384,6 +390,7 @@ export async function initSettings(): Promise<void> {
     readSetting<number>("coverCacheMaxMb", DEFAULT_COVER_CACHE_MAX_MB),
     readSetting<number>("coverCacheMaxDays", DEFAULT_COVER_CACHE_MAX_DAYS),
     readSetting<CoverShape>("coverShape", "rounded"),
+    readSetting<AlbumPaging>("albumPaging", "pages"),
   ]);
 
   const nextTheme: Theme =
@@ -457,6 +464,7 @@ export async function initSettings(): Promise<void> {
   const nextCoverShape: CoverShape =
     savedCoverShape === "square" ? "square" : "rounded";
   setCoverShapeSignal(nextCoverShape);
+  setAlbumPagingSignal(savedAlbumPaging === "scroll" ? "scroll" : "pages");
   const nextGlassBrightness = clampSetting(
     savedGlassBrightness,
     100,
@@ -550,6 +558,11 @@ export function setCoverShape(value: CoverShape): void {
   setCoverShapeSignal(value);
   applyCoverShape(value);
   void writeSetting("coverShape", value);
+}
+
+export function setAlbumPaging(value: AlbumPaging): void {
+  setAlbumPagingSignal(value);
+  void writeSetting("albumPaging", value);
 }
 
 /** Updates the look live; pass `save: false` while a slider is still dragging. */
